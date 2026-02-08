@@ -621,7 +621,7 @@ class _TableQrDialog extends StatelessWidget {
               ),
               child: Text(
                 _selfOrderUrl,
-                style: GoogleFonts.inter(
+                style: const TextStyle(
                   fontSize: 11,
                   color: AppTheme.textSecondary,
                   fontFamily: 'monospace',
