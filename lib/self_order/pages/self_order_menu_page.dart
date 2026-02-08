@@ -139,23 +139,11 @@ class _SelfOrderMenuPageState extends ConsumerState<SelfOrderMenuPage>
         children: [
           Row(
             children: [
-              // Outlet logo / icon
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primaryColor, AppTheme.primaryDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.restaurant_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
+              // Outlet logo
+              Image.asset(
+                'assets/images/logo_utter_dark_sm.png',
+                height: 32,
+                fit: BoxFit.contain,
               ),
               const SizedBox(width: 12),
               Expanded(

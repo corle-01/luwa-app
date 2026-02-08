@@ -93,40 +93,12 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
                     const SizedBox(height: 32),
 
                     // ── Utter branding ──
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                const Color(0xFF4F46E5).withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.restaurant_menu,
-                        size: 36,
-                        color: Colors.white,
-                      ),
+                    Image.asset(
+                      'assets/images/logo_collab_dark_sm.png',
+                      width: 240,
+                      fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Utter App',
-                      style: GoogleFonts.inter(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Text(
                       'Self-Order',
                       style: GoogleFonts.inter(
@@ -272,12 +244,11 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
                     const SizedBox(height: 40),
 
                     // ── Footer ──
-                    Text(
-                      'Powered by Utter App',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppTheme.textTertiary,
-                      ),
+                    Image.asset(
+                      'assets/images/logo_utter_dark_sm.png',
+                      width: 100,
+                      fit: BoxFit.contain,
+                      opacity: const AlwaysStoppedAnimation(0.4),
                     ),
                     const SizedBox(height: 16),
                   ],

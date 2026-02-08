@@ -18,18 +18,20 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Utter App - AI-Integrated F&B POS Management System">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="utter_app">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="Utter App">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="icon" type="image/png" href="favicon.png">
 
-  <title>utter_app</title>
+  <title>Utter App</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -46,28 +48,11 @@
       z-index: 999;
       transition: opacity 0.3s ease;
     }
-    .loading-screen .logo-box {
-      width: 80px;
-      height: 80px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-    .loading-screen .logo-box svg {
-      width: 44px;
-      height: 44px;
-      fill: white;
-    }
-    .loading-screen .app-name {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 36px;
-      font-weight: 800;
-      color: white;
-      letter-spacing: -0.5px;
-      margin: 0;
+    .loading-screen .logo-img {
+      width: 240px;
+      height: auto;
+      margin-bottom: 12px;
+      filter: brightness(0) invert(1);
     }
     .loading-screen .app-slogan {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -88,10 +73,7 @@
     }
   </style>
   <div class="loading-screen" id="loading-screen">
-    <div class="logo-box">
-      <svg viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
-    </div>
-    <p class="app-name">Utter App</p>
+    <img class="logo-img" src="icons/Icon-512.png" alt="Utter App">
     <p class="app-slogan">Smart POS for Modern F&B</p>
     <div class="loading-spinner"></div>
   </div>

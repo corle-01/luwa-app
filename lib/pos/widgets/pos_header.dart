@@ -62,19 +62,11 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Utter logo (small indigo square icon)
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(
-                  Icons.store,
-                  color: Colors.white,
-                  size: 16,
-                ),
+              // Utter logo
+              Image.asset(
+                'assets/images/logo_utter_dark_sm.png',
+                height: 24,
+                fit: BoxFit.contain,
               ),
               const SizedBox(width: 16),
               // Clock with monospace look

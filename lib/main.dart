@@ -159,20 +159,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 80, height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(Icons.restaurant_menu, size: 44, color: Colors.white),
+                Image.asset(
+                  'assets/images/logo_utter_light.png',
+                  width: 240,
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  AppConstants.appName,
-                  style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
-                ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 12),
                 Text(
                   AppConstants.appSlogan,
                   style: GoogleFonts.inter(fontSize: 14, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w400),
@@ -219,17 +211,12 @@ class RoleSelectionPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo
-              Container(
-                width: 56, height: 56,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)]),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.restaurant_menu, size: 28, color: Colors.white),
+              Image.asset(
+                'assets/images/logo_utter_dark.png',
+                width: 200,
+                fit: BoxFit.contain,
               ),
-              const SizedBox(height: 12),
-              Text('Utter App', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text('Pilih mode untuk masuk', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textSecondary)),
               const SizedBox(height: 40),
 
@@ -263,7 +250,13 @@ class RoleSelectionPage extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
+              Image.asset(
+                'assets/images/logo_collab_dark_sm.png',
+                width: 180,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 8),
               Text(
                 'v1.0.0',
                 style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiary),
@@ -429,12 +422,19 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
                     child: Column(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          width: 40, height: 40,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)]),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 24),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.asset(
+                              'assets/images/logo_utter_dark.png',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text('Utter', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
