@@ -379,6 +379,10 @@ class _RecentOrdersList extends StatelessWidget {
         return 'E-Wallet';
       case 'bank_transfer':
         return 'Transfer';
+      case 'e_wallet':
+        return 'E-Wallet';
+      case 'split':
+        return 'Split';
       default:
         return FormatUtils.capitalize(method);
     }
@@ -396,6 +400,10 @@ class _RecentOrdersList extends StatelessWidget {
         return Icons.account_balance_wallet_outlined;
       case 'bank_transfer':
         return Icons.account_balance_outlined;
+      case 'e_wallet':
+        return Icons.account_balance_wallet_outlined;
+      case 'split':
+        return Icons.call_split;
       default:
         return Icons.payment_outlined;
     }

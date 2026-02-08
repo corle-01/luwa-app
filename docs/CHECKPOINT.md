@@ -20,7 +20,7 @@
 
 ---
 
-## PHASE 1 — POS KASIR ✅ ~95%
+## PHASE 1 — POS KASIR ✅ 100%
 
 ### 1A. Shift Management ✅
 - [x] Open shift (pilih kasir, input opening cash)
@@ -58,7 +58,7 @@
 - [x] Debit Card
 - [x] E-Wallet
 - [x] Bank Transfer
-- [ ] Split payment (multi-method)
+- [x] Split payment (multi-method)
 
 ### 1F. Refund ✅
 - [x] Refund dialog UI (full/partial refund)
@@ -326,11 +326,9 @@
 
 ## TODO NEXT (Belum dikerjakan)
 
-### Fix: AI Settings belum masuk Settings Hub
-- File: `lib/backoffice/pages/settings_hub_page.dart`
-- `AiSettingsPage` sudah ada di `lib/backoffice/ai/pages/ai_settings_page.dart`
-- Tapi BELUM ditambahkan sebagai item di `_items` list dan `_navigateTo` switch
-- Error "trust setting not found" perlu diinvestigasi juga (mungkin tabel `ai_trust_settings` belum ada/belum di-seed)
+### ~~Fix: AI Settings belum masuk Settings Hub~~ ✅ DONE
+- Ditambahkan sebagai item ke-13 di Settings Hub (_items list + _navigateTo switch)
+- Icon: smart_toy_rounded, color: #8B5CF6
 
 ### Saran DeepSeek — Kekurangan Fitur (perlu review)
 DeepSeek menyarankan 10 kekurangan. Setelah cross-check, **7 sudah ada**, 3 benar-benar belum:
@@ -338,7 +336,7 @@ DeepSeek menyarankan 10 kekurangan. Setelah cross-check, **7 sudah ada**, 3 bena
 | # | Saran | Status |
 |---|-------|--------|
 | 1 | Shift & Kasir | SUDAH ADA (Phase 1A) |
-| 2 | Stok Produk Jadi | BELUM (baru stok bahan baku/ingredient) |
+| 2 | Stok Produk Jadi | ✅ DONE (product_stock_movements + UI tab "Produk Jadi") |
 | 3 | Laporan Keuangan Lengkap | PARTIAL (HPP+margin ada, full P&L belum) |
 | 4 | Manajemen Pelanggan | SUDAH ADA (Phase 2F + Loyalty) |
 | 5 | Manajemen Karyawan | SUDAH ADA (Phase 2G, role/PIN) |
@@ -353,15 +351,13 @@ DeepSeek menyarankan 10 kekurangan. Setelah cross-check, **7 sudah ada**, 3 bena
 - BADAN (Action): AI bisa langsung eksekusi perintah (tambah menu, update harga, dll)
 - PERASAAN (Prediksi): AI prediksi demand besok, saran restock, analisis cuaca/tren
 
-### Fix: Online Food Order ID harus auto-generate
-- Saat ini order ID di online food masih input manual
-- Seharusnya auto-generate mengikuti sequence order POS (urutan yang sama)
-- Saat online order di-accept, otomatis dapat order ID berikutnya seperti order POS biasa
+### ~~Fix: Online Food Order ID harus auto-generate~~ ✅ DONE
+- Sekarang pakai `generate_order_number` RPC (sequence sama dengan POS)
 
 ### Improvement kecil yang relevan
-1. **Split bill / partial payment** — belum ada, sering dibutuhkan coffee shop
-2. **Stok produk jadi** — baru ada stok bahan baku, finished goods belum
-3. **Digital receipt WhatsApp/email** — sekarang cuma print browser
+1. ~~**Split bill / partial payment**~~ ✅ DONE — toggle split mode, multi-method (up to 5), migration `019_split_payment.sql`
+2. ~~**Stok produk jadi**~~ ✅ DONE — migration `018_product_stock.sql`, tab "Produk Jadi" di Inventori
+3. **Digital receipt WhatsApp/email** — SKIP (untuk saat ini)
 
 ### Feature: Multi-Image Upload per Produk
 Plan lengkap ada di `/home/awing/.claude/plans/floofy-tickling-hopper.md`
@@ -382,7 +378,7 @@ Plan lengkap ada di `/home/awing/.claude/plans/floofy-tickling-hopper.md`
 | Phase | Progress | Status |
 |-------|----------|--------|
 | Phase 0 - Foundation | 100% | ✅ Done |
-| Phase 1 - POS Kasir | ~95% | ✅ Almost complete (split pay remaining) |
+| Phase 1 - POS Kasir | 100% | ✅ Done (split payment added) |
 | Phase 2 - Back Office | ✅ 100% | ✅ Done (QR added via Phase 5) |
 | Phase 3 - Reports | 100% | ✅ Done (email report tidak perlu) |
 | Phase 4 - KDS | ~90% | ✅ Almost complete (sound notification remaining) |

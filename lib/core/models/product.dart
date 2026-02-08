@@ -9,6 +9,8 @@ class Product {
   final String? imageUrl;
   final bool isAvailable;
   final bool trackStock;
+  final int stockQuantity;
+  final int minStock;
   final int sortOrder;
   final String? outletId;
   int? calculatedAvailableQty;
@@ -24,6 +26,8 @@ class Product {
     this.imageUrl,
     this.isAvailable = true,
     this.trackStock = true,
+    this.stockQuantity = 0,
+    this.minStock = 0,
     this.sortOrder = 0,
     this.outletId,
     this.calculatedAvailableQty,
@@ -41,6 +45,8 @@ class Product {
       imageUrl: json['image_url'] as String?,
       isAvailable: json['is_available'] as bool? ?? true,
       trackStock: json['track_stock'] as bool? ?? true,
+      stockQuantity: json['stock_quantity'] as int? ?? 0,
+      minStock: json['min_stock'] as int? ?? 0,
       sortOrder: json['sort_order'] as int? ?? 0,
       outletId: json['outlet_id'] as String?,
     );
@@ -56,6 +62,8 @@ class Product {
     'image_url': imageUrl,
     'is_available': isAvailable,
     'track_stock': trackStock,
+    'stock_quantity': stockQuantity,
+    'min_stock': minStock,
     'sort_order': sortOrder,
     'outlet_id': outletId,
   };
@@ -71,6 +79,8 @@ class Product {
     String? imageUrl,
     bool? isAvailable,
     bool? trackStock,
+    int? stockQuantity,
+    int? minStock,
     int? sortOrder,
     String? outletId,
     int? calculatedAvailableQty,
@@ -86,6 +96,8 @@ class Product {
       imageUrl: imageUrl ?? this.imageUrl,
       isAvailable: isAvailable ?? this.isAvailable,
       trackStock: trackStock ?? this.trackStock,
+      stockQuantity: stockQuantity ?? this.stockQuantity,
+      minStock: minStock ?? this.minStock,
       sortOrder: sortOrder ?? this.sortOrder,
       outletId: outletId ?? this.outletId,
       calculatedAvailableQty: calculatedAvailableQty ?? this.calculatedAvailableQty,

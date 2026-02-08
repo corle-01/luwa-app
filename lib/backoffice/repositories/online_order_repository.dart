@@ -377,10 +377,16 @@ class OnlineOrderRepository {
       throw Exception('Order is not in incoming status — cannot accept');
     }
 
-    // Generate order number with platform prefix
-    final prefix = onlineOrder.platform.toUpperCase().substring(0, 2);
-    final orderNumber =
-        '$prefix-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    // Use same order sequence as POS
+    String orderNumber;
+    try {
+      final result = await _supabase.rpc('generate_order_number',
+          params: {'p_outlet_id': onlineOrder.outletId});
+      orderNumber = result as String? ??
+          'ORD-${DateTime.now().millisecondsSinceEpoch}';
+    } catch (_) {
+      orderNumber = 'ORD-${DateTime.now().millisecondsSinceEpoch}';
+    }
 
     // Step 2: Create internal order as 'pending'
     // Note: We insert as 'pending' first. The order stays pending until

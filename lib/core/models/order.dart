@@ -20,6 +20,7 @@ class Order {
   final double totalAmount;
   final double amountPaid;
   final double changeAmount;
+  final List<Map<String, dynamic>>? paymentDetails;
   final String? notes;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -47,6 +48,7 @@ class Order {
     this.totalAmount = 0,
     this.amountPaid = 0,
     this.changeAmount = 0,
+    this.paymentDetails,
     this.notes,
     required this.createdAt,
     this.updatedAt,
@@ -76,6 +78,10 @@ class Order {
       totalAmount: (json['total'] as num?)?.toDouble() ?? 0,
       amountPaid: (json['amount_paid'] as num?)?.toDouble() ?? 0,
       changeAmount: (json['change_amount'] as num?)?.toDouble() ?? 0,
+      paymentDetails: json['payment_details'] != null
+          ? List<Map<String, dynamic>>.from(
+              (json['payment_details'] as List).map((e) => Map<String, dynamic>.from(e)))
+          : null,
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
@@ -97,6 +103,7 @@ class Order {
     'tax_amount': taxAmount,
     'service_charge_amount': serviceCharge,
     'total': totalAmount,
+    'payment_details': paymentDetails,
     'notes': notes,
   };
 }

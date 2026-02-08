@@ -104,7 +104,17 @@ class ReceiptPrinter {
 
     // Payment info
     buf.writeln('<div class="totals-section">');
-    buf.writeln(_totalRow('Bayar (${_paymentLabel(order.paymentMethod)})', FormatUtils.currency(order.amountPaid)));
+    if (order.paymentMethod == 'split' && order.paymentDetails != null && order.paymentDetails!.isNotEmpty) {
+      buf.writeln(_totalRow('Pembayaran', 'Split'));
+      for (final detail in order.paymentDetails!) {
+        final method = detail['method'] as String? ?? '';
+        final amount = (detail['amount'] as num?)?.toDouble() ?? 0;
+        final label = detail['label'] as String? ?? _paymentLabel(method);
+        buf.writeln(_totalRow('  $label', FormatUtils.currency(amount)));
+      }
+    } else {
+      buf.writeln(_totalRow('Bayar (${_paymentLabel(order.paymentMethod)})', FormatUtils.currency(order.amountPaid)));
+    }
     if (order.changeAmount > 0) {
       buf.writeln(_totalRow('Kembali', FormatUtils.currency(order.changeAmount)));
     }
@@ -146,6 +156,8 @@ class ReceiptPrinter {
         return 'E-Wallet';
       case 'bank_transfer':
         return 'Transfer';
+      case 'split':
+        return 'Split Payment';
       default:
         return method.toUpperCase();
     }

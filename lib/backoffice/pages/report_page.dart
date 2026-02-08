@@ -530,6 +530,10 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         return 'Transfer Bank';
       case 'card':
         return 'Kartu Debit/Kredit';
+      case 'e_wallet':
+        return 'E-Wallet';
+      case 'split':
+        return 'Split Payment';
       default:
         return FormatUtils.titleCase(method.replaceAll('_', ' '));
     }
@@ -547,6 +551,10 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         return Icons.account_balance_outlined;
       case 'card':
         return Icons.credit_card;
+      case 'e_wallet':
+        return Icons.account_balance_wallet_outlined;
+      case 'split':
+        return Icons.call_split;
       default:
         return Icons.payment;
     }
@@ -564,6 +572,10 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         return AppTheme.infoColor;
       case 'card':
         return AppTheme.aiPrimary;
+      case 'e_wallet':
+        return AppTheme.accentColor;
+      case 'split':
+        return AppTheme.warningColor;
       default:
         return AppTheme.textSecondary;
     }

@@ -376,6 +376,7 @@ class _PosOrderHistoryPageState extends ConsumerState<PosOrderHistoryPage> {
                       DropdownMenuItem(value: 'debit', child: Text('Debit')),
                       DropdownMenuItem(value: 'e_wallet', child: Text('E-Wallet')),
                       DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
+                      DropdownMenuItem(value: 'split', child: Text('Split Payment')),
                     ],
                     onChanged: _setPaymentMethodFilter,
                   ),
@@ -610,6 +611,8 @@ class _OrderCard extends ConsumerWidget {
         return 'E-Wallet';
       case 'bank_transfer':
         return 'Bank Transfer';
+      case 'split':
+        return 'Split';
       default:
         return method.toUpperCase();
     }
@@ -627,6 +630,8 @@ class _OrderCard extends ConsumerWidget {
         return Icons.account_balance_wallet;
       case 'bank_transfer':
         return Icons.account_balance;
+      case 'split':
+        return Icons.call_split;
       default:
         return Icons.payment;
     }

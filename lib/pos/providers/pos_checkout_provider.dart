@@ -28,6 +28,7 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
     required String paymentMethod,
     double? amountPaid,
     double? changeAmount,
+    List<Map<String, dynamic>>? paymentDetails,
   }) async {
     state = const AsyncLoading();
 
@@ -72,6 +73,7 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
         discountId: cart.discount?.id,
         customerId: cart.customer?.id,
         tableId: cart.tableId,
+        paymentDetails: paymentDetails,
       );
 
       if (cart.orderType == 'dine_in' && cart.tableId != null) {

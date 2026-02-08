@@ -3,135 +3,79 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
-import '../providers/inventory_provider.dart';
 import '../providers/product_stock_provider.dart';
-import '../repositories/inventory_repository.dart';
-import 'product_stock_page.dart';
+import '../repositories/product_stock_repository.dart';
 
 const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
-class InventoryPage extends ConsumerWidget {
-  const InventoryPage({super.key});
+/// Standalone page with Scaffold (for direct navigation).
+class ProductStockPage extends ConsumerWidget {
+  const ProductStockPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ingredientsAsync = ref.watch(ingredientsProvider);
-    final movementsAsync = ref.watch(stockMovementsProvider);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Stok Produk Jadi'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () {
+              ref.invalidate(productStockListProvider);
+              ref.invalidate(allProductStockMovementsProvider);
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: const ProductStockContent(),
+    );
+  }
+}
 
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Inventori & Stok'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Refresh',
-              onPressed: () {
-                ref.invalidate(ingredientsProvider);
-                ref.invalidate(stockMovementsProvider);
-                ref.invalidate(productStockListProvider);
-                ref.invalidate(allProductStockMovementsProvider);
-              },
+/// Embeddable content widget (no Scaffold) -- used as a tab inside InventoryPage.
+class ProductStockContent extends ConsumerWidget {
+  const ProductStockContent({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stockAsync = ref.watch(productStockListProvider);
+
+    return stockAsync.when(
+      data: (products) {
+        final tracked = products.where((p) => p.trackStock).toList();
+        final lowStockItems = tracked
+            .where((p) => p.isLowStock || p.isOutOfStock)
+            .toList();
+        final totalStockValue = tracked.fold<double>(
+          0,
+          (sum, p) => sum + p.stockValue,
+        );
+
+        return Column(
+          children: [
+            // Summary cards
+            _SummaryRow(
+              totalTracked: tracked.length,
+              lowStockCount: lowStockItems.length,
+              totalStockValue: totalStockValue,
             ),
-            const SizedBox(width: 8),
+            const Divider(height: 1),
+            // Product stock table
+            Expanded(
+              child: _ProductStockTable(
+                products: products,
+                ref: ref,
+              ),
+            ),
           ],
-          bottom: TabBar(
-            isScrollable: true,
-            labelStyle: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-            unselectedLabelStyle: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-            tabs: const [
-              Tab(text: 'Semua Bahan'),
-              Tab(text: 'Stok Rendah'),
-              Tab(text: 'Riwayat'),
-              Tab(text: 'Produk Jadi'),
-            ],
-          ),
-        ),
-        body: ingredientsAsync.when(
-          data: (ingredients) {
-            final lowStockItems = ingredients
-                .where((i) => i.isLowStock || i.isOutOfStock)
-                .toList();
-            final totalStockValue = ingredients.fold<double>(
-              0,
-              (sum, i) => sum + i.stockValue,
-            );
-
-            return Column(
-              children: [
-                // Summary cards
-                _SummaryRow(
-                  totalIngredients: ingredients.length,
-                  lowStockCount: lowStockItems.length,
-                  totalStockValue: totalStockValue,
-                ),
-                const Divider(height: 1),
-                // Tab content
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      // Tab 1: Semua Bahan
-                      _IngredientsTable(
-                        ingredients: ingredients,
-                        ref: ref,
-                      ),
-                      // Tab 2: Stok Rendah
-                      lowStockItems.isEmpty
-                          ? _EmptyState(
-                              icon: Icons.check_circle_outline,
-                              iconColor: AppTheme.successColor,
-                              title: 'Semua stok aman',
-                              subtitle:
-                                  'Tidak ada bahan dengan stok rendah saat ini',
-                            )
-                          : _IngredientsTable(
-                              ingredients: lowStockItems,
-                              ref: ref,
-                            ),
-                      // Tab 3: Riwayat
-                      movementsAsync.when(
-                        data: (movements) {
-                          if (movements.isEmpty) {
-                            return _EmptyState(
-                              icon: Icons.history,
-                              iconColor: AppTheme.textTertiary,
-                              title: 'Belum ada riwayat',
-                              subtitle:
-                                  'Riwayat pergerakan stok akan muncul di sini',
-                            );
-                          }
-                          return _MovementsList(movements: movements);
-                        },
-                        loading: () => const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                        error: (e, _) => _ErrorState(
-                          message: e.toString(),
-                          onRetry: () =>
-                              ref.invalidate(stockMovementsProvider),
-                        ),
-                      ),
-                      // Tab 4: Produk Jadi (embedded)
-                      const ProductStockContent(),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => _ErrorState(
-            message: e.toString(),
-            onRetry: () => ref.invalidate(ingredientsProvider),
-          ),
-        ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => _ErrorState(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(productStockListProvider),
       ),
     );
   }
@@ -142,12 +86,12 @@ class InventoryPage extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _SummaryRow extends StatelessWidget {
-  final int totalIngredients;
+  final int totalTracked;
   final int lowStockCount;
   final double totalStockValue;
 
   const _SummaryRow({
-    required this.totalIngredients,
+    required this.totalTracked,
     required this.lowStockCount,
     required this.totalStockValue,
   });
@@ -163,8 +107,8 @@ class _SummaryRow extends StatelessWidget {
             child: _SummaryCard(
               icon: Icons.inventory_2_outlined,
               iconColor: AppTheme.primaryColor,
-              label: 'Total Bahan',
-              value: totalIngredients.toString(),
+              label: 'Dilacak',
+              value: totalTracked.toString(),
             ),
           ),
           const SizedBox(width: 12),
@@ -279,26 +223,26 @@ class _SummaryCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Ingredients Table
+// Product Stock Table
 // ---------------------------------------------------------------------------
 
-class _IngredientsTable extends StatelessWidget {
-  final List<IngredientModel> ingredients;
+class _ProductStockTable extends StatelessWidget {
+  final List<ProductStockModel> products;
   final WidgetRef ref;
 
-  const _IngredientsTable({
-    required this.ingredients,
+  const _ProductStockTable({
+    required this.products,
     required this.ref,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (ingredients.isEmpty) {
-      return _EmptyState(
+    if (products.isEmpty) {
+      return const _EmptyState(
         icon: Icons.inventory_2_outlined,
         iconColor: AppTheme.textTertiary,
-        title: 'Belum ada bahan',
-        subtitle: 'Tambah bahan baku untuk mulai mengelola inventori',
+        title: 'Belum ada produk',
+        subtitle: 'Produk yang dilacak stoknya akan muncul di sini',
       );
     }
 
@@ -327,29 +271,30 @@ class _IngredientsTable extends StatelessWidget {
             ),
           ),
           columns: const [
-            DataColumn(label: Text('Nama')),
-            DataColumn(label: Text('Unit')),
+            DataColumn(label: Text('Produk')),
+            DataColumn(label: Text('Lacak')),
             DataColumn(label: Text('Stok'), numeric: true),
             DataColumn(label: Text('Min'), numeric: true),
             DataColumn(label: Text('Status')),
             DataColumn(label: Text('Aksi')),
           ],
-          rows: ingredients.map((ingredient) {
+          rows: products.map((product) {
             return DataRow(
               cells: [
-                // Nama
+                // Produk name + category
                 DataCell(
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ingredient.name,
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        product.name,
+                        style:
+                            GoogleFonts.inter(fontWeight: FontWeight.w600),
                       ),
-                      if (ingredient.supplierName != null)
+                      if (product.categoryName != null)
                         Text(
-                          ingredient.supplierName!,
+                          product.categoryName!,
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             color: AppTheme.textTertiary,
@@ -358,48 +303,79 @@ class _IngredientsTable extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Unit
-                DataCell(Text(ingredient.unit)),
-                // Stok
+                // Track toggle
+                DataCell(
+                  Switch(
+                    value: product.trackStock,
+                    onChanged: (val) async {
+                      final repo = ProductStockRepository();
+                      await repo.toggleTrackStock(product.id, val);
+                      ref.invalidate(productStockListProvider);
+                    },
+                    materialTapTargetSize:
+                        MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                // Stok quantity
                 DataCell(
                   Text(
-                    FormatUtils.number(ingredient.currentStock,
-                        decimals: ingredient.currentStock ==
-                                ingredient.currentStock.roundToDouble()
-                            ? 0
-                            : 2),
+                    product.trackStock
+                        ? product.stockQuantity.toString()
+                        : '-',
                     style: GoogleFonts.inter(
                       fontWeight: FontWeight.w600,
-                      color: ingredient.isOutOfStock
-                          ? AppTheme.errorColor
-                          : ingredient.isLowStock
-                              ? AppTheme.warningColor
-                              : AppTheme.textPrimary,
+                      color: !product.trackStock
+                          ? AppTheme.textTertiary
+                          : product.isOutOfStock
+                              ? AppTheme.errorColor
+                              : product.isLowStock
+                                  ? AppTheme.warningColor
+                                  : AppTheme.textPrimary,
                     ),
                   ),
                 ),
-                // Min
+                // Min stock
                 DataCell(
                   Text(
-                    FormatUtils.number(ingredient.minStock,
-                        decimals: ingredient.minStock ==
-                                ingredient.minStock.roundToDouble()
-                            ? 0
-                            : 2),
+                    product.trackStock
+                        ? product.minStock.toString()
+                        : '-',
+                    style: GoogleFonts.inter(
+                      color: product.trackStock
+                          ? AppTheme.textPrimary
+                          : AppTheme.textTertiary,
+                    ),
                   ),
                 ),
                 // Status badge
-                DataCell(_StatusBadge(ingredient: ingredient)),
-                // Aksi
+                DataCell(_StatusBadge(product: product)),
+                // Actions
                 DataCell(
-                  IconButton(
-                    icon: const Icon(Icons.tune, size: 20),
-                    tooltip: 'Sesuaikan Stok',
-                    onPressed: () => _showAdjustmentDialog(
-                      context,
-                      ref,
-                      ingredient,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline,
+                            size: 20),
+                        tooltip: 'Stok Masuk / Keluar',
+                        onPressed: product.trackStock
+                            ? () => _showStockMovementDialog(
+                                  context,
+                                  ref,
+                                  product,
+                                )
+                            : null,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.history, size: 20),
+                        tooltip: 'Riwayat',
+                        onPressed: () => _showMovementHistory(
+                          context,
+                          ref,
+                          product,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -410,19 +386,33 @@ class _IngredientsTable extends StatelessWidget {
     );
   }
 
-  void _showAdjustmentDialog(
+  void _showStockMovementDialog(
     BuildContext context,
     WidgetRef ref,
-    IngredientModel ingredient,
+    ProductStockModel product,
   ) {
     showDialog(
       context: context,
-      builder: (context) => _StockAdjustmentDialog(
-        ingredient: ingredient,
+      builder: (context) => _StockMovementDialog(
+        product: product,
         onSaved: () {
-          ref.invalidate(ingredientsProvider);
-          ref.invalidate(stockMovementsProvider);
+          ref.invalidate(productStockListProvider);
+          ref.invalidate(allProductStockMovementsProvider);
         },
+      ),
+    );
+  }
+
+  void _showMovementHistory(
+    BuildContext context,
+    WidgetRef ref,
+    ProductStockModel product,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => _MovementHistoryDialog(
+        product: product,
+        ref: ref,
       ),
     );
   }
@@ -433,19 +423,37 @@ class _IngredientsTable extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _StatusBadge extends StatelessWidget {
-  final IngredientModel ingredient;
+  final ProductStockModel product;
 
-  const _StatusBadge({required this.ingredient});
+  const _StatusBadge({required this.product});
 
   @override
   Widget build(BuildContext context) {
+    if (!product.trackStock) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppTheme.textTertiary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        ),
+        child: Text(
+          'Tidak Dilacak',
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textTertiary,
+          ),
+        ),
+      );
+    }
+
     final String label;
     final Color color;
 
-    if (ingredient.isOutOfStock) {
+    if (product.isOutOfStock) {
       label = 'Habis';
       color = AppTheme.errorColor;
-    } else if (ingredient.isLowStock) {
+    } else if (product.isLowStock) {
       label = 'Rendah';
       color = AppTheme.warningColor;
     } else {
@@ -472,11 +480,11 @@ class _StatusBadge extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Movements List (Riwayat)
+// Movements List (Riwayat tab)
 // ---------------------------------------------------------------------------
 
 class _MovementsList extends StatelessWidget {
-  final List<StockMovement> movements;
+  final List<ProductStockMovement> movements;
 
   const _MovementsList({required this.movements});
 
@@ -495,7 +503,7 @@ class _MovementsList extends StatelessWidget {
 }
 
 class _MovementCard extends StatelessWidget {
-  final StockMovement movement;
+  final ProductStockMovement movement;
 
   const _MovementCard({required this.movement});
 
@@ -505,7 +513,6 @@ class _MovementCard extends StatelessWidget {
     final quantityColor =
         isPositive ? AppTheme.successColor : AppTheme.errorColor;
     final quantityPrefix = isPositive ? '+' : '';
-    final unitLabel = movement.ingredientUnit ?? '';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -540,7 +547,7 @@ class _MovementCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        movement.ingredientName ?? '-',
+                        movement.productName ?? '-',
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -550,7 +557,8 @@ class _MovementCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    _TypeBadge(type: movement.type, label: movement.typeLabel),
+                    _TypeBadge(
+                        type: movement.type, label: movement.typeLabel),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -593,7 +601,7 @@ class _MovementCard extends StatelessWidget {
           const SizedBox(width: 12),
           // Quantity
           Text(
-            '$quantityPrefix${FormatUtils.number(movement.quantity, decimals: movement.quantity == movement.quantity.roundToDouble() ? 0 : 2)} $unitLabel',
+            '$quantityPrefix${movement.quantity} pcs',
             style: GoogleFonts.inter(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -607,16 +615,18 @@ class _MovementCard extends StatelessWidget {
 
   Color _typeColor(String type) {
     switch (type) {
-      case 'purchase':
+      case 'stock_in':
         return AppTheme.successColor;
+      case 'stock_out':
+        return AppTheme.errorColor;
       case 'adjustment':
         return AppTheme.infoColor;
-      case 'waste':
-        return AppTheme.errorColor;
-      case 'transfer':
-        return AppTheme.accentColor;
       case 'production':
         return AppTheme.primaryColor;
+      case 'sale':
+        return AppTheme.accentColor;
+      case 'return':
+        return AppTheme.secondaryColor;
       default:
         return AppTheme.textSecondary;
     }
@@ -624,16 +634,18 @@ class _MovementCard extends StatelessWidget {
 
   IconData _typeIcon(String type) {
     switch (type) {
-      case 'purchase':
-        return Icons.shopping_cart_outlined;
+      case 'stock_in':
+        return Icons.arrow_downward;
+      case 'stock_out':
+        return Icons.arrow_upward;
       case 'adjustment':
         return Icons.tune;
-      case 'waste':
-        return Icons.delete_outline;
-      case 'transfer':
-        return Icons.swap_horiz;
       case 'production':
         return Icons.precision_manufacturing_outlined;
+      case 'sale':
+        return Icons.point_of_sale;
+      case 'return':
+        return Icons.undo;
       default:
         return Icons.circle_outlined;
     }
@@ -650,20 +662,23 @@ class _TypeBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     Color color;
     switch (type) {
-      case 'purchase':
+      case 'stock_in':
         color = AppTheme.successColor;
+        break;
+      case 'stock_out':
+        color = AppTheme.errorColor;
         break;
       case 'adjustment':
         color = AppTheme.infoColor;
         break;
-      case 'waste':
-        color = AppTheme.errorColor;
-        break;
-      case 'transfer':
-        color = AppTheme.accentColor;
-        break;
       case 'production':
         color = AppTheme.primaryColor;
+        break;
+      case 'sale':
+        color = AppTheme.accentColor;
+        break;
+      case 'return':
+        color = AppTheme.secondaryColor;
         break;
       default:
         color = AppTheme.textSecondary;
@@ -688,34 +703,34 @@ class _TypeBadge extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Stock Adjustment Dialog
+// Stock Movement Dialog (Add Stock In/Out)
 // ---------------------------------------------------------------------------
 
-class _StockAdjustmentDialog extends StatefulWidget {
-  final IngredientModel ingredient;
+class _StockMovementDialog extends StatefulWidget {
+  final ProductStockModel product;
   final VoidCallback onSaved;
 
-  const _StockAdjustmentDialog({
-    required this.ingredient,
+  const _StockMovementDialog({
+    required this.product,
     required this.onSaved,
   });
 
   @override
-  State<_StockAdjustmentDialog> createState() =>
-      _StockAdjustmentDialogState();
+  State<_StockMovementDialog> createState() => _StockMovementDialogState();
 }
 
-class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
+class _StockMovementDialogState extends State<_StockMovementDialog> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController();
   final _notesController = TextEditingController();
-  String _selectedType = 'purchase';
+  String _selectedType = 'stock_in';
   bool _saving = false;
 
   static const _types = [
-    ('purchase', 'Pembelian', Icons.shopping_cart_outlined),
+    ('stock_in', 'Stok Masuk', Icons.arrow_downward),
+    ('stock_out', 'Stok Keluar', Icons.arrow_upward),
     ('adjustment', 'Penyesuaian', Icons.tune),
-    ('waste', 'Waste', Icons.delete_outline),
+    ('production', 'Produksi', Icons.precision_manufacturing_outlined),
   ];
 
   @override
@@ -730,21 +745,21 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.tune, size: 22),
+          const Icon(Icons.inventory, size: 22),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Sesuaikan Stok',
+                  'Pergerakan Stok',
                   style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
-                  widget.ingredient.name,
+                  widget.product.name,
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     color: AppTheme.textTertiary,
@@ -757,7 +772,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
         ],
       ),
       content: SizedBox(
-        width: 420,
+        width: 480,
         child: Form(
           key: _formKey,
           child: Column(
@@ -782,11 +797,19 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${FormatUtils.number(widget.ingredient.currentStock, decimals: widget.ingredient.currentStock == widget.ingredient.currentStock.roundToDouble() ? 0 : 2)} ${widget.ingredient.unit}',
+                      '${widget.product.stockQuantity} pcs',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Min: ${widget.product.minStock}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppTheme.textTertiary,
                       ),
                     ),
                   ],
@@ -804,63 +827,59 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
                 ),
               ),
               const SizedBox(height: 8),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: _types.map((t) {
                   final isSelected = _selectedType == t.$1;
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        right: t.$1 != _types.last.$1 ? 8 : 0,
+                  return InkWell(
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.radiusM),
+                    onTap: () =>
+                        setState(() => _selectedType = t.$1),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
                       ),
-                      child: InkWell(
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.primaryColor
+                                .withValues(alpha: 0.1)
+                            : AppTheme.backgroundColor,
                         borderRadius:
                             BorderRadius.circular(AppTheme.radiusM),
-                        onTap: () =>
-                            setState(() => _selectedType = t.$1),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.primaryColor
+                              : AppTheme.borderColor,
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            t.$3,
+                            size: 18,
                             color: isSelected
                                 ? AppTheme.primaryColor
-                                    .withValues(alpha: 0.1)
-                                : AppTheme.backgroundColor,
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusM),
-                            border: Border.all(
+                                : AppTheme.textTertiary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            t.$2,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
                               color: isSelected
                                   ? AppTheme.primaryColor
-                                  : AppTheme.borderColor,
-                              width: isSelected ? 1.5 : 1,
+                                  : AppTheme.textSecondary,
                             ),
                           ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                t.$3,
-                                size: 20,
-                                color: isSelected
-                                    ? AppTheme.primaryColor
-                                    : AppTheme.textTertiary,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                t.$2,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                  color: isSelected
-                                      ? AppTheme.primaryColor
-                                      : AppTheme.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        ],
                       ),
                     ),
                   );
@@ -872,25 +891,25 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
               TextFormField(
                 controller: _quantityController,
                 decoration: InputDecoration(
-                  labelText:
-                      'Jumlah (${widget.ingredient.unit})',
+                  labelText: 'Jumlah (pcs)',
                   prefixIcon: const Icon(Icons.numbers),
-                  hintText: _selectedType == 'waste'
-                      ? 'Masukkan jumlah waste'
+                  hintText: _selectedType == 'stock_out'
+                      ? 'Masukkan jumlah keluar'
                       : 'Masukkan jumlah',
-                  helperText: _selectedType == 'waste'
+                  helperText: _selectedType == 'stock_out'
                       ? 'Stok akan dikurangi'
-                      : _selectedType == 'purchase'
+                      : _selectedType == 'stock_in'
                           ? 'Stok akan ditambah'
-                          : 'Positif = masuk, negatif = keluar',
+                          : _selectedType == 'production'
+                              ? 'Stok akan ditambah (hasil produksi)'
+                              : 'Positif = masuk, negatif = keluar',
                 ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: TextInputType.number,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) {
                     return 'Jumlah wajib diisi';
                   }
-                  final parsed = double.tryParse(v.trim());
+                  final parsed = int.tryParse(v.trim());
                   if (parsed == null || parsed == 0) {
                     return 'Masukkan angka yang valid';
                   }
@@ -941,17 +960,17 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
     setState(() => _saving = true);
 
     try {
-      final repo = InventoryRepository();
-      final rawQuantity =
-          double.parse(_quantityController.text.trim());
+      final repo = ProductStockRepository();
+      final rawQuantity = int.parse(_quantityController.text.trim());
 
-      // For waste type, always make quantity negative
-      // For purchase, always positive
-      // For adjustment, keep as-is (user can enter negative)
-      final double quantity;
-      if (_selectedType == 'waste') {
+      // For stock_out, always make quantity negative
+      // For stock_in & production, always positive
+      // For adjustment, keep as-is
+      final int quantity;
+      if (_selectedType == 'stock_out') {
         quantity = -(rawQuantity.abs());
-      } else if (_selectedType == 'purchase') {
+      } else if (_selectedType == 'stock_in' ||
+          _selectedType == 'production') {
         quantity = rawQuantity.abs();
       } else {
         quantity = rawQuantity;
@@ -961,11 +980,11 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
           ? null
           : _notesController.text.trim();
 
-      await repo.adjustStock(
-        ingredientId: widget.ingredient.id,
+      await repo.addStockMovement(
+        productId: widget.product.id,
         outletId: _outletId,
-        quantity: quantity,
         type: _selectedType,
+        quantity: quantity,
         notes: notes,
       );
 
@@ -975,7 +994,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Stok ${widget.ingredient.name} berhasil diupdate',
+              'Stok ${widget.product.name} berhasil diupdate',
             ),
             backgroundColor: AppTheme.successColor,
           ),
@@ -992,6 +1011,170 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
         );
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Movement History Dialog (per product)
+// ---------------------------------------------------------------------------
+
+class _MovementHistoryDialog extends ConsumerWidget {
+  final ProductStockModel product;
+  final WidgetRef ref;
+
+  const _MovementHistoryDialog({
+    required this.product,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final movementsAsync =
+        ref.watch(productStockMovementsProvider(product.id));
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          const Icon(Icons.history, size: 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Riwayat Stok',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  product.name,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppTheme.textTertiary,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 500,
+        height: 400,
+        child: movementsAsync.when(
+          data: (movements) {
+            if (movements.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.history,
+                        size: 48, color: AppTheme.textTertiary),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Belum ada riwayat',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              itemCount: movements.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final m = movements[index];
+                final isPositive = m.quantity > 0;
+                final prefix = isPositive ? '+' : '';
+                final color = isPositive
+                    ? AppTheme.successColor
+                    : AppTheme.errorColor;
+
+                return ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: color.withValues(alpha: 0.1),
+                    child: Icon(
+                      isPositive
+                          ? Icons.arrow_downward
+                          : Icons.arrow_upward,
+                      size: 16,
+                      color: color,
+                    ),
+                  ),
+                  title: Row(
+                    children: [
+                      Text(
+                        m.typeLabel,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '$prefix${m.quantity} pcs',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                  subtitle: Row(
+                    children: [
+                      Text(
+                        FormatUtils.relativeTime(m.createdAt),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                      if (m.notes != null && m.notes!.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            m.notes!,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: AppTheme.textTertiary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Text(
+              'Error: $e',
+              style: GoogleFonts.inter(color: AppTheme.errorColor),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Tutup'),
+        ),
+      ],
+    );
   }
 }
 

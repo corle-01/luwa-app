@@ -15,6 +15,7 @@ import 'purchase_order_page.dart';
 import 'platform_settings_page.dart';
 import 'outlet_management_page.dart';
 import 'printer_settings_page.dart';
+import '../ai/pages/ai_settings_page.dart';
 
 class SettingsHubPage extends StatelessWidget {
   const SettingsHubPage({super.key});
@@ -92,6 +93,12 @@ class SettingsHubPage extends StatelessWidget {
       subtitle: 'Pengaturan printer struk',
       color: Color(0xFF6366F1),
     ),
+    _SettingsItem(
+      icon: Icons.smart_toy_rounded,
+      title: 'Utter AI',
+      subtitle: 'Pengaturan trust level dan fitur AI',
+      color: Color(0xFF8B5CF6),
+    ),
   ];
 
   void _navigateTo(BuildContext context, int index) {
@@ -121,6 +128,8 @@ class SettingsHubPage extends StatelessWidget {
         page = const OutletManagementPage();
       case 11:
         page = const PrinterSettingsPage();
+      case 12:
+        page = const AiSettingsPage();
       default:
         return;
     }

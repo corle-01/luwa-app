@@ -59,7 +59,14 @@ class OrderDetailDialog extends ConsumerWidget {
             _DetailRow('Tipe', order.orderType == 'dine_in' ? 'Dine In' : 'Takeaway'),
             if (order.tableNumber != null)
               _DetailRow('Meja', '${order.tableNumber}'),
-            _DetailRow('Pembayaran', order.paymentMethod.toUpperCase()),
+            _DetailRow('Pembayaran', _paymentMethodLabel(order.paymentMethod)),
+            if (order.paymentMethod == 'split' && order.paymentDetails != null)
+              ...order.paymentDetails!.map((detail) {
+                final method = detail['method'] as String? ?? '';
+                final amount = (detail['amount'] as num?)?.toDouble() ?? 0;
+                final label = detail['label'] as String? ?? method.toUpperCase();
+                return _DetailRow('  $label', FormatUtils.currency(amount));
+              }),
             if (order.customerName != null)
               _DetailRow('Pelanggan', order.customerName!),
             const SizedBox(height: 12),
@@ -181,6 +188,25 @@ class OrderDetailDialog extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  static String _paymentMethodLabel(String method) {
+    switch (method) {
+      case 'cash':
+        return 'Tunai';
+      case 'qris':
+        return 'QRIS';
+      case 'card':
+        return 'Debit';
+      case 'e_wallet':
+        return 'E-Wallet';
+      case 'bank_transfer':
+        return 'Transfer';
+      case 'split':
+        return 'Split Payment';
+      default:
+        return method.toUpperCase();
+    }
   }
 
   void _showVoidDialog(BuildContext context, WidgetRef ref) {

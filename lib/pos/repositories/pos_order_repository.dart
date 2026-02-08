@@ -24,6 +24,7 @@ class PosOrderRepository {
     String? customerId,
     String? tableId,
     String? notes,
+    List<Map<String, dynamic>>? paymentDetails,
   }) async {
     // Generate order number
     String orderNumber;
@@ -56,6 +57,7 @@ class PosOrderRepository {
           'total': totalAmount,
           'amount_paid': amountPaid ?? totalAmount,
           'change_amount': changeAmount ?? 0,
+          'payment_details': paymentDetails,
           'notes': notes,
         })
         .select()
