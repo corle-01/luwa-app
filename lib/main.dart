@@ -9,7 +9,7 @@ import 'core/config/app_constants.dart';
 import 'shared/themes/app_theme.dart';
 import 'backoffice/ai/pages/ai_dashboard_page.dart';
 import 'pos/pages/pos_main_page.dart';
-import 'backoffice/pages/staff_management_page.dart';
+import 'backoffice/pages/settings_hub_page.dart';
 import 'backoffice/pages/dashboard_page.dart';
 import 'backoffice/pages/product_management_page.dart';
 import 'backoffice/pages/inventory_page.dart';
@@ -338,7 +338,7 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
       case 2: return const ProductManagementPage();
       case 3: return const InventoryPage();
       case 4: return const ReportPage();
-      case 5: return const StaffManagementPage();
+      case 5: return const SettingsHubPage();
       default: return const DashboardPage();
     }
   }

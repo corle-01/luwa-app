@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../repositories/pos_cashier_repository.dart';
@@ -12,10 +13,12 @@ class ShiftOpenDialog extends StatefulWidget {
   State<ShiftOpenDialog> createState() => _ShiftOpenDialogState();
 }
 
-class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
+class _ShiftOpenDialogState extends State<ShiftOpenDialog>
+    with SingleTickerProviderStateMixin {
   final _cashController = TextEditingController();
   final _pinController = TextEditingController();
   final _repository = PosCashierRepository();
+  final _pinFocusNode = FocusNode();
 
   List<CashierProfile> _cashiers = [];
   CashierProfile? _selectedCashier;
@@ -23,17 +26,39 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
   bool _loadingCashiers = true;
   String? _errorMessage;
   bool _pinVerified = false;
+  bool _pinError = false;
+
+  // Shake animation
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadCashiers();
+
+    _shakeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _shakeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0, end: -10), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 10, end: -10), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 10, end: 0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _shakeController,
+      curve: Curves.easeInOut,
+    ));
   }
 
   @override
   void dispose() {
     _cashController.dispose();
     _pinController.dispose();
+    _pinFocusNode.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 
@@ -66,21 +91,40 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
       _selectedCashier = cashier;
       _pinController.clear();
       _pinVerified = false;
+      _pinError = false;
       _errorMessage = null;
     });
+
+    // Auto-focus PIN field if cashier has a PIN
+    if (cashier != null && cashier.hasPin) {
+      // Use a post-frame callback to ensure the PIN field is rendered first
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _pinFocusNode.requestFocus();
+      });
+    }
   }
 
   void _verifyPin() {
     if (_selectedCashier == null) return;
+    if (_pinController.text.isEmpty) return;
 
-    final isValid = _repository.verifyPin(_selectedCashier!, _pinController.text);
+    final isValid =
+        _repository.verifyPin(_selectedCashier!, _pinController.text);
     setState(() {
       if (isValid) {
         _pinVerified = true;
+        _pinError = false;
         _errorMessage = null;
       } else {
+        _pinError = true;
         _errorMessage = 'PIN salah';
         _pinController.clear();
+        // Trigger shake animation
+        _shakeController.forward(from: 0);
+        // Re-focus PIN field after clearing
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _pinFocusNode.requestFocus();
+        });
       }
     });
   }
@@ -98,11 +142,20 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
   }
 
   Future<void> _handleOpen() async {
+    // If cashier has PIN and not yet verified, verify first
+    if (_selectedCashier != null &&
+        _selectedCashier!.hasPin &&
+        !_pinVerified) {
+      _verifyPin();
+      return;
+    }
+
     if (!_canProceed) return;
 
     setState(() => _loading = true);
     try {
-      final amount = double.tryParse(_cashController.text.replaceAll('.', '')) ?? 0;
+      final amount =
+          double.tryParse(_cashController.text.replaceAll('.', '')) ?? 0;
       await widget.onOpen(_selectedCashier!.id, amount);
       if (!mounted) return;
       Navigator.pop(context);
@@ -124,17 +177,25 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.lock_open, size: 48, color: AppTheme.primaryColor),
+            const Icon(Icons.lock_open,
+                size: 48, color: AppTheme.primaryColor),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Buka Shift Baru',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Pilih kasir dan masukkan modal awal',
-              style: TextStyle(color: AppTheme.textSecondary),
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -152,26 +213,31 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   _errorMessage ?? 'Tidak ada kasir tersedia',
-                  style: const TextStyle(color: AppTheme.errorColor),
+                  style: GoogleFonts.inter(color: AppTheme.errorColor),
                   textAlign: TextAlign.center,
                 ),
               )
             else ...[
               DropdownButtonFormField<CashierProfile>(
-                initialValue: _selectedCashier,
-                decoration: const InputDecoration(
+                value: _selectedCashier,
+                decoration: InputDecoration(
                   labelText: 'Pilih Kasir',
-                  prefixIcon: Icon(Icons.person),
+                  labelStyle: GoogleFonts.inter(),
+                  prefixIcon: const Icon(Icons.person),
                 ),
                 items: _cashiers.map((cashier) {
                   return DropdownMenuItem(
                     value: cashier,
                     child: Row(
                       children: [
-                        Text(cashier.fullName),
+                        Text(
+                          cashier.fullName,
+                          style: GoogleFonts.inter(),
+                        ),
                         const SizedBox(width: 8),
                         if (cashier.hasPin)
-                          const Icon(Icons.lock, size: 16, color: AppTheme.textSecondary),
+                          const Icon(Icons.lock,
+                              size: 16, color: AppTheme.textSecondary),
                       ],
                     ),
                   );
@@ -181,47 +247,113 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
               const SizedBox(height: 16),
 
               // PIN Input (if cashier has PIN and not yet verified)
-              if (_selectedCashier != null && _selectedCashier!.hasPin && !_pinVerified) ...[
-                TextField(
-                  controller: _pinController,
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  maxLength: 4,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'PIN Kasir',
-                    prefixIcon: Icon(Icons.pin),
-                    counterText: '',
-                  ),
-                  onChanged: (value) {
-                    if (value.length == 4) {
-                      _verifyPin();
-                    }
+              if (_selectedCashier != null &&
+                  _selectedCashier!.hasPin &&
+                  !_pinVerified) ...[
+                AnimatedBuilder(
+                  animation: _shakeAnimation,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(_shakeAnimation.value, 0),
+                      child: child,
+                    );
                   },
-                  onSubmitted: (_) => _verifyPin(),
+                  child: TextField(
+                    controller: _pinController,
+                    focusNode: _pinFocusNode,
+                    keyboardType: TextInputType.number,
+                    obscureText: true,
+                    maxLength: 6,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: 'Masukkan PIN',
+                      labelStyle: GoogleFonts.inter(),
+                      prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                      counterText: '',
+                      errorText: _pinError ? 'PIN salah' : null,
+                      errorStyle: GoogleFonts.inter(
+                        color: AppTheme.errorColor,
+                        fontSize: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: _pinError
+                              ? AppTheme.errorColor
+                              : AppTheme.borderColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: _pinError
+                              ? AppTheme.errorColor
+                              : AppTheme.borderColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: _pinError
+                              ? AppTheme.errorColor
+                              : AppTheme.primaryColor,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      letterSpacing: 8,
+                    ),
+                    textAlign: TextAlign.center,
+                    onChanged: (value) {
+                      // Clear error state when user types
+                      if (_pinError) {
+                        setState(() {
+                          _pinError = false;
+                          _errorMessage = null;
+                        });
+                      }
+                    },
+                    onSubmitted: (_) => _verifyPin(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Masukkan PIN kasir (4-6 digit)',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppTheme.textTertiary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
               ],
 
               // PIN Verified Indicator
-              if (_selectedCashier != null && _selectedCashier!.hasPin && _pinVerified) ...[
+              if (_selectedCashier != null &&
+                  _selectedCashier!.hasPin &&
+                  _pinVerified) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppTheme.successColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.successColor.withValues(alpha: 0.3)),
+                    border: Border.all(
+                        color:
+                            AppTheme.successColor.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: AppTheme.successColor, size: 20),
+                      const Icon(Icons.check_circle,
+                          color: AppTheme.successColor, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         'PIN terverifikasi - ${_selectedCashier!.fullName}',
-                        style: const TextStyle(
+                        style: GoogleFonts.inter(
                           color: AppTheme.successColor,
                           fontWeight: FontWeight.w500,
                         ),
@@ -233,16 +365,19 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
               ],
 
               // Opening Cash Input (only show if cashier selected and PIN verified if needed)
-              if (_selectedCashier != null && (!_selectedCashier!.hasPin || _pinVerified)) ...[
+              if (_selectedCashier != null &&
+                  (!_selectedCashier!.hasPin || _pinVerified)) ...[
                 TextField(
                   controller: _cashController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Modal Awal',
+                    labelStyle: GoogleFonts.inter(),
                     prefixText: 'Rp ',
-                    prefixIcon: Icon(Icons.account_balance_wallet),
+                    prefixIcon: const Icon(Icons.account_balance_wallet),
                   ),
+                  style: GoogleFonts.inter(),
                   onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
@@ -252,9 +387,13 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
                   spacing: 8,
                   runSpacing: 8,
                   alignment: WrapAlignment.center,
-                  children: [100000, 200000, 300000, 500000].map((amount) {
+                  children:
+                      [100000, 200000, 300000, 500000].map((amount) {
                     return ActionChip(
-                      label: Text(FormatUtils.currency(amount)),
+                      label: Text(
+                        FormatUtils.currency(amount),
+                        style: GoogleFonts.inter(fontSize: 12),
+                      ),
                       onPressed: () {
                         _cashController.text = '$amount';
                         setState(() {});
@@ -268,23 +407,26 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
               ],
             ],
 
-            // Error Message
-            if (_errorMessage != null) ...[
+            // Error Message (only show general errors, not PIN errors which are inline)
+            if (_errorMessage != null && !_pinError) ...[
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppTheme.errorColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.3)),
+                  border: Border.all(
+                      color: AppTheme.errorColor.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: AppTheme.errorColor, size: 20),
+                    const Icon(Icons.error_outline,
+                        color: AppTheme.errorColor, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: const TextStyle(color: AppTheme.errorColor),
+                        style: GoogleFonts.inter(
+                            color: AppTheme.errorColor),
                       ),
                     ),
                   ],
@@ -298,15 +440,17 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _loading ? null : () => Navigator.pop(context),
-                    child: const Text('Batal'),
+                    onPressed:
+                        _loading ? null : () => Navigator.pop(context),
+                    child: Text('Batal', style: GoogleFonts.inter()),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
-                    onPressed: _loading || !_canProceed ? null : _handleOpen,
+                    onPressed:
+                        _loading || !_canProceed ? null : _handleOpen,
                     child: _loading
                         ? const SizedBox(
                             width: 20,
@@ -316,7 +460,9 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Buka Shift'),
+                        : Text('Buka Shift',
+                            style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
