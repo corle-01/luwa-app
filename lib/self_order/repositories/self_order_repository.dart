@@ -148,7 +148,7 @@ class SelfOrderItem {
   final String productId;
   final String productName;
   final double unitPrice;
-  int quantity;
+  final int quantity;
   final List<Map<String, dynamic>>? modifiers; // [{name, option, price}]
   final String? notes;
   final String? imageUrl;

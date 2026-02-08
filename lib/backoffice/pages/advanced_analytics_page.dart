@@ -935,7 +935,7 @@ class _AdvancedAnalyticsPageState
     return _sectionCard(
       title: 'Sumber Order',
       subtitle: 'Distribusi berdasarkan sumber pesanan',
-      icon: Icons.source_outlined,
+      icon: Icons.account_tree_outlined,
       child: sourceAsync.when(
         data: (data) => _buildOrderSourceContent(data),
         loading: () => _buildLoadingCard(height: 200),
@@ -948,7 +948,7 @@ class _AdvancedAnalyticsPageState
   Widget _buildOrderSourceContent(List<OrderSourceData> data) {
     if (data.isEmpty) {
       return _buildEmptyState(
-          icon: Icons.source_outlined,
+          icon: Icons.account_tree_outlined,
           message: 'Belum ada data sumber order');
     }
 
@@ -2029,7 +2029,7 @@ class _AdvancedAnalyticsPageState
   Widget _buildLoadingCard({double height = 120}) {
     return SizedBox(
       height: height,
-      child: const Center(
+      child: Center(
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
           color: AppTheme.primaryColor,

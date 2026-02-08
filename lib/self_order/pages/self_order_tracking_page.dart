@@ -786,7 +786,6 @@ class _TrackingBodyState extends State<_TrackingBody> {
   Widget _buildItemCard(Map<String, dynamic> item) {
     final productName = item['product_name'] as String? ?? '-';
     final quantity = item['quantity'] as int? ?? 1;
-    final unitPrice = (item['unit_price'] as num?)?.toDouble() ?? 0;
     final subtotal = (item['subtotal'] as num?)?.toDouble() ?? 0;
     final kitchenStatus = item['kitchen_status'] as String? ?? 'pending';
     final notes = item['notes'] as String?;

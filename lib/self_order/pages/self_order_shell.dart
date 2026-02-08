@@ -420,7 +420,7 @@ class _ManualTableGrid extends ConsumerWidget {
                 runSpacing: 10,
                 children: tables.map((table) {
                   final tableId = table['id'] as String;
-                  final tableNumber = table['table_number'] as int;
+                  final tableNumber = table['table_number']?.toString() ?? '?';
                   final status = table['status'] as String? ?? 'available';
                   final section = table['section'] as String?;
                   final isAvailable = status == 'available';
@@ -521,7 +521,7 @@ class _ManualTableGrid extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 class _ManualTableTile extends StatelessWidget {
   final String tableId;
-  final int tableNumber;
+  final String tableNumber;
   final String? section;
   final bool isAvailable;
   final String statusLabel;

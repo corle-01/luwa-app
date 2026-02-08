@@ -57,7 +57,6 @@ class OfflineIndicator extends ConsumerWidget {
         status: status,
         pendingCount: pendingCount,
         totalCount: totalCount,
-        ref: ref,
       ),
     );
   }
@@ -135,21 +134,19 @@ class _AnimatedBannerState extends State<_AnimatedBanner>
 // Banner content (status-dependent)
 // ---------------------------------------------------------------------------
 
-class _BannerContent extends StatelessWidget {
+class _BannerContent extends ConsumerWidget {
   final ConnectivityStatus status;
   final int pendingCount;
   final int totalCount;
-  final WidgetRef ref;
 
   const _BannerContent({
     required this.status,
     required this.pendingCount,
     required this.totalCount,
-    required this.ref,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final _BannerStyle style = _styleFor(status, pendingCount);
 
     return Container(
@@ -222,7 +219,7 @@ class _BannerContent extends StatelessWidget {
               // Manual sync button (only when online with pending items)
               if (status == ConnectivityStatus.online && pendingCount > 0) ...[
                 const SizedBox(width: 8),
-                _SyncButton(ref: ref),
+                const _SyncButton(),
               ],
             ],
           ),
@@ -265,13 +262,11 @@ class _BannerContent extends StatelessWidget {
 // Sync button
 // ---------------------------------------------------------------------------
 
-class _SyncButton extends StatelessWidget {
-  final WidgetRef ref;
-
-  const _SyncButton({required this.ref});
+class _SyncButton extends ConsumerWidget {
+  const _SyncButton();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
