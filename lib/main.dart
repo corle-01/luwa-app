@@ -16,6 +16,7 @@ import 'backoffice/pages/inventory_page.dart';
 import 'backoffice/pages/report_page.dart';
 import 'backoffice/pages/report_hub_page.dart';
 import 'kds/pages/kds_page.dart';
+import 'self_order/pages/self_order_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +47,23 @@ class UtterApp extends StatelessWidget {
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const SplashScreen(),
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        final uri = Uri.parse(settings.name ?? '/');
+
+        // Self-order route: /self-order?table=TABLE_ID
+        if (uri.path == '/self-order') {
+          final tableId = uri.queryParameters['table'];
+          return MaterialPageRoute(
+            builder: (_) => SelfOrderShell(tableId: tableId),
+          );
+        }
+
+        // Default route — splash screen
+        return MaterialPageRoute(
+          builder: (_) => const SplashScreen(),
+        );
+      },
     );
   }
 }

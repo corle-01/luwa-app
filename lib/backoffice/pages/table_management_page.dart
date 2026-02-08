@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../providers/table_provider.dart';
 import '../repositories/table_repository.dart';
+
+const _selfOrderBaseUrl =
+    'https://ardhianawing.github.io/utterapp/#/self-order';
 
 const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
@@ -165,6 +169,13 @@ class _TableCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  void _showQrDialog(BuildContext context, TableModel table) {
+    showDialog(
+      context: context,
+      builder: (context) => _TableQrDialog(table: table),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -244,6 +255,12 @@ class _TableCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                IconButton(
+                  icon: Icon(Icons.qr_code_rounded, size: 18, color: AppTheme.primaryColor),
+                  onPressed: () => _showQrDialog(context, table),
+                  tooltip: 'QR Code',
+                  visualDensity: VisualDensity.compact,
+                ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 18),
                   onPressed: onEdit,
@@ -444,5 +461,215 @@ class _TableFormDialogState extends State<_TableFormDialog> {
         );
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// QR Code Dialog for a table
+// ---------------------------------------------------------------------------
+class _TableQrDialog extends StatelessWidget {
+  final TableModel table;
+
+  const _TableQrDialog({required this.table});
+
+  String get _selfOrderUrl =>
+      '$_selfOrderBaseUrl?table=${table.id}';
+
+  String get _qrImageUrl =>
+      'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${Uri.encodeComponent(_selfOrderUrl)}';
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+      title: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.qr_code_rounded,
+              size: 20,
+              color: AppTheme.primaryColor,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'QR Code - Meja ${table.tableNumber}',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                if (table.section != null && table.section!.isNotEmpty)
+                  Text(
+                    table.section!,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+
+            // QR code image
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Image.network(
+                _qrImageUrl,
+                width: 220,
+                height: 220,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return SizedBox(
+                    width: 220,
+                    height: 220,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return SizedBox(
+                    width: 220,
+                    height: 220,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline,
+                              size: 32, color: AppTheme.errorColor),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Gagal memuat QR Code',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Table label under QR
+            Text(
+              'Meja ${table.tableNumber}',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Scan untuk pesan langsung',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // URL display
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.borderColor),
+              ),
+              child: Text(
+                _selfOrderUrl,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: AppTheme.textSecondary,
+                  fontFamily: 'monospace',
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        // Copy link button
+        OutlinedButton.icon(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: _selfOrderUrl));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Link berhasil disalin'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          icon: const Icon(Icons.copy_rounded, size: 16),
+          label: const Text('Salin Link'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+
+        // Print button (placeholder)
+        FilledButton.icon(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Fitur cetak akan segera hadir'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          icon: const Icon(Icons.print_rounded, size: 16),
+          label: const Text('Cetak'),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+      ],
+    );
   }
 }
