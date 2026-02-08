@@ -1,0 +1,768 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+
+import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
+import 'package:utter_app/core/providers/ai/ai_action_log_provider.dart';
+import 'package:utter_app/core/providers/ai/ai_trust_provider.dart';
+import 'package:utter_app/shared/themes/app_theme.dart';
+import 'package:utter_app/shared/utils/format_utils.dart';
+import 'package:utter_app/backoffice/ai/providers/bo_ai_provider.dart';
+import 'package:utter_app/backoffice/ai/widgets/insight_card.dart';
+import 'package:utter_app/backoffice/ai/widgets/pending_approval_card.dart';
+import 'package:utter_app/backoffice/ai/widgets/ai_chat_widget.dart';
+import 'package:utter_app/backoffice/ai/widgets/action_log_row.dart';
+import 'package:utter_app/backoffice/ai/widgets/undo_banner.dart';
+import 'package:utter_app/backoffice/ai/pages/ai_settings_page.dart';
+
+/// The main AI Dashboard page for the Back Office.
+///
+/// Two-column desktop layout (Insights + Approvals | Chat + Actions).
+/// On mobile, uses a tabbed single-column layout.
+class AiDashboardPage extends ConsumerStatefulWidget {
+  const AiDashboardPage({super.key});
+
+  @override
+  ConsumerState<AiDashboardPage> createState() => _AiDashboardPageState();
+}
+
+class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // Breakpoint for desktop vs mobile layout
+  static const double _desktopBreakpoint = 900;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        ref.read(boAiProvider.notifier).switchTab(_tabController.index);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final undoableLogs = ref.watch(aiUndoableActionsProvider);
+
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      body: Column(
+        children: [
+          // Top bar
+          _buildTopBar(context),
+
+          // Undo banners
+          ...undoableLogs.take(1).map((log) {
+            return UndoBanner(
+              actionDescription: log.actionDescription,
+              undoDeadline: log.undoDeadline!,
+              onUndo: () {
+                ref.read(aiActionLogProvider.notifier).undoAction(log.id);
+              },
+            );
+          }),
+
+          // Main content
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= _desktopBreakpoint) {
+                  return _buildDesktopLayout();
+                }
+                return _buildMobileLayout();
+              },
+            ),
+          ),
+
+          // Bottom status bar
+          _buildStatusBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingM,
+        vertical: AppTheme.spacingS,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        border: Border(
+          bottom: BorderSide(color: AppTheme.dividerColor),
+        ),
+      ),
+      child: Row(
+        children: [
+          // AI Logo + Title
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppTheme.aiPrimary, AppTheme.aiSecondary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.aiPrimary.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.auto_awesome,
+              size: 20,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacingS),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Utter AI',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              Text(
+                'AI Co-Pilot untuk bisnis kamu',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppTheme.textTertiary,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          // Settings button
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AiSettingsPage(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.settings_outlined),
+            color: AppTheme.textSecondary,
+            tooltip: 'AI Settings',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ======== DESKTOP LAYOUT ========
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // LEFT COLUMN: Insights + Pending Approvals
+        Expanded(
+          flex: 1,
+          child: _buildLeftColumn(),
+        ),
+        // Vertical divider
+        Container(
+          width: 1,
+          color: AppTheme.dividerColor,
+        ),
+        // RIGHT COLUMN: Chat + Recent Actions
+        Expanded(
+          flex: 1,
+          child: _buildRightColumn(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLeftColumn() {
+    final insights = ref.watch(aiActiveInsightsProvider);
+    final pendingApprovals = ref.watch(aiPendingApprovalsProvider);
+    final insightFilter = ref.watch(boAiInsightFilterProvider);
+    final isLoading = ref.watch(aiInsightProvider).isLoading;
+
+    // Apply filter
+    final filteredInsights = insightFilter == null
+        ? insights
+        : insights.where((i) => i.severity == insightFilter).toList();
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(aiInsightProvider.notifier).refresh();
+        await ref.read(aiActionLogProvider.notifier).refresh();
+      },
+      child: CustomScrollView(
+        slivers: [
+          // Insights section header + filter chips
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacingM,
+                AppTheme.spacingM,
+                AppTheme.spacingM,
+                AppTheme.spacingS,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.insights,
+                        size: 20,
+                        color: AppTheme.aiPrimary,
+                      ),
+                      const SizedBox(width: AppTheme.spacingS),
+                      Text(
+                        'Insights',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (isLoading)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.aiPrimary,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.spacingS),
+                  // Filter chips
+                  _buildFilterChips(insightFilter),
+                ],
+              ),
+            ),
+          ),
+
+          // Insights list
+          if (filteredInsights.isEmpty && !isLoading)
+            SliverToBoxAdapter(child: _buildInsightsEmptyState())
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingM,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    return InsightCard(insight: filteredInsights[index]);
+                  },
+                  childCount: filteredInsights.length,
+                ),
+              ),
+            ),
+
+          // Pending Approvals section
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacingM,
+                AppTheme.spacingL,
+                AppTheme.spacingM,
+                AppTheme.spacingS,
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.pending_actions,
+                    size: 20,
+                    color: AppTheme.warningColor,
+                  ),
+                  const SizedBox(width: AppTheme.spacingS),
+                  Text(
+                    'Menunggu Persetujuan',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  if (pendingApprovals.isNotEmpty) ...[
+                    const SizedBox(width: AppTheme.spacingS),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warningColor.withValues(alpha: 0.1),
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusFull),
+                      ),
+                      child: Text(
+                        '${pendingApprovals.length}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.warningColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          // Pending approvals list
+          if (pendingApprovals.isEmpty)
+            SliverToBoxAdapter(
+              child: _buildPendingEmptyState(),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingM,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    return PendingApprovalCard(
+                      actionLog: pendingApprovals[index],
+                    );
+                  },
+                  childCount: pendingApprovals.length,
+                ),
+              ),
+            ),
+
+          const SliverPadding(
+            padding: EdgeInsets.only(bottom: AppTheme.spacingXL),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRightColumn() {
+    final actionLogs = ref.watch(aiActionLogsProvider);
+    final recentActions = actionLogs.take(5).toList();
+
+    return Column(
+      children: [
+        // Chat widget (takes most of the space)
+        Expanded(
+          flex: 3,
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingM),
+            child: AiChatWidget(),
+          ),
+        ),
+
+        // Recent actions section
+        Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: AppTheme.dividerColor),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.spacingM,
+                  AppTheme.spacingS,
+                  AppTheme.spacingM,
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.history,
+                      size: 16,
+                      color: AppTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Aksi Terakhir',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (recentActions.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(AppTheme.spacingM),
+                  child: Text(
+                    'Belum ada aksi terbaru',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppTheme.textTertiary,
+                    ),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: recentActions.length * 56.0 + 8,
+                  child: ListView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: recentActions.length,
+                    itemBuilder: (context, index) {
+                      return ActionLogRow(
+                        actionLog: recentActions[index],
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ======== MOBILE LAYOUT ========
+
+  Widget _buildMobileLayout() {
+    return Column(
+      children: [
+        // Tab bar
+        Container(
+          color: AppTheme.surfaceColor,
+          child: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'Insights'),
+              Tab(text: 'Chat'),
+              Tab(text: 'Aksi'),
+            ],
+            labelColor: AppTheme.aiPrimary,
+            unselectedLabelColor: AppTheme.textTertiary,
+            indicatorColor: AppTheme.aiPrimary,
+            labelStyle: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.normal,
+            ),
+          ),
+        ),
+
+        // Tab views
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              // Tab 1: Insights + Pending
+              _buildLeftColumn(),
+              // Tab 2: Chat
+              Padding(
+                padding: const EdgeInsets.all(AppTheme.spacingS),
+                child: AiChatWidget(),
+              ),
+              // Tab 3: Recent actions
+              _buildMobileActionsTab(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileActionsTab() {
+    final actionLogs = ref.watch(aiActionLogsProvider);
+
+    if (actionLogs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.history,
+              size: 48,
+              color: AppTheme.textTertiary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: AppTheme.spacingM),
+            Text(
+              'Belum ada aksi',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: AppTheme.textTertiary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: actionLogs.length,
+      itemBuilder: (context, index) {
+        return ActionLogRow(actionLog: actionLogs[index]);
+      },
+    );
+  }
+
+  // ======== SHARED WIDGETS ========
+
+  Widget _buildFilterChips(String? activeFilter) {
+    final filters = [
+      _FilterChipData(label: 'Semua', value: null),
+      _FilterChipData(label: 'Kritis', value: 'critical'),
+      _FilterChipData(label: 'Peringatan', value: 'warning'),
+      _FilterChipData(label: 'Info', value: 'info'),
+      _FilterChipData(label: 'Positif', value: 'positive'),
+    ];
+
+    return Wrap(
+      spacing: AppTheme.spacingS,
+      children: filters.map((filter) {
+        final isActive = activeFilter == filter.value;
+        return FilterChip(
+          label: Text(
+            filter.label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              color: isActive ? Colors.white : AppTheme.textSecondary,
+            ),
+          ),
+          selected: isActive,
+          onSelected: (selected) {
+            ref.read(boAiProvider.notifier).setInsightFilter(
+                  selected ? filter.value : null,
+                );
+          },
+          selectedColor: AppTheme.aiPrimary,
+          backgroundColor: AppTheme.surfaceColor,
+          side: BorderSide(
+            color: isActive
+                ? AppTheme.aiPrimary
+                : AppTheme.dividerColor,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+          ),
+          showCheckmark: false,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          visualDensity: VisualDensity.compact,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInsightsEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spacingXL),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTheme.aiBackground,
+                borderRadius: BorderRadius.circular(AppTheme.radiusXL),
+              ),
+              child: Icon(
+                Icons.check_circle_outline,
+                size: 36,
+                color: AppTheme.aiPrimary.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingM),
+            Text(
+              'Semua baik!',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tidak ada insight aktif saat ini.\nUtter akan memberi tahu jika ada yang perlu perhatian.',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: AppTheme.textSecondary,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spacingL),
+      child: Center(
+        child: Text(
+          'Tidak ada aksi yang menunggu persetujuan.',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: AppTheme.textTertiary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBar() {
+    final trustState = ref.watch(aiTrustProvider);
+    final settings = trustState.settings;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingM,
+        vertical: AppTheme.spacingS,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        border: Border(
+          top: BorderSide(color: AppTheme.dividerColor),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.shield_outlined,
+            size: 14,
+            color: AppTheme.textTertiary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Trust Levels:',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: AppTheme.textTertiary,
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacingS),
+          // Show colored dots for active trust levels
+          if (settings.isEmpty)
+            Text(
+              'Belum dikonfigurasi',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: AppTheme.textTertiary,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: settings.where((s) => s.isEnabled).map((setting) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Tooltip(
+                        message:
+                            '${_featureDisplayName(setting.featureKey)}: ${setting.trustLevelLabel}',
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _trustDotColor(setting.trustLevel),
+                            borderRadius: BorderRadius.circular(
+                                AppTheme.radiusFull),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          const SizedBox(width: AppTheme.spacingS),
+          Text(
+            'Powered by DeepSeek',
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              color: AppTheme.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _trustDotColor(int level) {
+    switch (level) {
+      case 0:
+        return AppTheme.trustLevelInform;
+      case 1:
+        return AppTheme.trustLevelSuggest;
+      case 2:
+        return AppTheme.trustLevelAuto;
+      case 3:
+        return AppTheme.trustLevelSilent;
+      default:
+        return AppTheme.textTertiary;
+    }
+  }
+
+  String _featureDisplayName(String featureKey) {
+    switch (featureKey) {
+      case 'stock_alert':
+        return 'Stock Alert';
+      case 'auto_disable_product':
+        return 'Auto-disable Produk';
+      case 'auto_enable_product':
+        return 'Auto-enable Produk';
+      case 'auto_reorder':
+        return 'Auto Reorder';
+      case 'pricing_recommendation':
+        return 'Pricing';
+      case 'auto_promo':
+        return 'Auto Promo';
+      case 'demand_forecast':
+        return 'Forecast';
+      case 'menu_recommendation':
+        return 'Menu Recommendation';
+      case 'anomaly_alert':
+        return 'Anomaly Detection';
+      case 'staffing_suggestion':
+        return 'Staffing';
+      default:
+        return FormatUtils.titleCase(featureKey.replaceAll('_', ' '));
+    }
+  }
+}
+
+class _FilterChipData {
+  final String label;
+  final String? value;
+
+  const _FilterChipData({required this.label, required this.value});
+}
