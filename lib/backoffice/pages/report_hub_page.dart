@@ -4,6 +4,7 @@ import '../../shared/themes/app_theme.dart';
 import 'report_page.dart';
 import 'hpp_report_page.dart';
 import 'monthly_analytics_page.dart';
+import 'advanced_analytics_page.dart';
 
 class ReportHubPage extends StatefulWidget {
   const ReportHubPage({super.key});
@@ -19,7 +20,7 @@ class _ReportHubPageState extends State<ReportHubPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -68,10 +69,12 @@ class _ReportHubPageState extends State<ReportHubPage>
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
+                    isScrollable: true,
                     tabs: const [
                       Tab(text: 'Penjualan'),
                       Tab(text: 'HPP'),
                       Tab(text: 'Analitik'),
+                      Tab(text: 'Advanced'),
                     ],
                   ),
                 ],
@@ -87,6 +90,7 @@ class _ReportHubPageState extends State<ReportHubPage>
                 ReportPage(),
                 HppReportPage(),
                 MonthlyAnalyticsPage(),
+                AdvancedAnalyticsPage(),
               ],
             ),
           ),

@@ -11,6 +11,8 @@ import 'loyalty_management_page.dart';
 import 'supplier_management_page.dart';
 import 'purchase_order_page.dart';
 import 'platform_settings_page.dart';
+import 'outlet_management_page.dart';
+import 'printer_settings_page.dart';
 
 class SettingsHubPage extends StatelessWidget {
   const SettingsHubPage({super.key});
@@ -76,6 +78,18 @@ class SettingsHubPage extends StatelessWidget {
       subtitle: 'Kelola GoFood, GrabFood, ShopeeFood',
       color: Color(0xFF16A34A),
     ),
+    _SettingsItem(
+      icon: Icons.store_rounded,
+      title: 'Kelola Outlet',
+      subtitle: 'Tambah dan kelola lokasi outlet',
+      color: Color(0xFF0D9488),
+    ),
+    _SettingsItem(
+      icon: Icons.print_rounded,
+      title: 'Printer',
+      subtitle: 'Pengaturan printer struk',
+      color: Color(0xFF6366F1),
+    ),
   ];
 
   void _navigateTo(BuildContext context, int index) {
@@ -101,6 +115,10 @@ class SettingsHubPage extends StatelessWidget {
         page = const PurchaseOrderPage();
       case 9:
         page = const PlatformSettingsPage();
+      case 10:
+        page = const OutletManagementPage();
+      case 11:
+        page = const PrinterSettingsPage();
       default:
         return;
     }
