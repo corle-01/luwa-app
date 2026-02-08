@@ -15,6 +15,7 @@ import 'backoffice/pages/product_management_page.dart';
 import 'backoffice/pages/inventory_page.dart';
 import 'backoffice/pages/report_page.dart';
 import 'backoffice/pages/report_hub_page.dart';
+import 'backoffice/pages/online_order_page.dart';
 import 'kds/pages/kds_page.dart';
 import 'self_order/pages/self_order_shell.dart';
 
@@ -355,6 +356,7 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
     (icon: Icons.restaurant_menu_rounded, label: 'Produk'),
     (icon: Icons.inventory_2_rounded, label: 'Inventori'),
     (icon: Icons.bar_chart_rounded, label: 'Laporan'),
+    (icon: Icons.delivery_dining_rounded, label: 'Online'),
     (icon: Icons.settings_rounded, label: 'Pengaturan'),
   ];
 
@@ -365,7 +367,8 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
       case 2: return const ProductManagementPage();
       case 3: return const InventoryPage();
       case 4: return const ReportHubPage();
-      case 5: return const SettingsHubPage();
+      case 5: return const OnlineOrderPage();
+      case 6: return const SettingsHubPage();
       default: return const DashboardPage();
     }
   }

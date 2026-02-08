@@ -10,6 +10,7 @@ import 'customer_management_page.dart';
 import 'loyalty_management_page.dart';
 import 'supplier_management_page.dart';
 import 'purchase_order_page.dart';
+import 'platform_settings_page.dart';
 
 class SettingsHubPage extends StatelessWidget {
   const SettingsHubPage({super.key});
@@ -69,6 +70,12 @@ class SettingsHubPage extends StatelessWidget {
       subtitle: 'Buat dan kelola pesanan pembelian',
       color: Color(0xFF9333EA),
     ),
+    _SettingsItem(
+      icon: Icons.cloud_sync_rounded,
+      title: 'Integrasi Platform',
+      subtitle: 'Kelola GoFood, GrabFood, ShopeeFood',
+      color: Color(0xFF16A34A),
+    ),
   ];
 
   void _navigateTo(BuildContext context, int index) {
@@ -92,6 +99,8 @@ class SettingsHubPage extends StatelessWidget {
         page = const SupplierManagementPage();
       case 8:
         page = const PurchaseOrderPage();
+      case 9:
+        page = const PlatformSettingsPage();
       default:
         return;
     }
