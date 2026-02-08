@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../shared/services/export_service.dart';
+import '../../shared/services/export_download.dart';
 import '../providers/report_provider.dart';
 import '../repositories/report_repository.dart';
 
@@ -102,6 +104,11 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Export CSV',
+            onPressed: _exportCsv,
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
             onPressed: _refreshAll,
@@ -142,6 +149,71 @@ class _ReportPageState extends ConsumerState<ReportPage> {
     ref.invalidate(salesReportProvider(_dateRange));
     ref.invalidate(topProductsProvider(_dateRange));
     ref.invalidate(hourlySalesProvider(_dateFrom));
+  }
+
+  void _exportCsv() {
+    final salesAsync = ref.read(salesReportProvider(_dateRange));
+    final productsAsync = ref.read(topProductsProvider(_dateRange));
+
+    final report = salesAsync.valueOrNull;
+    final products = productsAsync.valueOrNull;
+
+    if (report == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data belum dimuat. Silakan tunggu atau refresh.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final dateRangeStr =
+        '${FormatUtils.date(_dateFrom)} - ${FormatUtils.date(_dateTo)}';
+
+    // Build human-readable payment breakdown labels
+    final paymentBreakdown = <String, double>{};
+    for (final entry in report.paymentBreakdown.entries) {
+      paymentBreakdown[_paymentLabel(entry.key)] = entry.value;
+    }
+
+    final topProductsList = (products ?? []).map((p) {
+      return {
+        'name': p.productName,
+        'qty': p.quantity,
+        'revenue': p.revenue,
+      };
+    }).toList();
+
+    final csvContent = ExportService.generateSalesReportCsv(
+      dateRange: dateRangeStr,
+      totalSales: report.totalSales,
+      orderCount: report.orderCount,
+      avgOrderValue: report.avgOrderValue,
+      paymentBreakdown: paymentBreakdown,
+      topProducts: topProductsList,
+    );
+
+    // Generate filename with date
+    final now = DateTime.now();
+    final dateStr =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final fileName = 'laporan_penjualan_$dateStr.csv';
+
+    downloadCsv(csvContent, fileName);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Laporan berhasil diexport',
+            style: GoogleFonts.inter(),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.successColor,
+        ),
+      );
+    }
   }
 
   // ─── Date Filter Row ───────────────────────────────────────────

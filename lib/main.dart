@@ -14,6 +14,7 @@ import 'backoffice/pages/dashboard_page.dart';
 import 'backoffice/pages/product_management_page.dart';
 import 'backoffice/pages/inventory_page.dart';
 import 'backoffice/pages/report_page.dart';
+import 'backoffice/pages/report_hub_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -337,7 +338,7 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
       case 1: return const AiDashboardPage();
       case 2: return const ProductManagementPage();
       case 3: return const InventoryPage();
-      case 4: return const ReportPage();
+      case 4: return const ReportHubPage();
       case 5: return const SettingsHubPage();
       default: return const DashboardPage();
     }
