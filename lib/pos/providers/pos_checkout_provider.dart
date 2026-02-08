@@ -14,8 +14,10 @@ final posOrderRepositoryProvider = Provider((ref) => PosOrderRepository());
 class CheckoutResult {
   final bool success;
   final String? orderId;
+  final Order? order;
+  final List<OrderItem>? items;
   final String? error;
-  CheckoutResult({required this.success, this.orderId, this.error});
+  CheckoutResult({required this.success, this.orderId, this.order, this.items, this.error});
 }
 
 class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
@@ -80,12 +82,18 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
         } catch (_) {}
       }
 
+      // Fetch inserted items so we can pass them for receipt printing
+      List<OrderItem> orderItems = [];
+      try {
+        orderItems = await repo.getOrderItems(order.id);
+      } catch (_) {}
+
       _ref.read(posCartProvider.notifier).clear();
       _ref.invalidate(posStockAvailabilityProvider);
       _ref.invalidate(posProductsProvider);
       _ref.invalidate(posTodayOrdersProvider);
 
-      final result = CheckoutResult(success: true, orderId: order.id);
+      final result = CheckoutResult(success: true, orderId: order.id, order: order, items: orderItems);
       state = AsyncData(result);
       return result;
     } catch (e) {

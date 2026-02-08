@@ -8,11 +8,12 @@ import 'core/config/app_config.dart';
 import 'core/config/app_constants.dart';
 import 'shared/themes/app_theme.dart';
 import 'backoffice/ai/pages/ai_dashboard_page.dart';
-import 'backoffice/ai/pages/ai_settings_page.dart';
-import 'backoffice/ai/pages/ai_action_log_page.dart';
-import 'backoffice/ai/pages/ai_conversation_history.dart';
 import 'pos/pages/pos_main_page.dart';
 import 'backoffice/pages/staff_management_page.dart';
+import 'backoffice/pages/dashboard_page.dart';
+import 'backoffice/pages/product_management_page.dart';
+import 'backoffice/pages/inventory_page.dart';
+import 'backoffice/pages/report_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -324,6 +325,7 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
   static const _navItems = [
     (icon: Icons.dashboard_rounded, label: 'Dashboard'),
     (icon: Icons.psychology_rounded, label: 'Utter AI'),
+    (icon: Icons.restaurant_menu_rounded, label: 'Produk'),
     (icon: Icons.inventory_2_rounded, label: 'Inventori'),
     (icon: Icons.bar_chart_rounded, label: 'Laporan'),
     (icon: Icons.settings_rounded, label: 'Pengaturan'),
@@ -331,12 +333,13 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
 
   Widget _getPage(int index) {
     switch (index) {
-      case 0: return const _DashboardPage();
+      case 0: return const DashboardPage();
       case 1: return const AiDashboardPage();
-      case 2: return const _PlaceholderPage(title: 'Inventori', icon: Icons.inventory_2);
-      case 3: return const _PlaceholderPage(title: 'Laporan', icon: Icons.bar_chart);
-      case 4: return const StaffManagementPage();
-      default: return const _DashboardPage();
+      case 2: return const ProductManagementPage();
+      case 3: return const InventoryPage();
+      case 4: return const ReportPage();
+      case 5: return const StaffManagementPage();
+      default: return const DashboardPage();
     }
   }
 
@@ -406,161 +409,3 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
   }
 }
 
-// ─────────────────────────────────────────────
-// Dashboard Page
-// ─────────────────────────────────────────────
-class _DashboardPage extends StatelessWidget {
-  const _DashboardPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Selamat datang di Utter App!', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 8),
-            Text(
-              'AI-Integrated F&B Management System',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: const [
-                _StatCard(title: 'Penjualan Hari Ini', value: 'Rp 0', icon: Icons.trending_up, color: AppTheme.successColor),
-                _StatCard(title: 'Total Order', value: '0', icon: Icons.receipt_long, color: AppTheme.primaryColor),
-                _StatCard(title: 'Produk Aktif', value: '16', icon: Icons.inventory_2, color: AppTheme.accentColor),
-                _StatCard(title: 'Stok Rendah', value: '0', icon: Icons.warning_amber, color: AppTheme.errorColor),
-              ],
-            ),
-            const SizedBox(height: 32),
-            Text('Menu Cepat', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _QuickMenuCard(title: 'Utter AI', subtitle: 'Chat & Insights', icon: Icons.psychology, color: AppTheme.aiPrimary,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiDashboardPage()))),
-                _QuickMenuCard(title: 'AI Settings', subtitle: 'Trust Level Config', icon: Icons.tune, color: AppTheme.aiSecondary,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiSettingsPage()))),
-                _QuickMenuCard(title: 'Action Log', subtitle: 'Riwayat Aksi AI', icon: Icons.history, color: AppTheme.secondaryColor,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiActionLogPage()))),
-                _QuickMenuCard(title: 'Riwayat Chat', subtitle: 'Percakapan AI', icon: Icons.chat_bubble_outline, color: AppTheme.infoColor,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiConversationHistory()))),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-// Shared Widgets
-// ─────────────────────────────────────────────
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-  const _StatCard({required this.title, required this.value, required this.icon, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 200,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 12),
-              Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(title, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickMenuCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  const _QuickMenuCard({required this.title, required this.subtitle, required this.icon, required this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 180,
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                const SizedBox(height: 12),
-                Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  const _PlaceholderPage({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 64, color: AppTheme.textTertiary),
-            const SizedBox(height: 16),
-            Text(title, style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 8),
-            Text('Halaman ini akan segera tersedia',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppTheme.textSecondary)),
-          ],
-        ),
-      ),
-    );
-  }
-}

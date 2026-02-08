@@ -149,9 +149,18 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
-    if (result.success) {
+    if (result.success && result.order != null) {
       Navigator.pop(context);
-      showDialog(context: context, builder: (_) => OrderSuccessDialog(orderId: result.orderId ?? '', totalAmount: total));
+      showDialog(
+        context: context,
+        builder: (_) => OrderSuccessDialog(
+          order: result.order!,
+          items: result.items ?? [],
+        ),
+      );
+    } else if (result.success) {
+      // Fallback: order created but data not available (should not happen)
+      Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.error ?? 'Gagal memproses'), backgroundColor: AppTheme.errorColor));
     }

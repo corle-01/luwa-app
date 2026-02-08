@@ -4,6 +4,8 @@ import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../../core/models/order.dart';
 import '../providers/pos_checkout_provider.dart';
+import '../repositories/pos_order_repository.dart';
+import 'receipt_widget.dart';
 
 class OrderDetailDialog extends ConsumerWidget {
   final Order order;
@@ -43,7 +45,9 @@ class OrderDetailDialog extends ConsumerWidget {
                   ),
                 ),
                 _StatusBadge(status: order.status),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
+                _PrintButton(order: order, repo: repo),
+                const SizedBox(width: 4),
                 IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
               ],
             ),
@@ -218,6 +222,24 @@ class _OrderItemTile extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _PrintButton extends StatelessWidget {
+  final Order order;
+  final PosOrderRepository repo;
+  const _PrintButton({required this.order, required this.repo});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.receipt_long, size: 20),
+      tooltip: 'Cetak Struk',
+      onPressed: () async {
+        final items = await repo.getOrderItems(order.id);
+        ReceiptPrinter.printReceipt(order, items);
+      },
     );
   }
 }

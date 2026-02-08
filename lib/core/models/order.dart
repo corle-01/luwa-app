@@ -17,6 +17,8 @@ class Order {
   final double taxAmount;
   final double serviceCharge;
   final double totalAmount;
+  final double amountPaid;
+  final double changeAmount;
   final String? notes;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -41,6 +43,8 @@ class Order {
     this.taxAmount = 0,
     this.serviceCharge = 0,
     this.totalAmount = 0,
+    this.amountPaid = 0,
+    this.changeAmount = 0,
     this.notes,
     required this.createdAt,
     this.updatedAt,
@@ -67,6 +71,8 @@ class Order {
       taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0,
       serviceCharge: (json['service_charge_amount'] as num?)?.toDouble() ?? 0,
       totalAmount: (json['total'] as num?)?.toDouble() ?? 0,
+      amountPaid: (json['amount_paid'] as num?)?.toDouble() ?? 0,
+      changeAmount: (json['change_amount'] as num?)?.toDouble() ?? 0,
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
