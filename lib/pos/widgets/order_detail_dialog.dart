@@ -125,9 +125,28 @@ class OrderDetailDialog extends ConsumerWidget {
               ),
             ],
 
-            // Void & Refund buttons (only for completed orders)
+            // Print receipt button (for completed orders)
             if (order.status == 'completed') ...[
               const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final items = await repo.getOrderItems(order.id);
+                    ReceiptPrinter.printReceipt(order, items);
+                  },
+                  icon: const Icon(Icons.print, size: 20),
+                  label: const Text('Cetak Struk', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
@@ -303,9 +322,17 @@ class _PrintButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.receipt_long, size: 20),
-      tooltip: 'Cetak Struk',
+    return OutlinedButton.icon(
+      icon: const Icon(Icons.print, size: 16),
+      label: const Text('Cetak', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: AppTheme.primaryColor,
+        side: const BorderSide(color: AppTheme.primaryColor),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
       onPressed: () async {
         final items = await repo.getOrderItems(order.id);
         ReceiptPrinter.printReceipt(order, items);

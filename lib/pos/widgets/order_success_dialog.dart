@@ -38,29 +38,35 @@ class OrderSuccessDialog extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => ReceiptPrinter.printReceipt(order, items),
-                    icon: const Icon(Icons.receipt_long, size: 18),
-                    label: const Text('Cetak Struk'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
+            // Print receipt button — full width, prominent
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => ReceiptPrinter.printReceipt(order, items),
+                icon: const Icon(Icons.print, size: 22),
+                label: const Text('Cetak Struk', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('OK'),
-                  ),
-                ),
-              ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Struk akan dicetak melalui browser',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: AppTheme.textTertiary),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Tutup', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
+              ),
             ),
           ],
         ),

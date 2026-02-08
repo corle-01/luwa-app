@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'core/config/app_config.dart';
 import 'core/config/app_constants.dart';
+import 'core/providers/theme_provider.dart';
 import 'shared/themes/app_theme.dart';
 import 'backoffice/ai/pages/ai_dashboard_page.dart';
 import 'pos/pages/pos_main_page.dart';
@@ -39,15 +40,18 @@ void main() async {
   runApp(const ProviderScope(child: UtterApp()));
 }
 
-class UtterApp extends StatelessWidget {
+class UtterApp extends ConsumerWidget {
   const UtterApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       initialRoute: '/',
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '/');

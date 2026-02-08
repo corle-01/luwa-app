@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:utter_app/core/services/ai/ai_context_builder.dart';
@@ -57,12 +59,15 @@ class AiService {
         [];
 
     try {
-      // Call the ai_chat RPC function
-      final response = await _client.rpc('ai_chat', params: {
-        'p_message': message,
-        'p_history': historyJson,
-        'p_context': messageContext,
-      });
+      // Call the ai_chat RPC function with 35s timeout
+      // (slightly longer than the 30s server-side HTTP timeout)
+      final response = await _client
+          .rpc('ai_chat', params: {
+            'p_message': message,
+            'p_history': historyJson,
+            'p_context': messageContext,
+          })
+          .timeout(const Duration(seconds: 35));
 
       final data = Map<String, dynamic>.from(response as Map);
 
@@ -82,6 +87,10 @@ class AiService {
               )
             : const [],
         conversationId: conversationId ?? '',
+      );
+    } on TimeoutException {
+      throw AiServiceException(
+        'Permintaan AI memakan waktu terlalu lama. Coba pertanyaan yang lebih singkat.',
       );
     } catch (e) {
       if (e is AiServiceException) rethrow;

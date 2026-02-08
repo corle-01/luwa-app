@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../providers/pos_order_provider.dart';
+import '../repositories/pos_order_repository.dart';
 import '../widgets/order_detail_dialog.dart';
+import '../widgets/receipt_widget.dart';
 
 class PosOrderHistoryPage extends ConsumerStatefulWidget {
   const PosOrderHistoryPage({super.key});
@@ -557,7 +559,7 @@ class _SummaryCard extends StatelessWidget {
 
 // --- Order Card ---
 
-class _OrderCard extends StatelessWidget {
+class _OrderCard extends ConsumerWidget {
   final dynamic order;
 
   const _OrderCard({required this.order});
@@ -631,7 +633,7 @@ class _OrderCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final status = order.status as String;
     final color = _statusColor(status);
     final paymentMethod = order.paymentMethod as String;
@@ -721,7 +723,7 @@ class _OrderCard extends StatelessWidget {
                 ),
               ),
 
-              // Total amount
+              // Total amount + print button
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -733,11 +735,41 @@ class _OrderCard extends StatelessWidget {
                       color: AppTheme.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 20,
-                    color: AppTheme.textTertiary,
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (status == 'completed')
+                        SizedBox(
+                          height: 28,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final repo = ref.read(posOrderRepositoryProvider);
+                              final items = await repo.getOrderItems(order.id);
+                              ReceiptPrinter.printReceipt(order, items);
+                            },
+                            icon: const Icon(Icons.print, size: 14),
+                            label: Text(
+                              'Cetak',
+                              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              foregroundColor: AppTheme.primaryColor,
+                              side: const BorderSide(color: AppTheme.primaryColor, width: 1),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 20,
+                        color: AppTheme.textTertiary,
+                      ),
+                    ],
                   ),
                 ],
               ),

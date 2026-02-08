@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/providers/theme_provider.dart';
 import '../../shared/themes/app_theme.dart';
 import 'staff_management_page.dart';
 import 'tax_management_page.dart';
@@ -133,32 +135,59 @@ class SettingsHubPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Pengaturan'),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final crossAxisCount = constraints.maxWidth >= 900
-              ? 3
-              : constraints.maxWidth >= 600
-                  ? 2
-                  : 1;
-
-          return GridView.builder(
-            padding: const EdgeInsets.all(20),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 2.2,
-            ),
-            itemCount: _items.length,
-            itemBuilder: (context, index) {
-              final item = _items[index];
-              return _SettingsCard(
-                item: item,
-                onTap: () => _navigateTo(context, index),
+      body: Column(
+        children: [
+          // Dark mode toggle
+          Consumer(
+            builder: (context, ref, _) {
+              final themeMode = ref.watch(themeModeProvider);
+              final isDark = themeMode == ThemeMode.dark;
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Card(
+                  child: SwitchListTile(
+                    title: const Text('Mode Gelap'),
+                    subtitle: Text(isDark ? 'Dark mode aktif' : 'Light mode aktif'),
+                    secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode),
+                    value: isDark,
+                    onChanged: (v) => ref.read(themeModeProvider.notifier).state =
+                        v ? ThemeMode.dark : ThemeMode.light,
+                  ),
+                ),
               );
             },
-          );
-        },
+          ),
+          // Settings grid
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = constraints.maxWidth >= 900
+                    ? 3
+                    : constraints.maxWidth >= 600
+                        ? 2
+                        : 1;
+
+                return GridView.builder(
+                  padding: const EdgeInsets.all(20),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 2.2,
+                  ),
+                  itemCount: _items.length,
+                  itemBuilder: (context, index) {
+                    final item = _items[index];
+                    return _SettingsCard(
+                      item: item,
+                      onTap: () => _navigateTo(context, index),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
