@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:utter_app/core/models/ai_message.dart';
-import 'package:utter_app/core/repositories/ai_conversation_repository.dart';
 import 'package:utter_app/core/services/ai/ai_service.dart';
 
 /// State for the AI chat interface.
@@ -47,18 +46,16 @@ class AiChatState {
 
 /// Notifier that manages the AI chat state.
 ///
-/// Handles sending messages, loading conversation history,
-/// and managing the conversation lifecycle.
+/// Keeps conversation history in memory and sends it with each request
+/// to the ai_chat RPC function for context continuity.
 class AiChatNotifier extends StateNotifier<AiChatState> {
   final AiService _aiService;
-  final AiConversationRepository _conversationRepo;
+
+  static const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
   AiChatNotifier({
     AiService? aiService,
-    AiConversationRepository? conversationRepo,
   })  : _aiService = aiService ?? AiService(),
-        _conversationRepo =
-            conversationRepo ?? AiConversationRepository(),
         super(const AiChatState());
 
   /// Send a text message from the user.
@@ -75,10 +72,13 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
     // Clear previous errors
     state = state.copyWith(clearError: true);
 
+    final effectiveOutletId = outletId.isNotEmpty ? outletId : _outletId;
+    final convId = state.conversationId ?? const Uuid().v4();
+
     // Optimistically add the user message to the UI
     final userMessage = AiMessage(
       id: const Uuid().v4(),
-      conversationId: state.conversationId ?? '',
+      conversationId: convId,
       role: 'user',
       content: text.trim(),
       createdAt: DateTime.now().toUtc(),
@@ -87,21 +87,32 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
     state = state.copyWith(
       messages: [...state.messages, userMessage],
       isLoading: true,
+      conversationId: convId,
     );
 
     try {
-      // Send to AI service
+      // Build history from existing messages (last 10 messages for context)
+      final recentMessages = state.messages.length > 10
+          ? state.messages.sublist(state.messages.length - 10)
+          : state.messages;
+
+      final history = recentMessages
+          .map((m) => {'role': m.role, 'content': m.content})
+          .toList();
+
+      // Send to AI service via RPC
       final response = await _aiService.sendMessage(
         text.trim(),
-        conversationId: state.conversationId,
-        outletId: outletId,
+        conversationId: convId,
+        outletId: effectiveOutletId,
         userId: userId,
+        history: history,
       );
 
       // Create the assistant message from the response
       final assistantMessage = AiMessage(
         id: const Uuid().v4(),
-        conversationId: response.conversationId,
+        conversationId: convId,
         role: 'assistant',
         content: response.reply,
         functionCalls:
@@ -109,41 +120,17 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
         createdAt: DateTime.now().toUtc(),
       );
 
-      // Update state with the conversation ID and the assistant's reply
+      // Update state with the assistant's reply
       state = state.copyWith(
         messages: [...state.messages, assistantMessage],
         isLoading: false,
-        conversationId: response.conversationId,
       );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e is AiServiceException
             ? e.message
-            : 'Failed to get response from AI. Please try again.',
-      );
-    }
-  }
-
-  /// Load an existing conversation and its messages.
-  Future<void> loadConversation(String conversationId) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-
-    try {
-      final messages = await _conversationRepo.getMessages(
-        conversationId,
-        limit: 50,
-      );
-
-      state = state.copyWith(
-        messages: messages,
-        conversationId: conversationId,
-        isLoading: false,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to load conversation: $e',
+            : 'Gagal mendapat respons dari AI. Silakan coba lagi.',
       );
     }
   }

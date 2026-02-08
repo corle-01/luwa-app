@@ -1,12 +1,5 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 
-import 'package:utter_app/core/config/app_constants.dart';
-import 'package:utter_app/core/models/ai_message.dart';
-import 'package:utter_app/core/repositories/ai_conversation_repository.dart';
 import 'package:utter_app/core/services/ai/ai_context_builder.dart';
 
 /// Response returned by the AI service after processing a message.
@@ -17,7 +10,7 @@ class AiResponse {
   /// List of actions the AI took or is suggesting.
   final List<Map<String, dynamic>> actions;
 
-  /// The conversation ID (existing or newly created).
+  /// The conversation ID (client-side only, for tracking).
   final String conversationId;
 
   const AiResponse({
@@ -25,195 +18,82 @@ class AiResponse {
     this.actions = const [],
     required this.conversationId,
   });
-
-  factory AiResponse.fromJson(Map<String, dynamic> json) {
-    return AiResponse(
-      reply: json['reply'] as String? ?? '',
-      actions: json['actions'] != null
-          ? List<Map<String, dynamic>>.from(
-              (json['actions'] as List).map(
-                (item) => Map<String, dynamic>.from(item as Map),
-              ),
-            )
-          : const [],
-      conversationId: json['conversation_id'] as String? ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'reply': reply,
-      'actions': actions,
-      'conversation_id': conversationId,
-    };
-  }
 }
 
-/// Main AI service that handles communication with the AI backend.
+/// Main AI service that handles communication with DeepSeek via Supabase RPC.
 ///
-/// Sends user messages to the Supabase Edge Function `/ai-agent`,
-/// manages conversation state, and processes AI responses including
-/// any actions the AI needs to take.
+/// Calls the `ai_chat` Postgres function which proxies requests to DeepSeek API
+/// server-side, avoiding CORS issues and keeping the API key secure.
 class AiService {
-  static const String _edgeFunctionUrl =
-      'https://eavsygnrluburvrobvoj.supabase.co/functions/v1/ai-agent';
-
   final SupabaseClient _client;
-  final AiConversationRepository _conversationRepo;
   final AiContextBuilder _contextBuilder;
-  final http.Client _httpClient;
 
   AiService({
     SupabaseClient? client,
-    AiConversationRepository? conversationRepo,
     AiContextBuilder? contextBuilder,
-    http.Client? httpClient,
   })  : _client = client ?? Supabase.instance.client,
-        _conversationRepo =
-            conversationRepo ?? AiConversationRepository(),
-        _contextBuilder = contextBuilder ?? AiContextBuilder(),
-        _httpClient = httpClient ?? http.Client();
+        _contextBuilder = contextBuilder ?? AiContextBuilder();
 
-  /// Send a message to the AI agent and receive a response.
+  /// Send a message to the AI via Supabase RPC and receive a response.
   ///
-  /// If [conversationId] is null, a new conversation will be created.
-  /// The [context] parameter allows passing additional contextual data;
-  /// if null, the context will be auto-built from the outlet's current state.
-  ///
-  /// Returns an [AiResponse] containing the AI's reply, any actions taken,
-  /// and the conversation ID.
+  /// Builds business context automatically and includes conversation history.
+  /// The AI call happens server-side in Postgres via the `ai_chat` function.
   Future<AiResponse> sendMessage(
     String message, {
     String? conversationId,
     required String outletId,
     required String userId,
     Map<String, dynamic>? context,
+    List<Map<String, String>>? history,
   }) async {
-    // Create a new conversation if needed
-    String activeConversationId = conversationId ?? '';
-    if (activeConversationId.isEmpty) {
-      final conversation = await _conversationRepo.createConversation(
-        outletId: outletId,
-        userId: userId,
-        source: 'chat',
-      );
-      activeConversationId = conversation.id;
-    }
-
-    // Save the user message to the database
-    final userMessage = AiMessage(
-      id: const Uuid().v4(),
-      conversationId: activeConversationId,
-      role: 'user',
-      content: message,
-      createdAt: DateTime.now().toUtc(),
-    );
-    await _conversationRepo.addMessage(userMessage);
-
     // Build context if not provided
     final messageContext =
         context ?? await _contextBuilder.buildContext(outletId);
 
-    // Get the auth token for the current user
-    final session = _client.auth.currentSession;
-    final accessToken = session?.accessToken ?? '';
-
-    // Get recent message history for the conversation
-    final recentMessages =
-        await _conversationRepo.getMessages(activeConversationId, limit: 10);
-    final messageHistory = recentMessages
-        .map((m) => {
-              'role': m.role,
-              'content': m.content,
-            })
-        .toList();
-
-    // Build the request payload
-    final requestBody = {
-      'message': message,
-      'conversation_id': activeConversationId,
-      'outlet_id': outletId,
-      'user_id': userId,
-      'context': messageContext,
-      'history': messageHistory,
-    };
+    // Build history for the RPC call
+    final historyJson = history
+            ?.map((m) => {'role': m['role'] ?? '', 'content': m['content'] ?? ''})
+            .toList() ??
+        [];
 
     try {
-      // Call the Supabase Edge Function
-      final response = await _httpClient
-          .post(
-            Uri.parse(_edgeFunctionUrl),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $accessToken',
-              'apikey': 'sb_publishable_NQB_fdJdLgGK0R3OI2Cyjg_UlG76qUs',
-            },
-            body: jsonEncode(requestBody),
-          )
-          .timeout(AppConstants.aiTimeout);
+      // Call the ai_chat RPC function
+      final response = await _client.rpc('ai_chat', params: {
+        'p_message': message,
+        'p_history': historyJson,
+        'p_context': messageContext,
+      });
 
-      if (response.statusCode != 200) {
+      final data = Map<String, dynamic>.from(response as Map);
+
+      if (data['error'] == true) {
         throw AiServiceException(
-          'AI service returned status ${response.statusCode}: ${response.body}',
-          statusCode: response.statusCode,
+          data['reply'] as String? ?? 'AI service error',
         );
       }
 
-      final responseData =
-          jsonDecode(response.body) as Map<String, dynamic>;
-
-      // Parse the AI response
-      final aiResponse = AiResponse(
-        reply: responseData['reply'] as String? ?? '',
-        actions: responseData['actions'] != null
+      return AiResponse(
+        reply: data['reply'] as String? ?? 'Tidak ada respons.',
+        actions: data['actions'] != null
             ? List<Map<String, dynamic>>.from(
-                (responseData['actions'] as List).map(
+                (data['actions'] as List).map(
                   (item) => Map<String, dynamic>.from(item as Map),
                 ),
               )
             : const [],
-        conversationId: activeConversationId,
+        conversationId: conversationId ?? '',
       );
-
-      // Save the assistant message to the database
-      final assistantMessage = AiMessage(
-        id: const Uuid().v4(),
-        conversationId: activeConversationId,
-        role: 'assistant',
-        content: aiResponse.reply,
-        functionCalls: aiResponse.actions.isNotEmpty
-            ? aiResponse.actions
-            : null,
-        tokensUsed: responseData['tokens_used'] as int?,
-        model: responseData['model'] as String?,
-        createdAt: DateTime.now().toUtc(),
-      );
-      await _conversationRepo.addMessage(assistantMessage);
-
-      // Update conversation title from first message if not set
-      if (conversationId == null || conversationId.isEmpty) {
-        final title = message.length > 50
-            ? '${message.substring(0, 50)}...'
-            : message;
-        await _conversationRepo.updateConversation(
-          activeConversationId,
-          title: title,
-        );
-      }
-
-      return aiResponse;
-    } on AiServiceException {
-      rethrow;
     } catch (e) {
+      if (e is AiServiceException) rethrow;
       throw AiServiceException(
-        'Failed to communicate with AI service: $e',
+        'Gagal menghubungi AI: $e',
       );
     }
   }
 
   /// Dispose of resources.
   void dispose() {
-    _httpClient.close();
+    // No resources to dispose with RPC approach
   }
 }
 
