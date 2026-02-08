@@ -6,24 +6,26 @@ import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
 import 'package:utter_app/core/providers/ai/ai_action_log_provider.dart';
 import 'package:utter_app/core/providers/ai/ai_trust_provider.dart';
 import 'package:utter_app/core/providers/ai/ai_persona_provider.dart';
+import 'package:utter_app/core/providers/ai/ai_chat_provider.dart';
+import 'package:utter_app/core/providers/outlet_provider.dart';
 import 'package:utter_app/core/services/ai/ai_memory_service.dart';
 import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
 import 'package:utter_app/shared/themes/app_theme.dart';
 import 'package:utter_app/shared/utils/format_utils.dart';
+import 'package:utter_app/shared/widgets/utter_avatar.dart';
+import 'package:utter_app/shared/widgets/avatar_chat_overlay.dart';
 import 'package:utter_app/backoffice/ai/providers/bo_ai_provider.dart';
 import 'package:utter_app/backoffice/ai/widgets/insight_card.dart';
 import 'package:utter_app/backoffice/ai/widgets/pending_approval_card.dart';
-import 'package:utter_app/backoffice/ai/widgets/ai_chat_widget.dart';
 import 'package:utter_app/backoffice/ai/widgets/action_log_row.dart';
 import 'package:utter_app/backoffice/ai/widgets/undo_banner.dart';
 import 'package:utter_app/backoffice/ai/pages/ai_settings_page.dart';
-import 'package:utter_app/shared/widgets/utter_avatar.dart';
 
 /// The main AI Dashboard page for the Back Office.
 ///
-/// Two-column desktop layout with three AI personas:
+/// Full-width dashboard with floating avatar overlay for chat.
 /// - OTAK (Memory): Stored insights from conversations
-/// - BADAN (Action): Chat + function calling
+/// - BADAN (Action): Chat via floating avatar overlay
 /// - PERASAAN (Prediction): Business mood, forecasts, warnings
 class AiDashboardPage extends ConsumerStatefulWidget {
   const AiDashboardPage({super.key});
@@ -32,23 +34,12 @@ class AiDashboardPage extends ConsumerStatefulWidget {
   ConsumerState<AiDashboardPage> createState() => _AiDashboardPageState();
 }
 
-class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  // Breakpoint for desktop vs mobile layout
-  static const double _desktopBreakpoint = 900;
+class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
+  bool _chatOpen = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        ref.read(boAiProvider.notifier).switchTab(_tabController.index);
-      }
-    });
-
     // Load persona data on init
     Future.microtask(() {
       ref.read(aiPersonaProvider.notifier).loadAll();
@@ -56,47 +47,61 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
   }
 
   @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final undoableLogs = ref.watch(aiUndoableActionsProvider);
+    final isLoading = ref.watch(aiChatLoadingProvider);
+    final unreadCount = ref.watch(aiInsightUnreadCountProvider);
+    final outletId = ref.watch(currentOutletIdProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: Column(
+      body: Stack(
         children: [
-          // Top bar with mood indicator
-          _buildTopBar(context),
+          Column(
+            children: [
+              // Top bar with mood indicator
+              _buildTopBar(context),
 
-          // Undo banners
-          ...undoableLogs.take(1).map((log) {
-            return UndoBanner(
-              actionDescription: log.actionDescription,
-              undoDeadline: log.undoDeadline!,
-              onUndo: () {
-                ref.read(aiActionLogProvider.notifier).undoAction(log.id);
-              },
-            );
-          }),
+              // Undo banners
+              ...undoableLogs.take(1).map((log) {
+                return UndoBanner(
+                  actionDescription: log.actionDescription,
+                  undoDeadline: log.undoDeadline!,
+                  onUndo: () {
+                    ref
+                        .read(aiActionLogProvider.notifier)
+                        .undoAction(log.id);
+                  },
+                );
+              }),
 
-          // Main content
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth >= _desktopBreakpoint) {
-                  return _buildDesktopLayout();
-                }
-                return _buildMobileLayout();
-              },
-            ),
+              // Main content - full width dashboard
+              Expanded(child: _buildDashboardContent()),
+
+              // Bottom status bar
+              _buildStatusBar(),
+            ],
           ),
 
-          // Bottom status bar
-          _buildStatusBar(),
+          // Floating AI Avatar button (bottom-right)
+          if (!_chatOpen)
+            Positioned(
+              bottom: 64,
+              right: 24,
+              child: UtterAvatar(
+                size: 56,
+                isThinking: isLoading,
+                badgeCount: unreadCount,
+                onTap: () => setState(() => _chatOpen = true),
+              ),
+            ),
+
+          // Chat overlay (slides in from right)
+          if (_chatOpen)
+            AvatarChatOverlay(
+              onClose: () => setState(() => _chatOpen = false),
+              outletId: outletId,
+            ),
         ],
       ),
     );
@@ -204,32 +209,9 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
     );
   }
 
-  // ======== DESKTOP LAYOUT ========
+  // ======== DASHBOARD CONTENT (full-width, scrollable) ========
 
-  Widget _buildDesktopLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // LEFT COLUMN: Mood + Predictions + Memory + Insights
-        Expanded(
-          flex: 1,
-          child: _buildLeftColumn(),
-        ),
-        // Vertical divider
-        Container(
-          width: 1,
-          color: AppTheme.dividerColor,
-        ),
-        // RIGHT COLUMN: Chat + Recent Actions
-        Expanded(
-          flex: 1,
-          child: _buildRightColumn(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLeftColumn() {
+  Widget _buildDashboardContent() {
     final insights = ref.watch(aiActiveInsightsProvider);
     final pendingApprovals = ref.watch(aiPendingApprovalsProvider);
     final insightFilter = ref.watch(boAiInsightFilterProvider);
@@ -399,9 +381,85 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
               ),
             ),
 
-          const SliverPadding(
-            padding: EdgeInsets.only(bottom: AppTheme.spacingXL),
+          // Recent Actions section
+          SliverToBoxAdapter(
+            child: _buildRecentActionsSection(),
           ),
+
+          // Bottom padding for floating avatar
+          const SliverPadding(
+            padding: EdgeInsets.only(bottom: 120),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentActionsSection() {
+    final actionLogs = ref.watch(aiActionLogsProvider);
+    final recentActions = actionLogs.take(8).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingM,
+        AppTheme.spacingL,
+        AppTheme.spacingM,
+        AppTheme.spacingS,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.history,
+                size: 20,
+                color: AppTheme.textSecondary,
+              ),
+              const SizedBox(width: AppTheme.spacingS),
+              Text(
+                'Aksi Terakhir',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingS),
+          if (recentActions.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppTheme.spacingL),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                border: Border.all(color: AppTheme.dividerColor),
+              ),
+              child: Center(
+                child: Text(
+                  'Belum ada aksi terbaru',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppTheme.textTertiary,
+                  ),
+                ),
+              ),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                border: Border.all(color: AppTheme.dividerColor),
+              ),
+              child: Column(
+                children: recentActions
+                    .map((log) => ActionLogRow(actionLog: log))
+                    .toList(),
+              ),
+            ),
         ],
       ),
     );
@@ -800,173 +858,6 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildRightColumn() {
-    final actionLogs = ref.watch(aiActionLogsProvider);
-    final recentActions = actionLogs.take(5).toList();
-
-    return Column(
-      children: [
-        // Chat widget (takes most of the space)
-        Expanded(
-          flex: 3,
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingM),
-            child: AiChatWidget(),
-          ),
-        ),
-
-        // Recent actions section
-        Container(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: AppTheme.dividerColor),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.spacingM,
-                  AppTheme.spacingS,
-                  AppTheme.spacingM,
-                  0,
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.history,
-                      size: 16,
-                      color: AppTheme.textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Aksi Terakhir',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (recentActions.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(AppTheme.spacingM),
-                  child: Text(
-                    'Belum ada aksi terbaru',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppTheme.textTertiary,
-                    ),
-                  ),
-                )
-              else
-                SizedBox(
-                  height: recentActions.length * 56.0 + 8,
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: recentActions.length,
-                    itemBuilder: (context, index) {
-                      return ActionLogRow(
-                        actionLog: recentActions[index],
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ======== MOBILE LAYOUT ========
-
-  Widget _buildMobileLayout() {
-    return Column(
-      children: [
-        // Tab bar
-        Container(
-          color: AppTheme.surfaceColor,
-          child: TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Insights'),
-              Tab(text: 'Chat'),
-              Tab(text: 'Aksi'),
-            ],
-            labelColor: AppTheme.aiPrimary,
-            unselectedLabelColor: AppTheme.textTertiary,
-            indicatorColor: AppTheme.aiPrimary,
-            labelStyle: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-            unselectedLabelStyle: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.normal,
-            ),
-          ),
-        ),
-
-        // Tab views
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              // Tab 1: Insights + Pending
-              _buildLeftColumn(),
-              // Tab 2: Chat
-              Padding(
-                padding: const EdgeInsets.all(AppTheme.spacingS),
-                child: AiChatWidget(),
-              ),
-              // Tab 3: Recent actions
-              _buildMobileActionsTab(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMobileActionsTab() {
-    final actionLogs = ref.watch(aiActionLogsProvider);
-
-    if (actionLogs.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.history,
-              size: 48,
-              color: AppTheme.textTertiary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: AppTheme.spacingM),
-            Text(
-              'Belum ada aksi',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: AppTheme.textTertiary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: actionLogs.length,
-      itemBuilder: (context, index) {
-        return ActionLogRow(actionLog: actionLogs[index]);
-      },
     );
   }
 

@@ -3,12 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../../shared/widgets/offline_indicator.dart';
-import '../../shared/widgets/utter_avatar.dart';
-import '../../shared/widgets/avatar_chat_overlay.dart';
 import '../../core/services/sync_service.dart';
 import '../../core/providers/outlet_provider.dart';
-import '../../core/providers/ai/ai_chat_provider.dart';
-import '../../core/providers/ai/ai_insight_provider.dart';
 import '../widgets/pos_header.dart';
 import '../widgets/product_search_bar.dart';
 import '../widgets/category_tab_bar.dart';
@@ -17,18 +13,11 @@ import '../widgets/cart_panel.dart';
 import '../repositories/pos_cashier_repository.dart';
 import '../providers/pos_shift_provider.dart';
 
-class PosMainPage extends ConsumerStatefulWidget {
+class PosMainPage extends ConsumerWidget {
   const PosMainPage({super.key});
 
   @override
-  ConsumerState<PosMainPage> createState() => _PosMainPageState();
-}
-
-class _PosMainPageState extends ConsumerState<PosMainPage> {
-  bool _chatOpen = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final shiftAsync = ref.watch(posShiftNotifierProvider);
 
     // Ensure the SyncService is alive so it auto-syncs when back online
@@ -56,10 +45,6 @@ class _PosMainPageState extends ConsumerState<PosMainPage> {
           if (shift == null) {
             return const _ShiftGatePage();
           }
-
-          final isLoading = ref.watch(aiChatLoadingProvider);
-          final unreadCount = ref.watch(aiInsightUnreadCountProvider);
-          final outletId = ref.watch(currentOutletIdProvider);
 
           return Stack(
             children: [
@@ -93,26 +78,6 @@ class _PosMainPageState extends ConsumerState<PosMainPage> {
                 right: 0,
                 child: OfflineIndicator(),
               ),
-
-              // Floating AI Avatar button (bottom-right)
-              if (!_chatOpen)
-                Positioned(
-                  bottom: 24,
-                  right: 24,
-                  child: UtterAvatar(
-                    size: 56,
-                    isThinking: isLoading,
-                    badgeCount: unreadCount,
-                    onTap: () => setState(() => _chatOpen = true),
-                  ),
-                ),
-
-              // Chat overlay (slides in from right)
-              if (_chatOpen)
-                AvatarChatOverlay(
-                  onClose: () => setState(() => _chatOpen = false),
-                  outletId: outletId,
-                ),
             ],
           );
         },

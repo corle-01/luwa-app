@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +9,7 @@ import '../../core/providers/ai/ai_chat_provider.dart';
 import '../../core/providers/ai/ai_persona_provider.dart';
 import '../../core/providers/outlet_provider.dart';
 import '../../core/services/ai/ai_memory_service.dart';
+import '../../core/services/voice_command_service.dart';
 import '../themes/app_theme.dart';
 import 'utter_avatar.dart';
 
@@ -42,6 +45,12 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
   final ScrollController _scrollController = ScrollController();
   final FocusNode _inputFocusNode = FocusNode();
 
+  // Voice command
+  final VoiceCommandService _voiceService = VoiceCommandService();
+  bool _isVoiceListening = false;
+  StreamSubscription<String>? _voiceResultSub;
+  StreamSubscription<VoiceStatus>? _voiceStatusSub;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +72,23 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
       ),
     );
     _slideController.forward();
+
+    // Initialize voice
+    if (VoiceCommandService.isSupported) {
+      _voiceService.initialize();
+      _voiceResultSub = _voiceService.onResult.listen((text) {
+        if (text.isNotEmpty) {
+          _sendMessage(text);
+        }
+      });
+      _voiceStatusSub = _voiceService.onStatus.listen((status) {
+        if (mounted) {
+          setState(() {
+            _isVoiceListening = status == VoiceStatus.listening;
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -71,6 +97,9 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
     _textController.dispose();
     _scrollController.dispose();
     _inputFocusNode.dispose();
+    _voiceResultSub?.cancel();
+    _voiceStatusSub?.cancel();
+    _voiceService.dispose();
     super.dispose();
   }
 
@@ -293,7 +322,10 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
                 if (isLoading && index == messages.length) {
                   return _buildTypingBubble();
                 }
-                return _AvatarMessageBubble(message: messages[index]);
+                return _AvatarMessageBubble(
+                  message: messages[index],
+                  onSpeak: _speakText,
+                );
               },
             ),
     );
@@ -455,8 +487,23 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
     );
   }
 
+  void _toggleVoice() {
+    if (_isVoiceListening) {
+      _voiceService.stopListening();
+    } else {
+      _voiceService.startListening();
+    }
+  }
+
+  void _speakText(String text) {
+    if (VoiceCommandService.isTtsSupported) {
+      _voiceService.speak(text);
+    }
+  }
+
   Widget _buildInputField(BuildContext context) {
     final isLoading = ref.watch(aiChatLoadingProvider);
+    final hasVoice = VoiceCommandService.isSupported;
 
     return Container(
       padding: EdgeInsets.only(
@@ -480,19 +527,53 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
       ),
       child: Row(
         children: [
+          // Mic button
+          if (hasVoice)
+            GestureDetector(
+              onTap: isLoading ? null : _toggleVoice,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _isVoiceListening
+                      ? AppTheme.errorColor.withValues(alpha: 0.1)
+                      : AppTheme.backgroundColor,
+                  border: Border.all(
+                    color: _isVoiceListening
+                        ? AppTheme.errorColor.withValues(alpha: 0.5)
+                        : AppTheme.borderColor.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Icon(
+                  _isVoiceListening ? Icons.mic : Icons.mic_none,
+                  size: 18,
+                  color: _isVoiceListening
+                      ? AppTheme.errorColor
+                      : AppTheme.textSecondary,
+                ),
+              ),
+            ),
+          if (hasVoice) const SizedBox(width: 6),
+
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: AppTheme.backgroundColor,
+                color: _isVoiceListening
+                    ? AppTheme.errorColor.withValues(alpha: 0.04)
+                    : AppTheme.backgroundColor,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: AppTheme.borderColor.withValues(alpha: 0.5),
+                  color: _isVoiceListening
+                      ? AppTheme.errorColor.withValues(alpha: 0.3)
+                      : AppTheme.borderColor.withValues(alpha: 0.5),
                 ),
               ),
               child: TextField(
                 controller: _textController,
                 focusNode: _inputFocusNode,
-                enabled: !isLoading,
+                enabled: !isLoading && !_isVoiceListening,
                 maxLines: 3,
                 minLines: 1,
                 textInputAction: TextInputAction.send,
@@ -502,10 +583,14 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
                   color: AppTheme.textPrimary,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Ketik pesan...',
+                  hintText: _isVoiceListening
+                      ? 'Mendengarkan...'
+                      : 'Ketik pesan...',
                   hintStyle: GoogleFonts.inter(
                     fontSize: 14,
-                    color: AppTheme.textTertiary,
+                    color: _isVoiceListening
+                        ? AppTheme.errorColor.withValues(alpha: 0.6)
+                        : AppTheme.textTertiary,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -554,12 +639,14 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
 /// Message bubble with avatar for AI messages.
 class _AvatarMessageBubble extends StatelessWidget {
   final AiMessage message;
+  final void Function(String text)? onSpeak;
 
-  const _AvatarMessageBubble({required this.message});
+  const _AvatarMessageBubble({required this.message, this.onSpeak});
 
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
+    final hasTts = VoiceCommandService.isTtsSupported && !isUser;
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -599,37 +686,74 @@ class _AvatarMessageBubble extends StatelessWidget {
 
             // Message content
             Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: isUser ? AppTheme.aiPrimary : Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    topRight: const Radius.circular(16),
-                    bottomLeft:
-                        Radius.circular(isUser ? 16 : 4),
-                    bottomRight:
-                        Radius.circular(isUser ? 4 : 16),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+              child: Column(
+                crossAxisAlignment:
+                    isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
                     ),
-                  ],
-                ),
-                child: Text(
-                  message.content,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    height: 1.5,
-                    color: isUser ? Colors.white : AppTheme.textPrimary,
+                    decoration: BoxDecoration(
+                      color: isUser ? AppTheme.aiPrimary : Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(16),
+                        topRight: const Radius.circular(16),
+                        bottomLeft: Radius.circular(isUser ? 16 : 4),
+                        bottomRight: Radius.circular(isUser ? 4 : 16),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      message.content,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        height: 1.5,
+                        color: isUser ? Colors.white : AppTheme.textPrimary,
+                      ),
+                    ),
                   ),
-                ),
+                  // TTS button for AI messages
+                  if (hasTts)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, left: 4),
+                      child: InkWell(
+                        onTap: () => onSpeak?.call(message.content),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.volume_up_rounded,
+                                size: 13,
+                                color: AppTheme.textTertiary,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                'Dengar',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  color: AppTheme.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
