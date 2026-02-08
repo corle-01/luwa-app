@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'ai_tools.dart';
 import 'ai_context_builder.dart';
 
-/// Response from Gemini API
+/// Response from AI API (kept as GeminiResponse for compatibility)
 class GeminiResponse {
   final String? text;
   final List<GeminiFunctionCall> functionCalls;
@@ -15,7 +15,7 @@ class GeminiResponse {
   const GeminiResponse({this.text, this.functionCalls = const [], this.tokensUsed});
 }
 
-/// A function call requested by Gemini
+/// A function call requested by the AI
 class GeminiFunctionCall {
   final String name;
   final Map<String, dynamic> args;
@@ -23,15 +23,17 @@ class GeminiFunctionCall {
   const GeminiFunctionCall({required this.name, required this.args});
 }
 
-/// Gemini Flash service with function calling support.
+/// AI service powered by DeepSeek (OpenAI-compatible API).
 ///
-/// Calls Gemini API directly from Flutter (no Supabase RPC proxy).
+/// Calls DeepSeek API directly from Flutter.
 /// Supports multi-turn function calling: AI requests actions,
 /// we execute them, send results back, AI gives final response.
+///
+/// Class name kept as GeminiService for drop-in compatibility.
 class GeminiService {
-  static const _apiKey = 'AIzaSyAr4syBDjn_IonFL2EBKdFal9UOuT-vtC8';
-  static const _model = 'gemini-2.0-flash';
-  static const _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  static const _apiKey = 'sk-13f5fc4e39f948839fd138cbe32c7182';
+  static const _model = 'deepseek-chat';
+  static const _baseUrl = 'https://api.deepseek.com';
 
   final AiContextBuilder _contextBuilder;
   final http.Client _httpClient;
@@ -42,12 +44,83 @@ class GeminiService {
   })  : _contextBuilder = contextBuilder ?? AiContextBuilder(),
         _httpClient = httpClient ?? http.Client();
 
+  /// Convert Gemini-format type strings to OpenAI-format.
+  /// Gemini uses uppercase (STRING, NUMBER, OBJECT, BOOLEAN, ARRAY, INTEGER).
+  /// OpenAI uses lowercase (string, number, object, boolean, array, integer).
+  static dynamic _convertType(dynamic value) {
+    if (value is String) {
+      // Map Gemini uppercase types to OpenAI lowercase types
+      switch (value) {
+        case 'STRING':
+          return 'string';
+        case 'NUMBER':
+          return 'number';
+        case 'INTEGER':
+          return 'integer';
+        case 'BOOLEAN':
+          return 'boolean';
+        case 'OBJECT':
+          return 'object';
+        case 'ARRAY':
+          return 'array';
+        default:
+          return value.toLowerCase();
+      }
+    }
+    if (value is Map) {
+      return _convertSchemaMap(Map<String, dynamic>.from(value));
+    }
+    if (value is List) {
+      return value.map((e) => _convertType(e)).toList();
+    }
+    return value;
+  }
+
+  /// Recursively convert a schema map from Gemini format to OpenAI format.
+  static Map<String, dynamic> _convertSchemaMap(Map<String, dynamic> schema) {
+    final result = <String, dynamic>{};
+    for (final entry in schema.entries) {
+      if (entry.key == 'type') {
+        result['type'] = _convertType(entry.value);
+      } else if (entry.key == 'properties' && entry.value is Map) {
+        final props = <String, dynamic>{};
+        for (final propEntry in (entry.value as Map).entries) {
+          props[propEntry.key as String] =
+              _convertSchemaMap(Map<String, dynamic>.from(propEntry.value as Map));
+        }
+        result['properties'] = props;
+      } else if (entry.key == 'items' && entry.value is Map) {
+        result['items'] =
+            _convertSchemaMap(Map<String, dynamic>.from(entry.value as Map));
+      } else {
+        result[entry.key] = entry.value;
+      }
+    }
+    return result;
+  }
+
+  /// Convert Gemini tool declarations to OpenAI tools format.
+  static List<Map<String, dynamic>> _convertToolsToOpenAI(
+      List<Map<String, dynamic>> geminiTools) {
+    return geminiTools.map((tool) {
+      final parameters = tool['parameters'] as Map<String, dynamic>?;
+      return {
+        'type': 'function',
+        'function': {
+          'name': tool['name'],
+          'description': tool['description'],
+          if (parameters != null) 'parameters': _convertSchemaMap(parameters),
+        },
+      };
+    }).toList();
+  }
+
   /// Send a message with full function calling loop.
   ///
-  /// 1. Send user message + tools to Gemini
-  /// 2. If Gemini returns function calls, execute them
-  /// 3. Send results back to Gemini
-  /// 4. Repeat until Gemini returns text (or max 5 rounds)
+  /// 1. Send user message + tools to DeepSeek
+  /// 2. If DeepSeek returns tool_calls, execute them
+  /// 3. Send results back to DeepSeek
+  /// 4. Repeat until DeepSeek returns text (or max 5 rounds)
   Future<GeminiResponse> sendMessage({
     required String message,
     required String outletId,
@@ -57,84 +130,80 @@ class GeminiService {
     // Build context
     final context = await _contextBuilder.buildContext(outletId);
 
-    // Build system instruction as Gemini API format
-    final systemInstruction = {
-      'parts': [{'text': _buildSystemInstruction(context)}],
-    };
+    // Build messages list (OpenAI format)
+    final messages = <Map<String, dynamic>>[];
 
-    // Build contents from history + new message
-    final contents = <Map<String, dynamic>>[];
+    // System message
+    messages.add({
+      'role': 'system',
+      'content': _buildSystemInstruction(context),
+    });
 
     // Add history
     if (history != null) {
       for (final msg in history) {
-        contents.add({
-          'role': msg['role'] == 'assistant' ? 'model' : 'user',
-          'parts': [{'text': msg['content'] ?? ''}],
+        messages.add({
+          'role': msg['role'] == 'model' ? 'assistant' : msg['role'],
+          'content': msg['content'] ?? '',
         });
       }
     }
 
     // Add new user message
-    contents.add({
+    messages.add({
       'role': 'user',
-      'parts': [{'text': message}],
+      'content': message,
     });
+
+    // Tools are already in OpenAI format from AiTools
+    final tools = AiTools.toolDeclarations;
 
     // Function calling loop (max 5 rounds)
     int totalTokens = 0;
     final allFunctionCalls = <GeminiFunctionCall>[];
 
     for (int round = 0; round < 5; round++) {
-      final response = await _callGemini(
-        contents: contents,
-        systemInstruction: systemInstruction,
-        tools: AiTools.toolDeclarations,
+      final response = await _callDeepSeek(
+        messages: messages,
+        tools: tools,
       );
 
       totalTokens += response.tokensUsed ?? 0;
 
       // Check if response has function calls
       if (response.functionCalls.isNotEmpty) {
-        // Add model's function call to contents
-        final functionCallParts = response.functionCalls.map((fc) => {
-          'functionCall': {'name': fc.name, 'args': fc.args},
-        }).toList();
-
-        contents.add({
-          'role': 'model',
-          'parts': functionCallParts,
+        // Add assistant's tool_calls message to conversation
+        // We need to reconstruct the assistant message with tool_calls
+        final toolCallsPayload = response._rawToolCalls;
+        messages.add({
+          'role': 'assistant',
+          'content': response.text,
+          'tool_calls': toolCallsPayload,
         });
 
-        // Execute each function call and collect results
-        final functionResponseParts = <Map<String, dynamic>>[];
-        for (final fc in response.functionCalls) {
+        // Execute each function call and send results back
+        for (int i = 0; i < response.functionCalls.length; i++) {
+          final fc = response.functionCalls[i];
+          final toolCallId = toolCallsPayload![i]['id'] as String;
           allFunctionCalls.add(fc);
+
           try {
             final result = await executeFunction(fc.name, fc.args);
-            functionResponseParts.add({
-              'functionResponse': {
-                'name': fc.name,
-                'response': result,
-              },
+            messages.add({
+              'role': 'tool',
+              'tool_call_id': toolCallId,
+              'content': jsonEncode(result),
             });
           } catch (e) {
-            functionResponseParts.add({
-              'functionResponse': {
-                'name': fc.name,
-                'response': {'success': false, 'error': e.toString()},
-              },
+            messages.add({
+              'role': 'tool',
+              'tool_call_id': toolCallId,
+              'content': jsonEncode({'success': false, 'error': e.toString()}),
             });
           }
         }
 
-        // Add function results to contents
-        contents.add({
-          'role': 'user',
-          'parts': functionResponseParts,
-        });
-
-        // Continue loop - Gemini will process function results
+        // Continue loop - DeepSeek will process function results
         continue;
       }
 
@@ -154,22 +223,19 @@ class GeminiService {
     );
   }
 
-  /// Make a single API call to Gemini
-  Future<GeminiResponse> _callGemini({
-    required List<Map<String, dynamic>> contents,
-    required Map<String, dynamic> systemInstruction,
+  /// Make a single API call to DeepSeek
+  Future<_DeepSeekRawResponse> _callDeepSeek({
+    required List<Map<String, dynamic>> messages,
     required List<Map<String, dynamic>> tools,
   }) async {
-    final url = '$_baseUrl/models/$_model:generateContent?key=$_apiKey';
+    const url = '$_baseUrl/chat/completions';
 
     final body = {
-      'contents': contents,
-      'systemInstruction': systemInstruction,
-      'tools': [{'function_declarations': tools}],
-      'generationConfig': {
-        'temperature': 0.7,
-        'maxOutputTokens': 2048,
-      },
+      'model': _model,
+      'messages': messages,
+      'tools': tools,
+      'temperature': 0.7,
+      'max_tokens': 2048,
     };
 
     // Retry with backoff for rate limiting (429)
@@ -178,13 +244,16 @@ class GeminiService {
       response = await _httpClient
           .post(
             Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_apiKey',
+            },
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 429) {
-        // Rate limited — wait and retry
+        // Rate limited - wait and retry (2s, 4s, 6s)
         await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
         continue;
       }
@@ -199,7 +268,7 @@ class GeminiService {
 
     if (response.statusCode != 200) {
       // Parse error message from response
-      String errorMsg = 'Gemini API error (${response.statusCode})';
+      String errorMsg = 'DeepSeek API error (${response.statusCode})';
       try {
         final errData = jsonDecode(response.body) as Map<String, dynamic>;
         final errMessage = errData['error']?['message'] as String?;
@@ -211,44 +280,50 @@ class GeminiService {
     final data = jsonDecode(response.body) as Map<String, dynamic>;
 
     // Extract token usage
-    final usageMetadata = data['usageMetadata'] as Map<String, dynamic>?;
-    final totalTokens = usageMetadata?['totalTokenCount'] as int?;
+    final usage = data['usage'] as Map<String, dynamic>?;
+    final totalTokens = usage?['total_tokens'] as int?;
 
-    // Extract candidate
-    final candidates = data['candidates'] as List?;
-    if (candidates == null || candidates.isEmpty) {
-      throw GeminiException('No response from Gemini');
+    // Extract choice
+    final choices = data['choices'] as List?;
+    if (choices == null || choices.isEmpty) {
+      throw GeminiException('No response from DeepSeek');
     }
 
-    final candidate = candidates[0] as Map<String, dynamic>;
-    final content = candidate['content'] as Map<String, dynamic>?;
-    final parts = content?['parts'] as List?;
+    final choice = choices[0] as Map<String, dynamic>;
+    final messageData = choice['message'] as Map<String, dynamic>;
+    final content = messageData['content'] as String?;
+    final toolCalls = messageData['tool_calls'] as List?;
 
-    if (parts == null || parts.isEmpty) {
-      return GeminiResponse(text: 'Tidak ada respons.', tokensUsed: totalTokens);
-    }
-
-    // Check for function calls
+    // Parse function calls from tool_calls
     final functionCalls = <GeminiFunctionCall>[];
-    String? textResponse;
+    List<Map<String, dynamic>>? rawToolCalls;
 
-    for (final part in parts) {
-      final partMap = part as Map<String, dynamic>;
-      if (partMap.containsKey('functionCall')) {
-        final fc = partMap['functionCall'] as Map<String, dynamic>;
-        functionCalls.add(GeminiFunctionCall(
-          name: fc['name'] as String,
-          args: Map<String, dynamic>.from(fc['args'] as Map? ?? {}),
-        ));
-      } else if (partMap.containsKey('text')) {
-        textResponse = partMap['text'] as String;
+    if (toolCalls != null && toolCalls.isNotEmpty) {
+      rawToolCalls = [];
+      for (final tc in toolCalls) {
+        final tcMap = tc as Map<String, dynamic>;
+        rawToolCalls.add(Map<String, dynamic>.from(tcMap));
+
+        final function_ = tcMap['function'] as Map<String, dynamic>;
+        final name = function_['name'] as String;
+        final argsString = function_['arguments'] as String? ?? '{}';
+
+        Map<String, dynamic> args;
+        try {
+          args = Map<String, dynamic>.from(jsonDecode(argsString) as Map);
+        } catch (_) {
+          args = {};
+        }
+
+        functionCalls.add(GeminiFunctionCall(name: name, args: args));
       }
     }
 
-    return GeminiResponse(
-      text: textResponse,
+    return _DeepSeekRawResponse(
+      text: content,
       functionCalls: functionCalls,
       tokensUsed: totalTokens,
+      rawToolCalls: rawToolCalls,
     );
   }
 
@@ -272,6 +347,21 @@ ${jsonEncode(context)}''';
   void dispose() {
     _httpClient.close();
   }
+}
+
+/// Internal response type that also carries raw tool_calls for the conversation loop.
+class _DeepSeekRawResponse {
+  final String? text;
+  final List<GeminiFunctionCall> functionCalls;
+  final int? tokensUsed;
+  final List<Map<String, dynamic>>? _rawToolCalls;
+
+  const _DeepSeekRawResponse({
+    this.text,
+    this.functionCalls = const [],
+    this.tokensUsed,
+    List<Map<String, dynamic>>? rawToolCalls,
+  }) : _rawToolCalls = rawToolCalls;
 }
 
 class GeminiException implements Exception {

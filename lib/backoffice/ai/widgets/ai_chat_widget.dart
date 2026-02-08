@@ -185,7 +185,7 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
                   ),
                 ),
                 Text(
-                  'AI Co-Pilot bisnis kamu',
+                  'AI Co-Pilot \u2022 DeepSeek',
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     color: AppTheme.textTertiary,
