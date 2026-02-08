@@ -285,8 +285,8 @@ class _FormattedText extends StatelessWidget {
     final baseColor = isUser ? AppTheme.textWhite : AppTheme.textPrimary;
     final spans = _parseFormattedText(text, baseColor);
 
-    return RichText(
-      text: TextSpan(
+    return SelectableText.rich(
+      TextSpan(
         style: GoogleFonts.inter(
           fontSize: 14,
           color: baseColor,
