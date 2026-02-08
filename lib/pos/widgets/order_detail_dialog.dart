@@ -6,6 +6,8 @@ import '../../core/models/order.dart';
 import '../providers/pos_checkout_provider.dart';
 import '../repositories/pos_order_repository.dart';
 import 'receipt_widget.dart';
+import 'void_dialog.dart';
+import 'refund_dialog.dart';
 
 class OrderDetailDialog extends ConsumerWidget {
   final Order order;
@@ -122,9 +124,57 @@ class OrderDetailDialog extends ConsumerWidget {
                 child: Text('Catatan: ${order.notes}', style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
               ),
             ],
+
+            // Void & Refund buttons (only for completed orders)
+            if (order.status == 'completed') ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showVoidDialog(context, ref),
+                      icon: const Icon(Icons.block, size: 18),
+                      label: const Text('Void'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.errorColor,
+                        side: const BorderSide(color: AppTheme.errorColor),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showRefundDialog(context, ref),
+                      icon: const Icon(Icons.replay, size: 18),
+                      label: const Text('Refund'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.accentColor,
+                        side: const BorderSide(color: AppTheme.accentColor),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+
+  void _showVoidDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (_) => VoidDialog(order: order),
+    );
+  }
+
+  void _showRefundDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (_) => RefundDialog(order: order),
     );
   }
 }
@@ -135,11 +185,31 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = status == 'completed'
-        ? AppTheme.successColor
-        : status == 'cancelled'
-            ? AppTheme.errorColor
-            : AppTheme.accentColor;
+    final Color color;
+    final String label;
+
+    switch (status) {
+      case 'completed':
+        color = AppTheme.successColor;
+        label = 'Selesai';
+        break;
+      case 'cancelled':
+        color = AppTheme.errorColor;
+        label = 'Dibatalkan';
+        break;
+      case 'voided':
+        color = AppTheme.errorColor;
+        label = 'Dibatalkan (Void)';
+        break;
+      case 'refunded':
+        color = AppTheme.accentColor;
+        label = 'Refund';
+        break;
+      default:
+        color = AppTheme.accentColor;
+        label = status;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -147,7 +217,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        status == 'completed' ? 'Selesai' : status == 'cancelled' ? 'Dibatalkan' : status,
+        label,
         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
       ),
     );

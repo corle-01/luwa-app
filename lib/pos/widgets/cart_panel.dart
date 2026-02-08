@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../providers/pos_cart_provider.dart';
+import '../providers/pos_held_orders_provider.dart';
 import 'order_type_selector.dart';
 import 'cart_item_tile.dart';
 import 'cart_summary.dart';
 import 'cart_action_buttons.dart';
+import 'held_orders_dialog.dart';
 
 class CartPanel extends ConsumerWidget {
   const CartPanel({super.key});
@@ -14,6 +16,8 @@ class CartPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(posCartProvider);
+    final heldOrders = ref.watch(posHeldOrdersProvider);
+    final heldCount = heldOrders.length;
 
     return Container(
       color: AppTheme.surfaceColor,
@@ -55,6 +59,51 @@ class CartPanel extends ConsumerWidget {
                       ),
                     ),
                   ),
+                // Held orders badge
+                if (heldCount > 0) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => const HeldOrdersDialog(),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppTheme.accentColor.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.pause_circle_filled,
+                            size: 14,
+                            color: AppTheme.accentColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$heldCount tertahan',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.accentColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 if (cart.customer != null)
                   Container(

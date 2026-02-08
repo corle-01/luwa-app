@@ -86,6 +86,47 @@ class PosOrderRepository {
     return Order.fromJson(completedResponse);
   }
 
+  Future<List<Order>> getOrders({
+    required String outletId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? status,
+    String? paymentMethod,
+    String? searchQuery,
+  }) async {
+    var query = _supabase
+        .from('orders')
+        .select()
+        .eq('outlet_id', outletId);
+
+    if (startDate != null) {
+      query = query.gte('created_at', startDate.toIso8601String());
+    }
+    if (endDate != null) {
+      final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+      query = query.lte('created_at', endOfDay.toIso8601String());
+    }
+    if (status != null && status.isNotEmpty) {
+      query = query.eq('status', status);
+    }
+    if (paymentMethod != null && paymentMethod.isNotEmpty) {
+      query = query.eq('payment_method', paymentMethod);
+    }
+
+    final response = await query.order('created_at', ascending: false);
+
+    List<Order> orders = (response as List).map((json) => Order.fromJson(json)).toList();
+
+    // Client-side search filter for order number
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      orders = orders.where((o) =>
+        (o.orderNumber ?? o.id).toLowerCase().contains(searchQuery.toLowerCase())
+      ).toList();
+    }
+
+    return orders;
+  }
+
   Future<List<Order>> getTodayOrders(String outletId) async {
     final today = DateTime.now();
     final startOfDay = DateTime(today.year, today.month, today.day);

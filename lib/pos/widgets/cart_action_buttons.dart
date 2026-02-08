@@ -4,10 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../providers/pos_cart_provider.dart';
+import '../providers/pos_held_orders_provider.dart';
 import 'payment_dialog.dart';
 import 'discount_selector_dialog.dart';
 import 'customer_selector_dialog.dart';
 import 'table_selector_dialog.dart';
+import 'held_orders_dialog.dart';
 
 class CartActionButtons extends ConsumerWidget {
   const CartActionButtons({super.key});
@@ -15,6 +17,8 @@ class CartActionButtons extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(posCartProvider);
+    final heldOrders = ref.watch(posHeldOrdersProvider);
+    final heldCount = heldOrders.length;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -26,7 +30,7 @@ class CartActionButtons extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          // Top row: small icon buttons for Diskon, Customer, Meja
+          // Top row: small icon buttons for Diskon, Customer, Meja, Tahan
           Row(
             children: [
               Expanded(
@@ -50,6 +54,15 @@ class CartActionButtons extends ConsumerWidget {
                   icon: Icons.table_restaurant_outlined,
                   label: 'Meja',
                   onTap: () => _showTableDialog(context, ref),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _IconButtonWithBadge(
+                  icon: Icons.pause_circle_outline,
+                  label: 'Tahan',
+                  badgeCount: heldCount,
+                  onTap: () => _holdCurrentOrder(context, ref),
                 ),
               ),
             ],
@@ -151,6 +164,59 @@ class CartActionButtons extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _holdCurrentOrder(BuildContext context, WidgetRef ref) {
+    final cart = ref.read(posCartProvider);
+    if (cart.isEmpty) {
+      // Cart is empty, show held orders dialog if there are any
+      final heldOrders = ref.read(posHeldOrdersProvider);
+      if (heldOrders.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (_) => const HeldOrdersDialog(),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Keranjang kosong, tidak ada yang bisa ditahan',
+              style: GoogleFonts.inter(fontSize: 13),
+            ),
+            backgroundColor: AppTheme.textSecondary,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Hold the current order
+    ref.read(posHeldOrdersProvider.notifier).holdOrder(cart);
+    ref.read(posCartProvider.notifier).clear();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Pesanan ditahan',
+          style: GoogleFonts.inter(fontSize: 13),
+        ),
+        backgroundColor: AppTheme.accentColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        action: SnackBarAction(
+          label: 'LIHAT',
+          textColor: Colors.white,
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (_) => const HeldOrdersDialog(),
+            );
+          },
+        ),
       ),
     );
   }
@@ -268,6 +334,93 @@ class _IconButton extends StatelessWidget {
                   color: AppTheme.textSecondary,
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IconButtonWithBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int badgeCount;
+  final VoidCallback onTap;
+
+  const _IconButtonWithBadge({
+    required this.icon,
+    required this.label,
+    required this.badgeCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: badgeCount > 0 ? AppTheme.accentColor : AppTheme.borderColor,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(8),
+            color: badgeCount > 0
+                ? AppTheme.accentColor.withValues(alpha: 0.05)
+                : AppTheme.surfaceColor,
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: badgeCount > 0 ? AppTheme.accentColor : AppTheme.primaryColor,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: badgeCount > 0 ? AppTheme.accentColor : AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              if (badgeCount > 0)
+                Positioned(
+                  top: -6,
+                  right: -2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      '$badgeCount',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

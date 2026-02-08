@@ -7,6 +7,9 @@ import 'recipe_management_page.dart';
 import 'discount_management_page.dart';
 import 'table_management_page.dart';
 import 'customer_management_page.dart';
+import 'loyalty_management_page.dart';
+import 'supplier_management_page.dart';
+import 'purchase_order_page.dart';
 
 class SettingsHubPage extends StatelessWidget {
   const SettingsHubPage({super.key});
@@ -48,6 +51,24 @@ class SettingsHubPage extends StatelessWidget {
       subtitle: 'Data pelanggan dan loyalitas',
       color: Color(0xFF2563EB),
     ),
+    _SettingsItem(
+      icon: Icons.card_giftcard_rounded,
+      title: 'Loyalitas',
+      subtitle: 'Program poin dan reward pelanggan',
+      color: Color(0xFFE11D48),
+    ),
+    _SettingsItem(
+      icon: Icons.local_shipping_rounded,
+      title: 'Supplier',
+      subtitle: 'Kelola data pemasok bahan baku',
+      color: Color(0xFF0891B2),
+    ),
+    _SettingsItem(
+      icon: Icons.shopping_cart_checkout_rounded,
+      title: 'Purchase Order',
+      subtitle: 'Buat dan kelola pesanan pembelian',
+      color: Color(0xFF9333EA),
+    ),
   ];
 
   void _navigateTo(BuildContext context, int index) {
@@ -65,6 +86,12 @@ class SettingsHubPage extends StatelessWidget {
         page = const TableManagementPage();
       case 5:
         page = const CustomerManagementPage();
+      case 6:
+        page = const LoyaltyManagementPage();
+      case 7:
+        page = const SupplierManagementPage();
+      case 8:
+        page = const PurchaseOrderPage();
       default:
         return;
     }
