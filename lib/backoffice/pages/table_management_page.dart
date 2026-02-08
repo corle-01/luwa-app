@@ -426,7 +426,7 @@ class _TableFormDialogState extends State<_TableFormDialog> {
 
     try {
       final repo = TableRepository();
-      final tableNumber = int.parse(_tableNumberController.text.trim());
+      final tableNumber = _tableNumberController.text.trim();
       final capacity = int.parse(_capacityController.text.trim());
       final section = _sectionController.text.trim().isEmpty ? null : _sectionController.text.trim();
 

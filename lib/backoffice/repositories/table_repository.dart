@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class TableModel {
   final String id;
   final String outletId;
-  final int tableNumber;
+  final String tableNumber;
   final int capacity;
   final String status;
   final String? section;
@@ -28,7 +28,7 @@ class TableModel {
     return TableModel(
       id: json['id'] as String,
       outletId: json['outlet_id'] as String,
-      tableNumber: json['table_number'] as int,
+      tableNumber: json['table_number']?.toString() ?? '',
       capacity: json['capacity'] as int? ?? 4,
       status: json['status'] as String? ?? 'available',
       section: json['section'] as String?,
@@ -91,7 +91,7 @@ class TableRepository {
 
   Future<void> createTable({
     required String outletId,
-    required int tableNumber,
+    required String tableNumber,
     int capacity = 4,
     String? section,
   }) async {
@@ -105,7 +105,7 @@ class TableRepository {
 
   Future<void> updateTable({
     required String id,
-    int? tableNumber,
+    String? tableNumber,
     int? capacity,
     String? section,
     String? status,
