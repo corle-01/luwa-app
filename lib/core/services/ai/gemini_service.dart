@@ -57,8 +57,10 @@ class GeminiService {
     // Build context
     final context = await _contextBuilder.buildContext(outletId);
 
-    // Build system instruction
-    final systemInstruction = _buildSystemInstruction(context);
+    // Build system instruction as Gemini API format
+    final systemInstruction = {
+      'parts': [{'text': _buildSystemInstruction(context)}],
+    };
 
     // Build contents from history + new message
     final contents = <Map<String, dynamic>>[];
