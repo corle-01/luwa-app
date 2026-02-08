@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/customer_provider.dart';
 import '../repositories/customer_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class CustomerManagementPage extends ConsumerWidget {
   const CustomerManagementPage({super.key});
@@ -88,6 +87,7 @@ class CustomerManagementPage extends ConsumerWidget {
       context: context,
       builder: (context) => _CustomerFormDialog(
         customer: customer,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(customerListProvider),
       ),
     );
@@ -408,9 +408,10 @@ class _StatChip extends StatelessWidget {
 
 class _CustomerFormDialog extends StatefulWidget {
   final CustomerModel? customer;
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _CustomerFormDialog({this.customer, required this.onSaved});
+  const _CustomerFormDialog({this.customer, required this.outletId, required this.onSaved});
 
   @override
   State<_CustomerFormDialog> createState() => _CustomerFormDialogState();
@@ -551,7 +552,7 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
         );
       } else {
         await repo.createCustomer(
-          outletId: _outletId,
+          outletId: widget.outletId,
           name: name,
           phone: phone,
           email: email,

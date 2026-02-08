@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/purchase_order_provider.dart';
 import '../repositories/purchase_order_repository.dart';
 import '../repositories/supplier_repository.dart';
 import '../repositories/inventory_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class PurchaseOrderPage extends ConsumerWidget {
   const PurchaseOrderPage({super.key});
@@ -103,6 +102,7 @@ class PurchaseOrderPage extends ConsumerWidget {
       context: context,
       barrierDismissible: false,
       builder: (context) => _CreatePODialog(
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(purchaseOrderListProvider),
       ),
     );
@@ -304,9 +304,10 @@ class _POCard extends StatelessWidget {
 // Create PO Dialog
 // ---------------------------------------------------------------------------
 class _CreatePODialog extends StatefulWidget {
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _CreatePODialog({required this.onSaved});
+  const _CreatePODialog({required this.outletId, required this.onSaved});
 
   @override
   State<_CreatePODialog> createState() => _CreatePODialogState();
@@ -343,8 +344,8 @@ class _CreatePODialogState extends State<_CreatePODialog> {
     try {
       final supplierRepo = SupplierRepository();
       final inventoryRepo = InventoryRepository();
-      final suppliers = await supplierRepo.getSuppliers(_outletId);
-      final ingredients = await inventoryRepo.getIngredients(_outletId);
+      final suppliers = await supplierRepo.getSuppliers(widget.outletId);
+      final ingredients = await inventoryRepo.getIngredients(widget.outletId);
       if (mounted) {
         setState(() {
           _suppliers = suppliers;
@@ -625,7 +626,7 @@ class _CreatePODialogState extends State<_CreatePODialog> {
       }).toList();
 
       await repo.createPurchaseOrder(
-        outletId: _outletId,
+        outletId: widget.outletId,
         supplierId: _selectedSupplierId!,
         items: items,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
@@ -1111,6 +1112,7 @@ class _PODetailDialog extends ConsumerWidget {
       barrierDismissible: false,
       builder: (context) => _ReceivePODialog(
         po: po,
+        outletId: ref.read(currentOutletIdProvider),
         onReceived: onUpdated,
       ),
     );
@@ -1157,10 +1159,12 @@ class _DetailRow extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _ReceivePODialog extends StatefulWidget {
   final PurchaseOrderModel po;
+  final String outletId;
   final VoidCallback onReceived;
 
   const _ReceivePODialog({
     required this.po,
+    required this.outletId,
     required this.onReceived,
   });
 
@@ -1326,7 +1330,7 @@ class _ReceivePODialogState extends State<_ReceivePODialog> {
       }
 
       final repo = PurchaseOrderRepository();
-      await repo.receivePO(widget.po.id, _outletId, receivedItems);
+      await repo.receivePO(widget.po.id, widget.outletId, receivedItems);
 
       widget.onReceived();
       if (mounted) {

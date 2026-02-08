@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/pos_shift_provider.dart';
 import '../widgets/shift_open_dialog.dart';
 import '../widgets/shift_close_dialog.dart';
@@ -29,9 +30,12 @@ class PosShiftPage extends ConsumerWidget {
                   ElevatedButton.icon(
                     onPressed: () => showDialog(
                       context: context,
-                      builder: (_) => ShiftOpenDialog(onOpen: (cashierId, cash) async {
-                        await ref.read(posShiftNotifierProvider.notifier).openShift(cashierId, cash);
-                      }),
+                      builder: (_) => ShiftOpenDialog(
+                        outletId: ref.read(currentOutletIdProvider),
+                        onOpen: (cashierId, cash) async {
+                          await ref.read(posShiftNotifierProvider.notifier).openShift(cashierId, cash);
+                        },
+                      ),
                     ),
                     icon: const Icon(Icons.lock_open),
                     label: const Text('Buka Shift'),

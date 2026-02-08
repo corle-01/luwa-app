@@ -183,5 +183,41 @@ class AiTools {
         },
       },
     },
+
+    // ── AI Memory (OTAK) ─────────────────────────────────────
+    {
+      'type': 'function',
+      'function': {
+        'name': 'save_memory',
+        'description': 'Simpan insight/fakta penting tentang bisnis ke memori AI. '
+            'Gunakan saat menemukan pola penjualan, preferensi pelanggan, atau fakta operasional penting. '
+            'Contoh: "Kopi Latte paling laris di jam 12-14", "Weekend revenue 30% lebih tinggi".',
+        'parameters': {
+          'type': 'object',
+          'properties': {
+            'insight': {'type': 'string', 'description': 'Fakta/insight yang ingin disimpan'},
+            'category': {
+              'type': 'string',
+              'description': 'Kategori: "sales", "product", "stock", "customer", "operational"',
+            },
+          },
+          'required': ['insight', 'category'],
+        },
+      },
+    },
+
+    // ── Business Health Check (PERASAAN) ─────────────────────
+    {
+      'type': 'function',
+      'function': {
+        'name': 'check_business_health',
+        'description': 'Cek kesehatan bisnis hari ini: mood, proyeksi revenue, stok menipis, prediksi jam sibuk. '
+            'Gunakan saat user tanya tentang kondisi bisnis atau butuh gambaran umum.',
+        'parameters': {
+          'type': 'object',
+          'properties': {},
+        },
+      },
+    },
   ];
 }

@@ -4,14 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/online_order_provider.dart';
 import '../repositories/online_order_repository.dart';
-
-// ============================================================
-// Constants
-// ============================================================
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 const _kGoFoodColor = Color(0xFF00AA13);
 const _kGrabFoodColor = Color(0xFF00B14F);
@@ -466,7 +461,7 @@ class OnlineOrderPage extends ConsumerWidget {
 
     try {
       final repo = ref.read(onlineOrderRepositoryProvider);
-      await repo.simulateIncomingOrder(_outletId, platform);
+      await repo.simulateIncomingOrder(ref.read(currentOutletIdProvider), platform);
       ref.invalidate(onlineOrdersProvider);
       ref.invalidate(onlineOrderStatsProvider);
       if (context.mounted) {

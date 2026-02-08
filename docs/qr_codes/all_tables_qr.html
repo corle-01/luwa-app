@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Meja - Utter App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .header {
+      text-align: center;
+      padding: 30px 20px 20px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 20px 40px;
+    }
+
+    .qr-card {
+      border: 1px dashed #ccc;
+      padding: 18px 12px 14px;
+      text-align: center;
+      background: #fff;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .qr-card img {
+      width: 150px;
+      height: 150px;
+      display: block;
+      margin: 0 auto 10px;
+    }
+
+    .table-label {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 2px;
+    }
+
+    .table-subtitle {
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 0.5px;
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .header {
+        padding: 10px 0;
+      }
+
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .header .no-print {
+        display: none;
+      }
+
+      .grid {
+        padding: 0;
+        max-width: 100%;
+        gap: 0;
+      }
+
+      .qr-card {
+        border: 1px dashed #aaa;
+        padding: 14px 8px 10px;
+      }
+
+      .qr-card img {
+        width: 130px;
+        height: 130px;
+      }
+
+      .table-label {
+        font-size: 18px;
+      }
+
+      /* Force page break after every 4 rows (16 cards) */
+      .qr-card:nth-child(16n) {
+        page-break-after: always;
+      }
+
+      .print-btn {
+        display: none !important;
+      }
+
+      @page {
+        margin: 10mm;
+        size: A4 portrait;
+      }
+    }
+
+    /* Print button */
+    .print-btn {
+      display: inline-block;
+      margin: 0 auto 20px;
+      padding: 12px 32px;
+      background: #1a1a2e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+    }
+
+    .print-btn:hover {
+      background: #16213e;
+    }
+
+    .btn-wrap {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Utter App - QR Code Meja</h1>
+    <p>Cetak dan gunting setiap QR code, lalu tempel di masing-masing meja.</p>
+    <div class="btn-wrap no-print" style="margin-top: 16px;">
+      <button class="print-btn" onclick="window.print()">Cetak Semua QR Code</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-001" alt="QR Meja 1">
+      <div class="table-label">Meja 1</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-002" alt="QR Meja 2">
+      <div class="table-label">Meja 2</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-003" alt="QR Meja 3">
+      <div class="table-label">Meja 3</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-004" alt="QR Meja 4">
+      <div class="table-label">Meja 4</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-005" alt="QR Meja 5">
+      <div class="table-label">Meja 5</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-006" alt="QR Meja 6">
+      <div class="table-label">Meja 6</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-007" alt="QR Meja 7">
+      <div class="table-label">Meja 7</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-008" alt="QR Meja 8">
+      <div class="table-label">Meja 8</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-009" alt="QR Meja 9">
+      <div class="table-label">Meja 9</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-010" alt="QR Meja 10">
+      <div class="table-label">Meja 10</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-011" alt="QR Meja 11">
+      <div class="table-label">Meja 11</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-012" alt="QR Meja 12">
+      <div class="table-label">Meja 12</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-013" alt="QR Meja 13">
+      <div class="table-label">Meja 13</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-014" alt="QR Meja 14">
+      <div class="table-label">Meja 14</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-015" alt="QR Meja 15">
+      <div class="table-label">Meja 15</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-016" alt="QR Meja 16">
+      <div class="table-label">Meja 16</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-017" alt="QR Meja 17">
+      <div class="table-label">Meja 17</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-018" alt="QR Meja 18">
+      <div class="table-label">Meja 18</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-019" alt="QR Meja 19">
+      <div class="table-label">Meja 19</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-020" alt="QR Meja 20">
+      <div class="table-label">Meja 20</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-021" alt="QR Meja 21">
+      <div class="table-label">Meja 21</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-022" alt="QR Meja 22">
+      <div class="table-label">Meja 22</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-023" alt="QR Meja 23">
+      <div class="table-label">Meja 23</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-024" alt="QR Meja 24">
+      <div class="table-label">Meja 24</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-025" alt="QR Meja 25">
+      <div class="table-label">Meja 25</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-026" alt="QR Meja 26">
+      <div class="table-label">Meja 26</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-027" alt="QR Meja 27">
+      <div class="table-label">Meja 27</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-028" alt="QR Meja 28">
+      <div class="table-label">Meja 28</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-029" alt="QR Meja 29">
+      <div class="table-label">Meja 29</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-030" alt="QR Meja 30">
+      <div class="table-label">Meja 30</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-031" alt="QR Meja 31">
+      <div class="table-label">Meja 31</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-032" alt="QR Meja 32">
+      <div class="table-label">Meja 32</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-033" alt="QR Meja 33">
+      <div class="table-label">Meja 33</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-034" alt="QR Meja 34">
+      <div class="table-label">Meja 34</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-035" alt="QR Meja 35">
+      <div class="table-label">Meja 35</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-036" alt="QR Meja 36">
+      <div class="table-label">Meja 36</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-037" alt="QR Meja 37">
+      <div class="table-label">Meja 37</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-038" alt="QR Meja 38">
+      <div class="table-label">Meja 38</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-039" alt="QR Meja 39">
+      <div class="table-label">Meja 39</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+    <div class="qr-card">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Fardhianawing.github.io%2Futterapp%2F%23%2Fself-order%3Ftable%3Dtable-040" alt="QR Meja 40">
+      <div class="table-label">Meja 40</div>
+      <div class="table-subtitle">Scan untuk pesan</div>
+    </div>
+  </div>
+
+  <div class="btn-wrap" style="text-align:center; padding-bottom:40px;">
+    <button class="print-btn" onclick="window.print()">Cetak Semua QR Code</button>
+  </div>
+</body>
+</html>

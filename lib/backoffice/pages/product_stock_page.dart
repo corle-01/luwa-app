@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/product_stock_provider.dart';
 import '../repositories/product_stock_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 /// Standalone page with Scaffold (for direct navigation).
 class ProductStockPage extends ConsumerWidget {
@@ -395,6 +394,7 @@ class _ProductStockTable extends StatelessWidget {
       context: context,
       builder: (context) => _StockMovementDialog(
         product: product,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () {
           ref.invalidate(productStockListProvider);
           ref.invalidate(allProductStockMovementsProvider);
@@ -708,10 +708,12 @@ class _TypeBadge extends StatelessWidget {
 
 class _StockMovementDialog extends StatefulWidget {
   final ProductStockModel product;
+  final String outletId;
   final VoidCallback onSaved;
 
   const _StockMovementDialog({
     required this.product,
+    required this.outletId,
     required this.onSaved,
   });
 
@@ -982,7 +984,7 @@ class _StockMovementDialogState extends State<_StockMovementDialog> {
 
       await repo.addStockMovement(
         productId: widget.product.id,
-        outletId: _outletId,
+        outletId: widget.outletId,
         type: _selectedType,
         quantity: quantity,
         notes: notes,

@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:utter_app/core/models/ai_message.dart';
+import 'package:utter_app/core/providers/outlet_provider.dart';
 import 'package:utter_app/core/services/ai/gemini_service.dart';
 import 'package:utter_app/core/services/ai/ai_action_executor.dart';
+import 'package:utter_app/core/services/ai/ai_memory_service.dart';
 
 /// State for the AI chat interface.
 class AiChatState {
@@ -42,14 +44,18 @@ class AiChatState {
 class AiChatNotifier extends StateNotifier<AiChatState> {
   final GeminiService _geminiService;
   final AiActionExecutor _actionExecutor;
-
-  static const _outletId = 'a0000000-0000-0000-0000-000000000001';
+  final AiMemoryService _memoryService;
+  final String _defaultOutletId;
 
   AiChatNotifier({
     GeminiService? geminiService,
     AiActionExecutor? actionExecutor,
-  })  : _geminiService = geminiService ?? GeminiService(),
-        _actionExecutor = actionExecutor ?? AiActionExecutor(),
+    AiMemoryService? memoryService,
+    required String outletId,
+  })  : _geminiService = geminiService ?? GeminiService(outletId: outletId),
+        _actionExecutor = actionExecutor ?? AiActionExecutor(outletId: outletId),
+        _memoryService = memoryService ?? AiMemoryService(),
+        _defaultOutletId = outletId,
         super(const AiChatState());
 
   /// Send a text message. Gemini may execute function calls automatically.
@@ -62,7 +68,7 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
 
     state = state.copyWith(clearError: true);
 
-    final effectiveOutletId = outletId.isNotEmpty ? outletId : _outletId;
+    final effectiveOutletId = outletId.isNotEmpty ? outletId : _defaultOutletId;
     final convId = state.conversationId ?? const Uuid().v4();
 
     // Add user message to UI
@@ -128,7 +134,7 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
         content: replyContent,
         functionCalls: executedActions.isNotEmpty ? executedActions : null,
         tokensUsed: response.tokensUsed,
-        model: 'gemini-2.0-flash',
+        model: 'deepseek-chat',
         createdAt: DateTime.now().toUtc(),
       );
 
@@ -136,6 +142,11 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
         messages: [...state.messages, assistantMessage],
         isLoading: false,
       );
+
+      // OTAK: Extract and store insights from the AI response
+      if (replyContent.isNotEmpty) {
+        _memoryService.extractAndStoreInsights(replyContent, text.trim());
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -175,7 +186,8 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
 /// Provider for the AI chat state.
 final aiChatProvider =
     StateNotifierProvider<AiChatNotifier, AiChatState>((ref) {
-  return AiChatNotifier();
+  final outletId = ref.watch(currentOutletIdProvider);
+  return AiChatNotifier(outletId: outletId);
 });
 
 /// Provider that exposes just the messages list.

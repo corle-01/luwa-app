@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/kds_repository.dart';
 import '../models/kds_order.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 final kdsRepositoryProvider = Provider((ref) => KdsRepository());
 
@@ -10,7 +9,8 @@ final kdsRepositoryProvider = Provider((ref) => KdsRepository());
 /// Invalidated every 10 seconds by kdsAutoRefreshProvider.
 final kdsOrdersProvider = FutureProvider<List<KdsOrder>>((ref) async {
   final repo = ref.watch(kdsRepositoryProvider);
-  return repo.getActiveKitchenOrders(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getActiveKitchenOrders(outletId);
 });
 
 /// Auto-refresh timer: invalidates kdsOrdersProvider every 10 seconds

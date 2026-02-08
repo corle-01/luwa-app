@@ -2,17 +2,31 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:utter_app/core/config/app_constants.dart';
 import 'package:utter_app/core/repositories/ai_insight_repository.dart';
+import 'package:utter_app/core/services/ai/ai_memory_service.dart';
+import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
 
 /// Builds rich context data for AI conversations.
+///
+/// Integrates the three AI personas:
+/// - OTAK (Memory): Business insights from past conversations
+/// - BADAN (Action): Real-time business data for action decisions
+/// - PERASAAN (Prediction): Business mood and forecasts
 class AiContextBuilder {
   final SupabaseClient _client;
   final AiInsightRepository _insightRepo;
+  final AiMemoryService _memoryService;
+  final AiPredictionService _predictionService;
 
   AiContextBuilder({
     SupabaseClient? client,
     AiInsightRepository? insightRepo,
+    AiMemoryService? memoryService,
+    AiPredictionService? predictionService,
+    String outletId = 'a0000000-0000-0000-0000-000000000001',
   })  : _client = client ?? Supabase.instance.client,
-        _insightRepo = insightRepo ?? AiInsightRepository();
+        _insightRepo = insightRepo ?? AiInsightRepository(),
+        _memoryService = memoryService ?? AiMemoryService(),
+        _predictionService = predictionService ?? AiPredictionService(outletId: outletId);
 
   Future<Map<String, dynamic>> buildContext(String outletId) async {
     final results = await Future.wait([
@@ -22,7 +36,16 @@ class AiContextBuilder {
       _getTopProducts(outletId),
       _getLowStockItems(outletId),
       _getActiveInsightCount(outletId),
+      _predictionService.assessBusinessMood(),
+      _predictionService.generatePredictions(),
     ]);
+
+    // Build memory context from OTAK
+    final memoryContext = _memoryService.buildMemoryContext();
+
+    // Cast prediction results
+    final mood = results[6] as BusinessMoodData;
+    final prediction = results[7] as BusinessPrediction;
 
     return {
       'outlet': results[0],
@@ -32,6 +55,26 @@ class AiContextBuilder {
       'low_stock_items': results[4],
       'active_insights_count': results[5],
       'timestamp': DateTime.now().toIso8601String(),
+      // OTAK persona context
+      'ai_memories': memoryContext,
+      // PERASAAN persona context
+      'business_mood': {
+        'mood': mood.moodEmoji,
+        'text': mood.moodText,
+        'today_revenue': mood.todayRevenue,
+        'today_orders': mood.todayOrders,
+        'projected_revenue': mood.projectedRevenue,
+        'avg_daily_revenue': mood.avgDailyRevenue,
+        'avg_daily_orders': mood.avgDailyOrders,
+        'warnings': mood.warnings,
+      },
+      'predictions': {
+        'busy_hours': prediction.predictedBusyHours,
+        'estimated_revenue': prediction.estimatedRevenue,
+        'stock_warnings': prediction.stockWarnings,
+        'forecast': prediction.forecastText,
+        'day_type': prediction.dayType,
+      },
     };
   }
 

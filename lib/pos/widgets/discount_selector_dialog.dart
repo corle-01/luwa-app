@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../../core/models/cart.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/pos_discount_repository.dart';
 import '../providers/pos_cart_provider.dart';
 
@@ -31,7 +32,7 @@ class DiscountSelectorDialog extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             FutureBuilder(
-              future: repo.getActiveDiscounts('a0000000-0000-0000-0000-000000000001'),
+              future: repo.getActiveDiscounts(ref.watch(currentOutletIdProvider)),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));

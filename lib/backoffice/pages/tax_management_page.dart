@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/tax_provider.dart';
 import '../repositories/tax_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class TaxManagementPage extends ConsumerWidget {
   const TaxManagementPage({super.key});
@@ -96,6 +95,7 @@ class TaxManagementPage extends ConsumerWidget {
       context: context,
       builder: (context) => _TaxFormDialog(
         tax: tax,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(taxListProvider),
       ),
     );
@@ -264,9 +264,10 @@ class _TaxCard extends StatelessWidget {
 
 class _TaxFormDialog extends StatefulWidget {
   final TaxModel? tax;
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _TaxFormDialog({this.tax, required this.onSaved});
+  const _TaxFormDialog({this.tax, required this.outletId, required this.onSaved});
 
   @override
   State<_TaxFormDialog> createState() => _TaxFormDialogState();
@@ -423,7 +424,7 @@ class _TaxFormDialogState extends State<_TaxFormDialog> {
         );
       } else {
         await repo.createTax(
-          outletId: _outletId,
+          outletId: widget.outletId,
           name: name,
           type: _selectedType,
           value: value,

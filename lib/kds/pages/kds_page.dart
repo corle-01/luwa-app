@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/kds_order.dart';
 import '../providers/kds_provider.dart';
 import '../repositories/kds_repository.dart';
+import '../services/kds_sound_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KDS Color Palette — dark theme for kitchen screens
@@ -59,6 +60,8 @@ class _KdsPageState extends ConsumerState<KdsPage> {
   DateTime _now = DateTime.now();
   int _previousOrderCount = -1; // -1 means first load, skip flash
   bool _flashNewOrder = false;
+  final KdsSoundService _soundService = KdsSoundService();
+  bool _isMuted = false;
 
   @override
   void initState() {
@@ -76,13 +79,21 @@ class _KdsPageState extends ConsumerState<KdsPage> {
   @override
   void dispose() {
     _clockTimer?.cancel();
+    _soundService.dispose();
     super.dispose();
   }
 
-  /// Detect new orders arriving and flash
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+      _soundService.setMuted(_isMuted);
+    });
+  }
+
+  /// Detect new orders arriving, flash indicator, and play sound
   void _checkForNewOrders(int currentCount) {
     if (_previousOrderCount == -1) {
-      // First load — do not flash
+      // First load — do not flash or play sound
       _previousOrderCount = currentCount;
       return;
     }
@@ -91,6 +102,8 @@ class _KdsPageState extends ConsumerState<KdsPage> {
       Future.delayed(const Duration(milliseconds: 800), () {
         if (mounted) setState(() => _flashNewOrder = false);
       });
+      // Play notification sound for new orders
+      _soundService.playNewOrderSound();
     }
     _previousOrderCount = currentCount;
   }
@@ -116,6 +129,8 @@ class _KdsPageState extends ConsumerState<KdsPage> {
             inProgressCount: inProgressCount,
             readyCount: readyCount,
             flashNewOrder: _flashNewOrder,
+            isMuted: _isMuted,
+            onToggleMute: _toggleMute,
           ),
 
           // ── Main content ──
@@ -160,6 +175,8 @@ class _KdsTopBar extends StatelessWidget {
   final int inProgressCount;
   final int readyCount;
   final bool flashNewOrder;
+  final bool isMuted;
+  final VoidCallback onToggleMute;
 
   const _KdsTopBar({
     required this.now,
@@ -167,6 +184,8 @@ class _KdsTopBar extends StatelessWidget {
     required this.inProgressCount,
     required this.readyCount,
     required this.flashNewOrder,
+    required this.isMuted,
+    required this.onToggleMute,
   });
 
   String _formatClock(DateTime dt) {
@@ -242,6 +261,58 @@ class _KdsTopBar extends StatelessWidget {
           _PulsingDot(flash: flashNewOrder),
 
           const Spacer(),
+
+          // Sound mute/unmute toggle
+          Tooltip(
+            message: isMuted ? 'Aktifkan Notifikasi Suara' : 'Bisukan Notifikasi',
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onToggleMute,
+                borderRadius: BorderRadius.circular(8),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isMuted
+                        ? _KdsColors.timerRed.withValues(alpha: 0.12)
+                        : _KdsColors.statusReady.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isMuted
+                          ? _KdsColors.timerRed.withValues(alpha: 0.3)
+                          : _KdsColors.statusReady.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isMuted ? Icons.volume_off : Icons.volume_up,
+                        size: 18,
+                        color: isMuted
+                            ? _KdsColors.timerRed
+                            : _KdsColors.statusReady,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isMuted ? 'Muted' : 'Sound',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isMuted
+                              ? _KdsColors.timerRed
+                              : _KdsColors.statusReady,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
 
           // Clock
           Container(

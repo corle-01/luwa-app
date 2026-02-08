@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'escpos_generator.dart';
+import 'web_usb_printer.dart';
+import 'web_bluetooth_printer.dart';
 
 // ═════════════════════════════════════════════════════════════════════════
 // Enums & Models
@@ -149,6 +151,12 @@ class PrintResult {
 class PrinterService {
   final List<PrinterConfig> _savedPrinters = [];
 
+  /// WebUSB printer instance (singleton per service).
+  final WebUsbPrinter webUsb = WebUsbPrinter();
+
+  /// Web Bluetooth printer instance (singleton per service).
+  final WebBluetoothPrinter webBluetooth = WebBluetoothPrinter();
+
   /// All saved printer configurations.
   List<PrinterConfig> get printers => List.unmodifiable(_savedPrinters);
 
@@ -271,19 +279,35 @@ class PrinterService {
   ///
   /// Requires the browser to support WebUSB and the user to grant device access.
   Future<PrintResult> _printUsb(Uint8List data) async {
-    // WebUSB flow:
-    // 1. navigator.usb.requestDevice({filters: [{vendorId: ...}]})
-    // 2. device.open()
-    // 3. device.selectConfiguration(1)
-    // 4. device.claimInterface(0)
-    // 5. device.transferOut(endpointNumber, data)
-    // 6. device.close()
-    //
-    // Implementation requires dart:js_interop bindings. For now, return
-    // an informative message so the UI can guide the user.
-    return PrintResult.error(
-      'Printing USB belum tersedia. Fitur WebUSB akan segera hadir.',
-    );
+    if (!WebUsbPrinter.isSupported) {
+      return PrintResult.error(
+        'WebUSB tidak didukung oleh browser ini. '
+        'Gunakan Chrome, Edge, atau Opera.',
+      );
+    }
+
+    if (webUsb.deviceName == null) {
+      return PrintResult.error(
+        'Belum ada printer USB yang dipasangkan. '
+        'Buka Pengaturan Printer dan pasangkan perangkat.',
+      );
+    }
+
+    final result = await webUsb.print(data);
+    if (result.success) {
+      return PrintResult.ok(result.message);
+    }
+    return PrintResult.error(result.message);
+  }
+
+  /// Pair a USB printer device (triggers browser dialog).
+  /// Must be called from a user gesture (click/tap).
+  Future<PrintResult> pairUsbDevice() async {
+    final result = await webUsb.requestDevice();
+    if (result.success) {
+      return PrintResult.ok(result.message);
+    }
+    return PrintResult.error(result.message);
   }
 
   /// Network print — sends raw bytes to a TCP socket (IP:port).
@@ -302,18 +326,48 @@ class PrinterService {
   }
 
   /// Bluetooth print via Web Bluetooth API.
+  ///
+  /// Requires HTTPS and user gesture for initial pairing.
   Future<PrintResult> _printBluetooth(Uint8List data) async {
-    // Web Bluetooth flow:
-    // 1. navigator.bluetooth.requestDevice({filters: [...]})
-    // 2. device.gatt.connect()
-    // 3. getPrimaryService(serviceUUID)
-    // 4. getCharacteristic(characteristicUUID)
-    // 5. characteristic.writeValue(data)
-    //
-    // Requires HTTPS and user gesture. Not all browsers support this.
-    return PrintResult.error(
-      'Printing Bluetooth belum tersedia. Fitur Web Bluetooth akan segera hadir.',
-    );
+    if (!WebBluetoothPrinter.isSupported) {
+      return PrintResult.error(
+        'Web Bluetooth tidak didukung oleh browser ini. '
+        'Gunakan Chrome, Edge, atau Opera.',
+      );
+    }
+
+    if (webBluetooth.deviceName == null) {
+      return PrintResult.error(
+        'Belum ada printer Bluetooth yang dipasangkan. '
+        'Buka Pengaturan Printer dan pasangkan perangkat.',
+      );
+    }
+
+    final result = await webBluetooth.print(data);
+    if (result.success) {
+      return PrintResult.ok(result.message);
+    }
+    return PrintResult.error(result.message);
+  }
+
+  /// Pair a Bluetooth printer device (triggers browser dialog).
+  /// Must be called from a user gesture (click/tap).
+  Future<PrintResult> pairBluetoothDevice({bool acceptAll = false}) async {
+    final result = await webBluetooth.requestDevice(acceptAll: acceptAll);
+    if (result.success) {
+      return PrintResult.ok(result.message);
+    }
+    return PrintResult.error(result.message);
+  }
+
+  /// Disconnect from the currently connected Bluetooth printer.
+  Future<void> disconnectBluetooth() async {
+    await webBluetooth.disconnect();
+  }
+
+  /// Disconnect from the currently connected USB printer.
+  Future<void> disconnectUsb() async {
+    await webUsb.disconnect();
   }
 
   // ─── Helpers ──────────────────────────────────────────────────

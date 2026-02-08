@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/shift.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/pos_shift_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 final posShiftRepositoryProvider = Provider((ref) => PosShiftRepository());
 
@@ -11,6 +10,8 @@ class PosShiftNotifier extends StateNotifier<AsyncValue<Shift?>> {
   PosShiftNotifier(this._ref) : super(const AsyncLoading()) {
     loadActiveShift();
   }
+
+  String get _outletId => _ref.read(currentOutletIdProvider);
 
   Future<void> loadActiveShift() async {
     state = const AsyncLoading();

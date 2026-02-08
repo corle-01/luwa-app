@@ -33,8 +33,9 @@ class AiService {
   AiService({
     SupabaseClient? client,
     AiContextBuilder? contextBuilder,
+    String outletId = 'a0000000-0000-0000-0000-000000000001',
   })  : _client = client ?? Supabase.instance.client,
-        _contextBuilder = contextBuilder ?? AiContextBuilder();
+        _contextBuilder = contextBuilder ?? AiContextBuilder(outletId: outletId);
 
   /// Send a message to the AI via Supabase RPC and receive a response.
   ///

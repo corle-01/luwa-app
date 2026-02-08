@@ -71,6 +71,9 @@ class PosCartNotifier extends StateNotifier<CartState> {
   void setCustomer(CartCustomer? customer) => state = customer == null
       ? state.copyWith(clearCustomer: true)
       : state.copyWith(customer: customer);
+  void setOrderNotes(String? notes) => state = (notes == null || notes.trim().isEmpty)
+      ? state.copyWith(clearNotes: true)
+      : state.copyWith(notes: notes.trim());
   void setTaxes(List<Tax> taxes) => state = state.copyWith(taxes: taxes);
   void restoreState(CartState cartState) => state = cartState;
   void clear() => state = CartState(items: [], orderType: 'dine_in');

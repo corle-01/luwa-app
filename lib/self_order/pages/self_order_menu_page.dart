@@ -741,6 +741,50 @@ class _CategoryChip extends StatelessWidget {
 // ===========================================================================
 // PRODUCT CARD WIDGET
 // ===========================================================================
+/// Extracts the primary image URL from a product map.
+/// Checks product_images list first (primary flag, then first by sort_order),
+/// falls back to the legacy image_url field.
+String? _getPrimaryImageUrl(Map<String, dynamic> product) {
+  final images = product['product_images'] as List<dynamic>?;
+  if (images != null && images.isNotEmpty) {
+    // Sort by sort_order
+    final sorted = List<Map<String, dynamic>>.from(
+      images.map((e) => e as Map<String, dynamic>),
+    )..sort((a, b) =>
+        ((a['sort_order'] as int?) ?? 0).compareTo((b['sort_order'] as int?) ?? 0));
+
+    // Find primary first
+    for (final img in sorted) {
+      if (img['is_primary'] == true) {
+        return img['image_url'] as String?;
+      }
+    }
+    // Fallback to first image
+    return sorted.first['image_url'] as String?;
+  }
+  return product['image_url'] as String?;
+}
+
+/// Returns all image URLs for a product, sorted by sort_order.
+List<String> _getAllImageUrls(Map<String, dynamic> product) {
+  final images = product['product_images'] as List<dynamic>?;
+  if (images != null && images.isNotEmpty) {
+    final sorted = List<Map<String, dynamic>>.from(
+      images.map((e) => e as Map<String, dynamic>),
+    )..sort((a, b) =>
+        ((a['sort_order'] as int?) ?? 0).compareTo((b['sort_order'] as int?) ?? 0));
+
+    return sorted
+        .map((img) => img['image_url'] as String?)
+        .where((url) => url != null && url.isNotEmpty)
+        .cast<String>()
+        .toList();
+  }
+  final legacy = product['image_url'] as String?;
+  if (legacy != null && legacy.isNotEmpty) return [legacy];
+  return [];
+}
+
 class _ProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
   final VoidCallback onTap;
@@ -754,7 +798,7 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = product['name'] as String? ?? 'Produk';
     final price = (product['price'] as num?)?.toDouble() ?? 0;
-    final imageUrl = product['image_url'] as String?;
+    final imageUrl = _getPrimaryImageUrl(product);
     final category = product['categories'] as Map<String, dynamic>?;
     final categoryName = category?['name'] as String?;
 
@@ -1001,7 +1045,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
       notes: _notesController.text.trim().isNotEmpty
           ? _notesController.text.trim()
           : null,
-      imageUrl: product['image_url'] as String?,
+      imageUrl: _getPrimaryImageUrl(product),
     );
 
     ref.read(selfOrderCartProvider.notifier).addItem(item);
@@ -1046,7 +1090,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
     final name = product['name'] as String? ?? 'Produk';
     final price = (product['price'] as num?)?.toDouble() ?? 0;
     final description = product['description'] as String?;
-    final imageUrl = product['image_url'] as String?;
+    final allImageUrls = _getAllImageUrls(product);
     final productId = product['id'] as String;
     final modifierGroupsAsync =
         ref.watch(selfOrderModifierGroupsProvider(productId));
@@ -1084,24 +1128,26 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Product image
-                  if (imageUrl != null && imageUrl.isNotEmpty)
+                  // Product image(s) - carousel if multiple
+                  if (allImageUrls.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: AspectRatio(
                         aspectRatio: 16 / 10,
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _buildSheetPlaceholder(),
-                          loadingBuilder: (_, child, progress) {
-                            if (progress == null) return child;
-                            return _buildSheetPlaceholder(
-                              showLoading: true,
-                            );
-                          },
-                        ),
+                        child: allImageUrls.length == 1
+                            ? Image.network(
+                                allImageUrls.first,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildSheetPlaceholder(),
+                                loadingBuilder: (_, child, progress) {
+                                  if (progress == null) return child;
+                                  return _buildSheetPlaceholder(
+                                    showLoading: true,
+                                  );
+                                },
+                              )
+                            : _ImageCarousel(imageUrls: allImageUrls),
                       ),
                     )
                   else
@@ -1625,6 +1671,136 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ===========================================================================
+// IMAGE CAROUSEL (for multi-image products in detail sheet)
+// ===========================================================================
+class _ImageCarousel extends StatefulWidget {
+  final List<String> imageUrls;
+
+  const _ImageCarousel({required this.imageUrls});
+
+  @override
+  State<_ImageCarousel> createState() => _ImageCarouselState();
+}
+
+class _ImageCarouselState extends State<_ImageCarousel> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Swipeable images
+        PageView.builder(
+          controller: _pageController,
+          itemCount: widget.imageUrls.length,
+          onPageChanged: (index) {
+            setState(() => _currentPage = index);
+          },
+          itemBuilder: (context, index) {
+            return Image.network(
+              widget.imageUrls[index],
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                child: Center(
+                  child: Icon(
+                    Icons.broken_image_rounded,
+                    size: 40,
+                    color: AppTheme.primaryColor.withValues(alpha: 0.25),
+                  ),
+                ),
+              ),
+              loadingBuilder: (_, child, progress) {
+                if (progress == null) return child;
+                return Container(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppTheme.primaryLight,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+
+        // Page indicators (dots)
+        Positioned(
+          bottom: 10,
+          left: 0,
+          right: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.imageUrls.length, (index) {
+              final isActive = index == _currentPage;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: isActive ? 20 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ),
+
+        // Image counter badge
+        Positioned(
+          top: 8,
+          right: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '${_currentPage + 1}/${widget.imageUrls.length}',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

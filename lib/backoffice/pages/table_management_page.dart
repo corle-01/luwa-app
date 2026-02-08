@@ -3,13 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/table_provider.dart';
 import '../repositories/table_repository.dart';
 
 const _selfOrderBaseUrl =
     'https://ardhianawing.github.io/utterapp/#/self-order';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class TableManagementPage extends ConsumerWidget {
   const TableManagementPage({super.key});
@@ -113,6 +112,7 @@ class TableManagementPage extends ConsumerWidget {
       context: context,
       builder: (context) => _TableFormDialog(
         table: table,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(tableListProvider),
       ),
     );
@@ -284,9 +284,10 @@ class _TableCard extends StatelessWidget {
 
 class _TableFormDialog extends StatefulWidget {
   final TableModel? table;
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _TableFormDialog({this.table, required this.onSaved});
+  const _TableFormDialog({this.table, required this.outletId, required this.onSaved});
 
   @override
   State<_TableFormDialog> createState() => _TableFormDialogState();
@@ -439,7 +440,7 @@ class _TableFormDialogState extends State<_TableFormDialog> {
         );
       } else {
         await repo.createTable(
-          outletId: _outletId,
+          outletId: widget.outletId,
           tableNumber: tableNumber,
           capacity: capacity,
           section: section,

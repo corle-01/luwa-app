@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/order.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
+import '../../core/providers/outlet_provider.dart';
 
 // ─────────────────────────────────────────────
 // Model
@@ -130,10 +129,12 @@ final dashboardRepositoryProvider = Provider((ref) => DashboardRepository());
 
 final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
   final repo = ref.watch(dashboardRepositoryProvider);
-  return repo.getStats(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getStats(outletId);
 });
 
 final recentOrdersProvider = FutureProvider<List<Order>>((ref) async {
   final repo = ref.watch(dashboardRepositoryProvider);
-  return repo.getRecentOrders(_outletId, limit: 5);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getRecentOrders(outletId, limit: 5);
 });

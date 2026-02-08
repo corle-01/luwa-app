@@ -1,18 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/recipe_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 final recipeRepositoryProvider = Provider((ref) => RecipeRepository());
 
 final productsWithRecipesProvider =
     FutureProvider<List<ProductWithRecipes>>((ref) async {
   final repo = ref.watch(recipeRepositoryProvider);
-  return repo.getProductsWithRecipes(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getProductsWithRecipes(outletId);
 });
 
 final ingredientListForRecipeProvider =
     FutureProvider<List<IngredientOption>>((ref) async {
   final repo = ref.watch(recipeRepositoryProvider);
-  return repo.getIngredients(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getIngredients(outletId);
 });

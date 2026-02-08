@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/inventory_provider.dart';
 import '../providers/product_stock_provider.dart';
 import '../repositories/inventory_repository.dart';
 import 'product_stock_page.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class InventoryPage extends ConsumerWidget {
   const InventoryPage({super.key});
@@ -419,6 +418,7 @@ class _IngredientsTable extends StatelessWidget {
       context: context,
       builder: (context) => _StockAdjustmentDialog(
         ingredient: ingredient,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () {
           ref.invalidate(ingredientsProvider);
           ref.invalidate(stockMovementsProvider);
@@ -693,10 +693,12 @@ class _TypeBadge extends StatelessWidget {
 
 class _StockAdjustmentDialog extends StatefulWidget {
   final IngredientModel ingredient;
+  final String outletId;
   final VoidCallback onSaved;
 
   const _StockAdjustmentDialog({
     required this.ingredient,
+    required this.outletId,
     required this.onSaved,
   });
 
@@ -963,7 +965,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
 
       await repo.adjustStock(
         ingredientId: widget.ingredient.id,
-        outletId: _outletId,
+        outletId: widget.outletId,
         quantity: quantity,
         type: _selectedType,
         notes: notes,

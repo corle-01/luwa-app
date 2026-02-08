@@ -102,6 +102,15 @@ class ReceiptPrinter {
 
     buf.writeln('<div class="sep">$_dashes</div>');
 
+    // Order notes
+    if (order.notes != null && order.notes!.isNotEmpty) {
+      buf.writeln('<div class="order-notes">');
+      buf.writeln('<div class="order-notes-label">Catatan:</div>');
+      buf.writeln('<div class="order-notes-text">${_escapeHtml(order.notes!)}</div>');
+      buf.writeln('</div>');
+      buf.writeln('<div class="sep">$_dashes</div>');
+    }
+
     // Payment info
     buf.writeln('<div class="totals-section">');
     if (order.paymentMethod == 'split' && order.paymentDetails != null && order.paymentDetails!.isNotEmpty) {
@@ -280,6 +289,21 @@ class ReceiptPrinter {
       color: #777;
       font-style: italic;
       padding-left: 16px;
+    }
+    .order-notes {
+      margin: 4px 0;
+      padding: 4px 0;
+    }
+    .order-notes-label {
+      font-size: 11px;
+      font-weight: bold;
+      color: #333;
+    }
+    .order-notes-text {
+      font-size: 11px;
+      color: #555;
+      font-style: italic;
+      padding-left: 8px;
     }
     .totals-section {
       margin: 4px 0;

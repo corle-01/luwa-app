@@ -1,27 +1,29 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/product.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/pos_product_repository.dart';
 import '../repositories/pos_stock_repository.dart';
 import 'pos_automation_provider.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 final posProductRepositoryProvider = Provider((ref) => PosProductRepository());
 final posStockRepositoryProvider = Provider((ref) => PosStockRepository());
 
 final posStockAvailabilityProvider = FutureProvider<Map<String, int>>((ref) async {
   final repo = ref.watch(posStockRepositoryProvider);
-  return repo.getStockAvailability(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getStockAvailability(outletId);
 });
 
 final posCategoriesProvider = FutureProvider<List<ProductCategory>>((ref) async {
   final repo = ref.watch(posProductRepositoryProvider);
-  return repo.getCategories(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getCategories(outletId);
 });
 
 final posProductsProvider = FutureProvider<List<Product>>((ref) async {
   final repo = ref.watch(posProductRepositoryProvider);
-  final products = await repo.getProducts(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  final products = await repo.getProducts(outletId);
   final isAuto = ref.watch(posAutomationProvider);
 
   if (isAuto) {

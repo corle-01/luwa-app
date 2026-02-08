@@ -7,8 +7,14 @@ import 'receipt_widget.dart';
 class OrderSuccessDialog extends StatelessWidget {
   final Order order;
   final List<OrderItem> items;
+  final bool isOffline;
 
-  const OrderSuccessDialog({super.key, required this.order, required this.items});
+  const OrderSuccessDialog({
+    super.key,
+    required this.order,
+    required this.items,
+    this.isOffline = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +26,49 @@ class OrderSuccessDialog extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(color: AppTheme.successColor, shape: BoxShape.circle),
-              child: const Icon(Icons.check, color: Colors.white, size: 48),
+              decoration: BoxDecoration(
+                color: isOffline
+                    ? const Color(0xFFF59E0B) // amber/warning
+                    : AppTheme.successColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isOffline ? Icons.cloud_off_rounded : Icons.check,
+                color: Colors.white,
+                size: 48,
+              ),
             ),
             const SizedBox(height: 20),
-            const Text('Pesanan Berhasil!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(
+              isOffline ? 'Pesanan Tersimpan (Offline)' : 'Pesanan Berhasil!',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            if (isOffline) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Color(0xFFF59E0B)),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Pesanan akan otomatis disinkronkan saat koneksi pulih.',
+                        style: TextStyle(fontSize: 12, color: Color(0xFFB45309)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             Text(
               FormatUtils.currency(order.totalAmount),

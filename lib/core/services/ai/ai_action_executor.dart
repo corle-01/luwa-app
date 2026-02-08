@@ -1,15 +1,28 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:utter_app/core/services/ai/ai_memory_service.dart';
+import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
+
 /// Executes AI function calls against the real database.
 ///
 /// This is the bridge between AI intent and actual system actions.
 /// Each method maps to a tool defined in [AiTools].
+/// Now includes OTAK (save_memory) and PERASAAN (check_business_health) actions.
 class AiActionExecutor {
   final SupabaseClient _client;
-  static const _outletId = 'a0000000-0000-0000-0000-000000000001';
+  final AiMemoryService _memoryService;
+  final AiPredictionService _predictionService;
+  final String _outletId;
 
-  AiActionExecutor({SupabaseClient? client})
-      : _client = client ?? Supabase.instance.client;
+  AiActionExecutor({
+    SupabaseClient? client,
+    AiMemoryService? memoryService,
+    AiPredictionService? predictionService,
+    String outletId = 'a0000000-0000-0000-0000-000000000001',
+  })  : _client = client ?? Supabase.instance.client,
+        _memoryService = memoryService ?? AiMemoryService(),
+        _predictionService = predictionService ?? AiPredictionService(outletId: outletId),
+        _outletId = outletId;
 
   /// Route a function call to the appropriate handler.
   Future<Map<String, dynamic>> execute(
@@ -39,6 +52,10 @@ class AiActionExecutor {
         return _getSalesSummary(args);
       case 'create_discount':
         return _createDiscount(args);
+      case 'save_memory':
+        return _saveMemory(args);
+      case 'check_business_health':
+        return _checkBusinessHealth(args);
       default:
         return {'success': false, 'error': 'Unknown function: $functionName'};
     }
@@ -463,5 +480,58 @@ class AiActionExecutor {
       'success': true,
       'message': 'Diskon "$name" (${type == "percentage" ? "$value%" : "Rp $value"}) berhasil dibuat',
     };
+  }
+
+  // ── AI Memory (OTAK) ──────────────────────────────────────
+
+  Future<Map<String, dynamic>> _saveMemory(Map<String, dynamic> args) async {
+    final insight = args['insight'] as String;
+    final category = args['category'] as String? ?? 'general';
+
+    _memoryService.addMemory(
+      insight: insight,
+      category: category,
+      confidence: 0.85,
+      source: 'AI self-initiated',
+    );
+
+    return {
+      'success': true,
+      'message': 'Insight disimpan ke memori: "$insight"',
+      'total_memories': _memoryService.getAllMemories().length,
+    };
+  }
+
+  // ── Business Health Check (PERASAAN) ──────────────────────
+
+  Future<Map<String, dynamic>> _checkBusinessHealth(Map<String, dynamic> args) async {
+    try {
+      final mood = await _predictionService.assessBusinessMood();
+      final prediction = await _predictionService.generatePredictions();
+
+      return {
+        'success': true,
+        'mood': mood.moodEmoji,
+        'mood_text': mood.moodText,
+        'today_revenue': mood.todayRevenue,
+        'today_orders': mood.todayOrders,
+        'projected_revenue': mood.projectedRevenue,
+        'avg_daily_revenue': mood.avgDailyRevenue,
+        'avg_daily_orders': mood.avgDailyOrders,
+        'day_progress': '${(mood.dayProgress * 100).toStringAsFixed(0)}%',
+        'predicted_busy_hours': prediction.predictedBusyHours
+            .map((h) => '${h.toString().padLeft(2, '0')}:00')
+            .toList(),
+        'estimated_daily_revenue': prediction.estimatedRevenue,
+        'stock_warnings': prediction.stockWarnings,
+        'warnings': mood.warnings,
+        'forecast': prediction.forecastText,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Gagal cek kesehatan bisnis: $e',
+      };
+    }
   }
 }

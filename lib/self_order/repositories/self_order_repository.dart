@@ -3,11 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SelfOrderRepository {
   final _client = Supabase.instance.client;
 
-  /// Fetch active products with categories for outlet
+  /// Fetch active products with categories and images for outlet
   Future<List<Map<String, dynamic>>> getMenuProducts(String outletId) async {
     final res = await _client
         .from('products')
-        .select('*, categories(*)')
+        .select('*, categories(*), product_images(*)')
         .eq('outlet_id', outletId)
         .eq('is_active', true)
         .order('name');
@@ -25,12 +25,26 @@ class SelfOrderRepository {
   }
 
   /// Fetch modifier groups + options for a product
+  /// Queries through junction table product_modifier_groups (same pattern as POS)
   Future<List<Map<String, dynamic>>> getModifierGroups(
       String productId) async {
+    // Step 1: Get modifier group IDs linked to this product
+    final junctionRes = await _client
+        .from('product_modifier_groups')
+        .select('modifier_group_id')
+        .eq('product_id', productId);
+
+    final groupIds = (junctionRes as List)
+        .map((r) => r['modifier_group_id'] as String)
+        .toList();
+
+    if (groupIds.isEmpty) return [];
+
+    // Step 2: Fetch full modifier groups with their options
     final res = await _client
         .from('modifier_groups')
         .select('*, modifier_options(*)')
-        .eq('product_id', productId)
+        .inFilter('id', groupIds)
         .order('name');
     return List<Map<String, dynamic>>.from(res);
   }

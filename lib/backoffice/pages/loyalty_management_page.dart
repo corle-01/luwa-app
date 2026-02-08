@@ -4,10 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/loyalty_provider.dart';
 import '../repositories/loyalty_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class LoyaltyManagementPage extends ConsumerStatefulWidget {
   const LoyaltyManagementPage({super.key});
@@ -75,6 +74,7 @@ class _LoyaltyManagementPageState extends ConsumerState<LoyaltyManagementPage>
       context: context,
       builder: (context) => _ProgramFormDialog(
         program: program,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(loyaltyProgramsProvider),
       ),
     );
@@ -661,9 +661,10 @@ class _TransactionRow extends StatelessWidget {
 
 class _ProgramFormDialog extends StatefulWidget {
   final LoyaltyProgram? program;
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _ProgramFormDialog({this.program, required this.onSaved});
+  const _ProgramFormDialog({this.program, required this.outletId, required this.onSaved});
 
   @override
   State<_ProgramFormDialog> createState() => _ProgramFormDialogState();
@@ -956,7 +957,7 @@ class _ProgramFormDialogState extends State<_ProgramFormDialog> {
         );
       } else {
         await repo.createProgram(
-          outletId: _outletId,
+          outletId: widget.outletId,
           name: name,
           description: description,
           pointsPerAmount: pointsPerAmount,

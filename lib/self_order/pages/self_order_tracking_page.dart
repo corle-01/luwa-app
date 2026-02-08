@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../shared/themes/app_theme.dart';
 import '../providers/self_order_provider.dart';
+import '../services/browser_notification_service.dart';
 import 'self_order_menu_page.dart';
 
 // ---------------------------------------------------------------------------
@@ -21,6 +24,9 @@ final _currencyFormat = NumberFormat.currency(
 ///
 /// Displays a visual status timeline, order items with kitchen status badges,
 /// and auto-refreshes every 10 seconds via [selfOrderTrackingProvider].
+///
+/// Features browser push notification and in-app banner when order becomes
+/// ready (step 2) or served (step 3).
 class SelfOrderTrackingPage extends ConsumerWidget {
   final String orderId;
   final String tableId;
@@ -147,7 +153,7 @@ class SelfOrderTrackingPage extends ConsumerWidget {
 }
 
 // =============================================================================
-// TRACKING BODY (Stateful for elapsed time ticker)
+// TRACKING BODY (Stateful for elapsed time ticker + notifications)
 // =============================================================================
 class _TrackingBody extends StatefulWidget {
   final Map<String, dynamic> orderData;
@@ -166,15 +172,163 @@ class _TrackingBody extends StatefulWidget {
   State<_TrackingBody> createState() => _TrackingBodyState();
 }
 
-class _TrackingBodyState extends State<_TrackingBody> {
+class _TrackingBodyState extends State<_TrackingBody>
+    with TickerProviderStateMixin {
   late DateTime _orderTime;
   String _elapsedText = '';
+
+  // ---------------------------------------------------------------------------
+  // Notification state
+  // ---------------------------------------------------------------------------
+  int _previousStep = -1; // -1 = not yet initialised
+  bool _notificationPermissionRequested = false;
+  bool _showReadyBanner = false;
+
+  // Animation controllers for the in-app ready banner
+  late AnimationController _bannerSlideController;
+  late Animation<Offset> _bannerSlideAnimation;
+  late AnimationController _bannerPulseController;
+  late Animation<double> _bannerPulseAnimation;
+  late AnimationController _bannerIconBounceController;
+  late Animation<double> _bannerIconBounceAnimation;
 
   @override
   void initState() {
     super.initState();
     _parseOrderTime();
     _updateElapsed();
+
+    // Set up banner animations
+    _bannerSlideController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _bannerSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, -1.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _bannerSlideController,
+      curve: Curves.easeOutBack,
+    ));
+
+    _bannerPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _bannerPulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(
+        parent: _bannerPulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _bannerIconBounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _bannerIconBounceAnimation =
+        Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+      parent: _bannerIconBounceController,
+      curve: Curves.elasticOut,
+    ));
+
+    // Initialise previous step from the first data we receive
+    _previousStep = _getCurrentStep();
+
+    // If order is already at step >= 2 on first load, show the banner
+    if (_previousStep >= 2) {
+      _showReadyBanner = true;
+      // Animate banner in after first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _bannerSlideController.forward();
+        _bannerPulseController.repeat(reverse: true);
+        _bannerIconBounceController.forward();
+      });
+    }
+
+    // Request browser notification permission
+    _requestNotificationPermission();
+  }
+
+  @override
+  void dispose() {
+    _bannerSlideController.dispose();
+    _bannerPulseController.dispose();
+    _bannerIconBounceController.dispose();
+    super.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Browser Notification permission request
+  // ---------------------------------------------------------------------------
+  Future<void> _requestNotificationPermission() async {
+    if (_notificationPermissionRequested) return;
+    _notificationPermissionRequested = true;
+
+    try {
+      if (!isNotificationSupported()) return;
+      final permission = getNotificationPermission();
+      if (permission == 'default') {
+        await requestNotificationPermission();
+      }
+    } catch (_) {
+      // Notification API not available (e.g. non-browser platform) — ignore
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Fire browser notification + trigger in-app banner
+  // ---------------------------------------------------------------------------
+  void _onOrderBecameReady() {
+    // Haptic feedback
+    HapticFeedback.heavyImpact();
+
+    // Show browser push notification
+    try {
+      if (isNotificationSupported()) {
+        showBrowserNotification(
+          'Pesanan Siap!',
+          'Pesanan Anda sudah siap diambil',
+        );
+      }
+    } catch (_) {
+      // Silently ignore if Notification API fails
+    }
+
+    // Show in-app animated banner
+    setState(() {
+      _showReadyBanner = true;
+    });
+    _bannerSlideController.forward(from: 0.0);
+    _bannerPulseController.repeat(reverse: true);
+    _bannerIconBounceController.forward(from: 0.0);
+  }
+
+  void _onOrderServed() {
+    // Haptic feedback
+    HapticFeedback.heavyImpact();
+
+    // Show browser push notification
+    try {
+      if (isNotificationSupported()) {
+        showBrowserNotification(
+          'Pesanan Disajikan!',
+          'Pesanan Anda telah disajikan. Selamat menikmati!',
+        );
+      }
+    } catch (_) {
+      // Silently ignore
+    }
+
+    // Keep the banner visible (update text in build)
+    if (!_showReadyBanner) {
+      setState(() {
+        _showReadyBanner = true;
+      });
+      _bannerSlideController.forward(from: 0.0);
+      _bannerPulseController.repeat(reverse: true);
+      _bannerIconBounceController.forward(from: 0.0);
+    }
   }
 
   @override
@@ -182,6 +336,20 @@ class _TrackingBodyState extends State<_TrackingBody> {
     super.didUpdateWidget(oldWidget);
     _parseOrderTime();
     _updateElapsed();
+
+    // Detect status transitions
+    final newStep = _getCurrentStep();
+    if (_previousStep >= 0 && newStep != _previousStep) {
+      // Transition to "ready" (step 2)
+      if (newStep >= 2 && _previousStep < 2) {
+        _onOrderBecameReady();
+      }
+      // Transition to "served/completed" (step 3)
+      else if (newStep >= 3 && _previousStep < 3) {
+        _onOrderServed();
+      }
+    }
+    _previousStep = newStep;
   }
 
   void _parseOrderTime() {
@@ -212,7 +380,6 @@ class _TrackingBodyState extends State<_TrackingBody> {
     // Check aggregate kitchen status from items
     bool anyInProgress = false;
     bool allReady = items.isNotEmpty;
-    bool anyServed = false;
     bool allServed = items.isNotEmpty;
 
     for (final item in items) {
@@ -220,7 +387,6 @@ class _TrackingBodyState extends State<_TrackingBody> {
           'pending';
       if (ks == 'in_progress' || ks == 'cooking') anyInProgress = true;
       if (ks != 'ready' && ks != 'served') allReady = false;
-      if (ks == 'served') anyServed = true;
       if (ks != 'served') allServed = false;
     }
 
@@ -345,6 +511,17 @@ class _TrackingBodyState extends State<_TrackingBody> {
     );
   }
 
+  void _dismissBanner() {
+    _bannerSlideController.reverse().then((_) {
+      if (mounted) {
+        setState(() {
+          _showReadyBanner = false;
+        });
+        _bannerPulseController.stop();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final orderNumber =
@@ -357,6 +534,9 @@ class _TrackingBodyState extends State<_TrackingBody> {
       children: [
         // Header
         _buildHeader(orderNumber),
+
+        // In-app ready banner (animated, shown above the scroll content)
+        if (_showReadyBanner) _buildReadyBanner(currentStep),
 
         // Scrollable content
         Expanded(
@@ -441,6 +621,144 @@ class _TrackingBodyState extends State<_TrackingBody> {
           ),
         ),
       ],
+    );
+  }
+
+  // ===========================================================================
+  // READY BANNER (animated in-app notification)
+  // ===========================================================================
+  Widget _buildReadyBanner(int currentStep) {
+    final isServed = currentStep >= 3;
+    final bannerTitle = isServed ? 'Pesanan Disajikan!' : 'Pesanan Siap!';
+    final bannerSubtitle = isServed
+        ? 'Pesanan Anda telah disajikan. Selamat menikmati!'
+        : 'Pesanan Anda sudah siap diambil';
+    final bannerIcon = isServed
+        ? Icons.done_all_rounded
+        : Icons.room_service_rounded;
+    final bannerGradient = isServed
+        ? const [Color(0xFF10B981), Color(0xFF059669)]
+        : const [Color(0xFF10B981), Color(0xFF34D399)];
+
+    return SlideTransition(
+      position: _bannerSlideAnimation,
+      child: AnimatedBuilder(
+        animation: _bannerPulseController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _bannerPulseAnimation.value,
+            child: child,
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: bannerGradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.successColor.withValues(alpha: 0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _dismissBanner,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                child: Row(
+                  children: [
+                    // Animated bell/service icon
+                    AnimatedBuilder(
+                      animation: _bannerIconBounceController,
+                      builder: (context, child) {
+                        return Transform.rotate(
+                          angle: math.sin(
+                                  _bannerIconBounceAnimation.value * math.pi * 4) *
+                              0.15 *
+                              (1 - _bannerIconBounceAnimation.value),
+                          child: Transform.scale(
+                            scale: 0.5 +
+                                (_bannerIconBounceAnimation.value * 0.5),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            bannerIcon,
+                            size: 24,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    // Text content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            bannerTitle,
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            bannerSubtitle,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Dismiss button
+                    IconButton(
+                      onPressed: _dismissBanner,
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 20,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

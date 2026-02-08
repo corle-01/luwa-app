@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/supplier_provider.dart';
 import '../repositories/supplier_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class SupplierManagementPage extends ConsumerWidget {
   const SupplierManagementPage({super.key});
@@ -94,6 +93,7 @@ class SupplierManagementPage extends ConsumerWidget {
       context: context,
       builder: (context) => _SupplierFormDialog(
         supplier: supplier,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(supplierListProvider),
       ),
     );
@@ -445,9 +445,10 @@ class _InfoChip extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _SupplierFormDialog extends StatefulWidget {
   final SupplierModel? supplier;
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _SupplierFormDialog({this.supplier, required this.onSaved});
+  const _SupplierFormDialog({this.supplier, required this.outletId, required this.onSaved});
 
   @override
   State<_SupplierFormDialog> createState() => _SupplierFormDialogState();
@@ -607,7 +608,7 @@ class _SupplierFormDialogState extends State<_SupplierFormDialog> {
         );
       } else {
         await repo.createSupplier(
-          outletId: _outletId,
+          outletId: widget.outletId,
           name: name,
           contactPerson: contactPerson,
           phone: phone,

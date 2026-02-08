@@ -1,3 +1,5 @@
+import 'product_image.dart';
+
 class Product {
   final String id;
   final String name;
@@ -14,6 +16,7 @@ class Product {
   final int sortOrder;
   final String? outletId;
   int? calculatedAvailableQty;
+  final List<ProductImage> images;
 
   Product({
     required this.id,
@@ -31,9 +34,28 @@ class Product {
     this.sortOrder = 0,
     this.outletId,
     this.calculatedAvailableQty,
+    this.images = const [],
   });
 
+  /// The primary image URL: first checks the images list for one flagged
+  /// as primary, then falls back to the legacy [imageUrl] field.
+  String? get primaryImageUrl {
+    final primary = images.where((i) => i.isPrimary).toList();
+    if (primary.isNotEmpty) return primary.first.imageUrl;
+    if (images.isNotEmpty) return images.first.imageUrl;
+    return imageUrl;
+  }
+
   factory Product.fromJson(Map<String, dynamic> json) {
+    // Parse nested product_images if present
+    List<ProductImage> images = [];
+    if (json['product_images'] is List) {
+      images = (json['product_images'] as List)
+          .map((e) => ProductImage.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    }
+
     return Product(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -49,6 +71,7 @@ class Product {
       minStock: json['min_stock'] as int? ?? 0,
       sortOrder: json['sort_order'] as int? ?? 0,
       outletId: json['outlet_id'] as String?,
+      images: images,
     );
   }
 
@@ -84,6 +107,7 @@ class Product {
     int? sortOrder,
     String? outletId,
     int? calculatedAvailableQty,
+    List<ProductImage>? images,
   }) {
     return Product(
       id: id ?? this.id,
@@ -101,6 +125,7 @@ class Product {
       sortOrder: sortOrder ?? this.sortOrder,
       outletId: outletId ?? this.outletId,
       calculatedAvailableQty: calculatedAvailableQty ?? this.calculatedAvailableQty,
+      images: images ?? this.images,
     );
   }
 }

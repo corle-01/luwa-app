@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/staff_provider.dart';
 import '../repositories/staff_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class StaffManagementPage extends ConsumerWidget {
   const StaffManagementPage({super.key});
@@ -94,6 +93,7 @@ class StaffManagementPage extends ConsumerWidget {
       context: context,
       builder: (context) => _StaffFormDialog(
         staff: staff,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(staffListProvider),
       ),
     );
@@ -248,9 +248,10 @@ class _StaffCard extends StatelessWidget {
 
 class _StaffFormDialog extends StatefulWidget {
   final StaffProfile? staff;
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _StaffFormDialog({this.staff, required this.onSaved});
+  const _StaffFormDialog({this.staff, required this.outletId, required this.onSaved});
 
   @override
   State<_StaffFormDialog> createState() => _StaffFormDialogState();
@@ -404,7 +405,7 @@ class _StaffFormDialogState extends State<_StaffFormDialog> {
         );
       } else {
         await repo.createStaff(
-          outletId: _outletId,
+          outletId: widget.outletId,
           fullName: name,
           role: _selectedRole,
           pin: pin,

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/order.dart';
+import '../../core/providers/outlet_provider.dart';
 import 'pos_checkout_provider.dart';
 
 final posOrdersByStatusProvider = Provider.family<List<Order>, String?>((ref, status) {
@@ -87,8 +88,10 @@ final posFilteredOrdersProvider = FutureProvider<List<Order>>((ref) async {
   final startDate = filter.startDate ?? DateTime(now.year, now.month, now.day);
   final endDate = filter.endDate;
 
+  final outletId = ref.watch(currentOutletIdProvider);
+
   return repo.getOrders(
-    outletId: 'a0000000-0000-0000-0000-000000000001',
+    outletId: outletId,
     startDate: startDate,
     endDate: endDate,
     status: filter.status,

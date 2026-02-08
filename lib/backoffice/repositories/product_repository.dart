@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/models/product_image.dart';
 
 // ── Models ──────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ class ProductModel {
   final int sortOrder;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final List<ProductImage> images;
 
   ProductModel({
     required this.id,
@@ -29,9 +31,28 @@ class ProductModel {
     this.sortOrder = 0,
     this.createdAt,
     this.updatedAt,
+    this.images = const [],
   });
 
+  /// The primary image URL: checks the images list first (primary flag,
+  /// then first by sort_order), falls back to legacy [imageUrl] field.
+  String? get primaryImageUrl {
+    final primary = images.where((i) => i.isPrimary).toList();
+    if (primary.isNotEmpty) return primary.first.imageUrl;
+    if (images.isNotEmpty) return images.first.imageUrl;
+    return imageUrl;
+  }
+
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    // Parse nested product_images if present
+    List<ProductImage> images = [];
+    if (json['product_images'] is List) {
+      images = (json['product_images'] as List)
+          .map((e) => ProductImage.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    }
+
     return ProductModel(
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
@@ -51,6 +72,7 @@ class ProductModel {
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'] as String)
           : null,
+      images: images,
     );
   }
 
@@ -104,11 +126,12 @@ class CategoryModel {
 class ProductRepository {
   final _supabase = Supabase.instance.client;
 
-  /// Fetch all products for an outlet (including inactive), with category join.
+  /// Fetch all products for an outlet (including inactive), with category
+  /// join and product_images nested.
   Future<List<ProductModel>> getProducts(String outletId) async {
     final response = await _supabase
         .from('products')
-        .select('*, categories(name)')
+        .select('*, categories(name), product_images(*)')
         .eq('outlet_id', outletId)
         .order('sort_order', ascending: true)
         .order('name', ascending: true);
@@ -220,5 +243,85 @@ class ProductRepository {
         .update({'category_id': null})
         .eq('category_id', id);
     await _supabase.from('categories').delete().eq('id', id);
+  }
+
+  // ── Product Images ──────────────────────────────────────────────────────
+
+  /// Fetch all images for a product, sorted by sort_order.
+  Future<List<ProductImage>> getProductImages(String productId) async {
+    final response = await _supabase
+        .from('product_images')
+        .select()
+        .eq('product_id', productId)
+        .order('sort_order', ascending: true);
+
+    return (response as List)
+        .map((json) => ProductImage.fromJson(json))
+        .toList();
+  }
+
+  /// Add a new image to a product.
+  /// If [isPrimary] is true, clears the primary flag on all other images first.
+  Future<ProductImage> addProductImage({
+    required String productId,
+    required String imageUrl,
+    int sortOrder = 0,
+    bool isPrimary = false,
+  }) async {
+    if (isPrimary) {
+      // Clear primary flag on all existing images for this product
+      await _supabase
+          .from('product_images')
+          .update({'is_primary': false})
+          .eq('product_id', productId);
+    }
+
+    final response = await _supabase
+        .from('product_images')
+        .insert({
+          'product_id': productId,
+          'image_url': imageUrl,
+          'sort_order': sortOrder,
+          'is_primary': isPrimary,
+        })
+        .select()
+        .single();
+
+    return ProductImage.fromJson(response);
+  }
+
+  /// Delete a product image by its ID.
+  Future<void> deleteProductImage(String imageId) async {
+    await _supabase.from('product_images').delete().eq('id', imageId);
+  }
+
+  /// Set a specific image as the primary image for its product.
+  /// Clears primary from all others for the same product.
+  Future<void> setPrimaryImage({
+    required String productId,
+    required String imageId,
+  }) async {
+    // Clear all primary flags for this product
+    await _supabase
+        .from('product_images')
+        .update({'is_primary': false})
+        .eq('product_id', productId);
+
+    // Set the new primary
+    await _supabase
+        .from('product_images')
+        .update({'is_primary': true})
+        .eq('id', imageId);
+  }
+
+  /// Reorder images by updating their sort_order values.
+  /// [imageIds] should be the ordered list of image IDs.
+  Future<void> reorderImages(List<String> imageIds) async {
+    for (int i = 0; i < imageIds.length; i++) {
+      await _supabase
+          .from('product_images')
+          .update({'sort_order': i})
+          .eq('id', imageIds[i]);
+    }
   }
 }

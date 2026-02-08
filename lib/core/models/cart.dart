@@ -124,6 +124,7 @@ class CartState {
     bool clearDiscount = false,
     bool clearCustomer = false,
     bool clearTable = false,
+    bool clearNotes = false,
   }) {
     return CartState(
       items: items ?? this.items,
@@ -132,7 +133,7 @@ class CartState {
       tableNumber: clearTable ? null : (tableNumber ?? this.tableNumber),
       discount: clearDiscount ? null : (discount ?? this.discount),
       customer: clearCustomer ? null : (customer ?? this.customer),
-      notes: notes ?? this.notes,
+      notes: clearNotes ? null : (notes ?? this.notes),
       taxes: taxes ?? this.taxes,
     );
   }

@@ -1,11 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/online_order_repository.dart';
-
-// ============================================================
-// Outlet ID (hardcoded, same as all other providers)
-// ============================================================
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 // ============================================================
 // Repository provider
@@ -20,7 +16,8 @@ final onlineOrderRepositoryProvider = Provider<OnlineOrderRepository>((ref) {
 final platformConfigsProvider =
     FutureProvider<List<PlatformConfig>>((ref) async {
   final repo = ref.watch(onlineOrderRepositoryProvider);
-  return repo.getPlatformConfigs(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getPlatformConfigs(outletId);
 });
 
 // ============================================================
@@ -36,12 +33,13 @@ final onlineOrdersProvider =
     FutureProvider<List<OnlineOrder>>((ref) async {
   final repo = ref.watch(onlineOrderRepositoryProvider);
   final filter = ref.watch(onlineOrderFilterProvider);
+  final outletId = ref.watch(currentOutletIdProvider);
 
   final today = DateTime.now();
   final startOfDay = DateTime(today.year, today.month, today.day);
 
   final orders = await repo.getOnlineOrders(
-    outletId: _outletId,
+    outletId: outletId,
     platform: filter.platform,
     status: filter.status,
     dateFrom: startOfDay,
@@ -72,11 +70,12 @@ final onlineOrderDetailProvider =
 final onlineOrderStatsProvider =
     FutureProvider<OnlineOrderStats>((ref) async {
   final repo = ref.watch(onlineOrderRepositoryProvider);
+  final outletId = ref.watch(currentOutletIdProvider);
 
   final today = DateTime.now();
   final startOfDay = DateTime(today.year, today.month, today.day);
 
-  return repo.getOnlineOrderStats(_outletId, startOfDay, today);
+  return repo.getOnlineOrderStats(outletId, startOfDay, today);
 });
 
 // ============================================================

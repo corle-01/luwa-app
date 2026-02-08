@@ -334,6 +334,74 @@ class ReportRepository {
     );
   }
 
+  /// Get P&L (Profit & Loss) report for a date range.
+  /// Combines revenue data (from orders) with COGS (from HPP report).
+  Future<PnlReport> getPnlReport(
+    String outletId,
+    DateTime from,
+    DateTime to,
+  ) async {
+    // 1. Get sales data with payment method and source
+    final ordersResponse = await _supabase
+        .from('orders')
+        .select(
+            'total, payment_method, source, discount_amount, tax_amount, service_charge_amount')
+        .eq('outlet_id', outletId)
+        .eq('status', 'completed')
+        .gte('created_at', from.toIso8601String())
+        .lte('created_at', to.toIso8601String());
+
+    final orders = ordersResponse as List;
+
+    double totalRevenue = 0;
+    double totalDiscount = 0;
+    double totalTax = 0;
+    double totalServiceCharge = 0;
+    final Map<String, double> paymentMap = {};
+    final Map<String, double> sourceMap = {};
+
+    for (final row in orders) {
+      final total = (row['total'] as num?)?.toDouble() ?? 0;
+      final method = row['payment_method'] as String? ?? 'cash';
+      final source = row['source'] as String? ?? 'pos';
+
+      totalRevenue += total;
+      totalDiscount += (row['discount_amount'] as num?)?.toDouble() ?? 0;
+      totalTax += (row['tax_amount'] as num?)?.toDouble() ?? 0;
+      totalServiceCharge +=
+          (row['service_charge_amount'] as num?)?.toDouble() ?? 0;
+
+      paymentMap[method] = (paymentMap[method] ?? 0) + total;
+      sourceMap[source] = (sourceMap[source] ?? 0) + total;
+    }
+
+    // 2. Get COGS from HPP data
+    final hppSummary = await getHppReport(outletId, from, to);
+
+    // 3. Build revenue breakdown lists
+    final revenueByPayment = paymentMap.entries
+        .map((e) => RevenueBreakdownItem(label: e.key, amount: e.value))
+        .toList()
+      ..sort((a, b) => b.amount.compareTo(a.amount));
+
+    final revenueBySource = sourceMap.entries
+        .map((e) => RevenueBreakdownItem(label: e.key, amount: e.value))
+        .toList()
+      ..sort((a, b) => b.amount.compareTo(a.amount));
+
+    return PnlReport(
+      totalRevenue: totalRevenue,
+      orderCount: orders.length,
+      revenueByPayment: revenueByPayment,
+      revenueBySource: revenueBySource,
+      totalDiscount: totalDiscount,
+      totalTax: totalTax,
+      totalServiceCharge: totalServiceCharge,
+      totalCogs: hppSummary.totalCost,
+      operatingExpenses: [], // Placeholder - user can add manually in UI
+    );
+  }
+
   /// Get HPP (Cost of Goods Sold) report for a date range.
   /// Joins order_items with orders and products to calculate cost vs revenue per product.
   Future<HppSummary> getHppReport(
@@ -496,4 +564,77 @@ class _HppAgg {
     required this.costPrice,
     required this.sellingPrice,
   });
+}
+
+// --- P&L (Profit & Loss) Models ---
+
+/// Revenue breakdown by source (payment method or order source)
+class RevenueBreakdownItem {
+  final String label;
+  final double amount;
+
+  RevenueBreakdownItem({required this.label, required this.amount});
+}
+
+/// An expense entry for the P&L report
+class ExpenseEntry {
+  final String id;
+  final String category;
+  final double amount;
+
+  ExpenseEntry({required this.id, required this.category, required this.amount});
+}
+
+/// Full P&L report model
+class PnlReport {
+  // Revenue
+  final double totalRevenue;
+  final int orderCount;
+  final List<RevenueBreakdownItem> revenueByPayment;
+  final List<RevenueBreakdownItem> revenueBySource;
+  final double totalDiscount;
+  final double totalTax;
+  final double totalServiceCharge;
+
+  // COGS
+  final double totalCogs;
+
+  // Gross Profit
+  double get grossProfit => totalRevenue - totalCogs;
+  double get grossMarginPercent =>
+      totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+
+  // Operating Expenses (manual/editable)
+  final List<ExpenseEntry> operatingExpenses;
+  double get totalExpenses =>
+      operatingExpenses.fold(0.0, (s, e) => s + e.amount);
+
+  // Net Profit
+  double get netProfit => grossProfit - totalExpenses;
+  double get netMarginPercent =>
+      totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+  PnlReport({
+    required this.totalRevenue,
+    required this.orderCount,
+    required this.revenueByPayment,
+    required this.revenueBySource,
+    required this.totalDiscount,
+    required this.totalTax,
+    required this.totalServiceCharge,
+    required this.totalCogs,
+    required this.operatingExpenses,
+  });
+
+  factory PnlReport.empty() => PnlReport(
+        totalRevenue: 0,
+        orderCount: 0,
+        revenueByPayment: [],
+        revenueBySource: [],
+        totalDiscount: 0,
+        totalTax: 0,
+        totalServiceCharge: 0,
+        totalCogs: 0,
+        operatingExpenses: [],
+      );
 }

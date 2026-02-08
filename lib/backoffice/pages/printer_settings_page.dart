@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../core/services/printer_service.dart';
 import '../../core/services/escpos_generator.dart';
+import '../../core/services/web_usb_printer.dart';
+import '../../core/services/web_bluetooth_printer.dart';
 
 /// Printer management settings page.
 ///
@@ -44,6 +46,18 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
     var selectedType = existing?.type ?? PrinterType.usb;
     var selectedWidth = existing?.paperWidth ?? 80;
     var setAsDefault = existing?.isDefault ?? false;
+    String? pairedDeviceName;
+    bool isPairing = false;
+
+    // Check if a device is already paired for existing printers
+    if (existing != null) {
+      if (existing.type == PrinterType.usb && _service.webUsb.deviceName != null) {
+        pairedDeviceName = _service.webUsb.deviceName;
+      } else if (existing.type == PrinterType.bluetooth &&
+          _service.webBluetooth.deviceName != null) {
+        pairedDeviceName = _service.webBluetooth.deviceName;
+      }
+    }
 
     showDialog(
       context: context,
@@ -52,6 +66,17 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
           builder: (ctx, setDialogState) {
             final needsAddress =
                 selectedType == PrinterType.network;
+            final needsPairing =
+                selectedType == PrinterType.usb ||
+                selectedType == PrinterType.bluetooth;
+
+            // Check current pairing status based on selected type
+            String? currentPairedName;
+            if (selectedType == PrinterType.usb) {
+              currentPairedName = pairedDeviceName ?? _service.webUsb.deviceName;
+            } else if (selectedType == PrinterType.bluetooth) {
+              currentPairedName = pairedDeviceName ?? _service.webBluetooth.deviceName;
+            }
 
             return AlertDialog(
               shape: RoundedRectangleBorder(
@@ -194,6 +219,305 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
                         const SizedBox(height: 20),
                       ],
 
+                      // Device pairing section (USB / Bluetooth)
+                      if (needsPairing) ...[
+                        _fieldLabel('Pasangkan Perangkat'),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.backgroundColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.borderColor),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Paired device info
+                              if (currentPairedName != null) ...[
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF10B981)
+                                                .withValues(alpha: 0.4),
+                                            blurRadius: 4,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        currentPairedName,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.textPrimary,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981)
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Terpasang',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF10B981),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                              ] else ...[
+                                Row(
+                                  children: [
+                                    Icon(
+                                      selectedType == PrinterType.usb
+                                          ? Icons.usb_off_rounded
+                                          : Icons.bluetooth_disabled_rounded,
+                                      size: 16,
+                                      color: AppTheme.textTertiary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Belum ada perangkat yang dipasangkan',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: AppTheme.textTertiary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+
+                              // Pair / Re-pair button
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: isPairing
+                                          ? null
+                                          : () async {
+                                              setDialogState(
+                                                  () => isPairing = true);
+
+                                              PrintResult result;
+                                              if (selectedType ==
+                                                  PrinterType.usb) {
+                                                result = await _service
+                                                    .pairUsbDevice();
+                                                if (result.success) {
+                                                  pairedDeviceName =
+                                                      _service.webUsb.deviceName;
+                                                  // Auto-fill name if empty
+                                                  if (nameCtrl.text
+                                                      .trim()
+                                                      .isEmpty) {
+                                                    nameCtrl.text =
+                                                        pairedDeviceName ??
+                                                            'USB Printer';
+                                                  }
+                                                }
+                                              } else {
+                                                result = await _service
+                                                    .pairBluetoothDevice();
+                                                if (result.success) {
+                                                  pairedDeviceName = _service
+                                                      .webBluetooth.deviceName;
+                                                  if (nameCtrl.text
+                                                      .trim()
+                                                      .isEmpty) {
+                                                    nameCtrl.text =
+                                                        pairedDeviceName ??
+                                                            'BT Printer';
+                                                  }
+                                                }
+                                              }
+
+                                              setDialogState(
+                                                  () => isPairing = false);
+
+                                              if (!result.success &&
+                                                  ctx.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content:
+                                                        Text(result.message),
+                                                    behavior:
+                                                        SnackBarBehavior
+                                                            .floating,
+                                                    backgroundColor:
+                                                        AppTheme.errorColor,
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                      icon: isPairing
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child:
+                                                  CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : Icon(
+                                              currentPairedName != null
+                                                  ? Icons.refresh_rounded
+                                                  : (selectedType ==
+                                                          PrinterType.usb
+                                                      ? Icons.usb_rounded
+                                                      : Icons
+                                                          .bluetooth_searching_rounded),
+                                              size: 18,
+                                            ),
+                                      label: Text(
+                                        isPairing
+                                            ? 'Mencari...'
+                                            : currentPairedName != null
+                                                ? 'Ganti Perangkat'
+                                                : 'Pasangkan Perangkat',
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            const Color(0xFF6366F1),
+                                        side: const BorderSide(
+                                          color: Color(0xFF6366F1),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Show "All Devices" button for Bluetooth
+                                  if (selectedType == PrinterType.bluetooth) ...[
+                                    const SizedBox(width: 8),
+                                    Tooltip(
+                                      message: 'Tampilkan semua perangkat BLE',
+                                      child: OutlinedButton(
+                                        onPressed: isPairing
+                                            ? null
+                                            : () async {
+                                                setDialogState(
+                                                    () => isPairing = true);
+
+                                                final result = await _service
+                                                    .pairBluetoothDevice(
+                                                        acceptAll: true);
+                                                if (result.success) {
+                                                  pairedDeviceName = _service
+                                                      .webBluetooth.deviceName;
+                                                  if (nameCtrl.text
+                                                      .trim()
+                                                      .isEmpty) {
+                                                    nameCtrl.text =
+                                                        pairedDeviceName ??
+                                                            'BT Printer';
+                                                  }
+                                                }
+
+                                                setDialogState(
+                                                    () => isPairing = false);
+
+                                                if (!result.success &&
+                                                    ctx.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content:
+                                                          Text(result.message),
+                                                      behavior:
+                                                          SnackBarBehavior
+                                                              .floating,
+                                                      backgroundColor:
+                                                          AppTheme.errorColor,
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor:
+                                              AppTheme.textSecondary,
+                                          side: BorderSide(
+                                            color: AppTheme.borderColor,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12),
+                                        ),
+                                        child: const Text('Semua'),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+
+                              // Browser support warning
+                              if ((selectedType == PrinterType.usb &&
+                                      !WebUsbPrinter.isSupported) ||
+                                  (selectedType == PrinterType.bluetooth &&
+                                      !WebBluetoothPrinter.isSupported)) ...[
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF2F2),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                        color: const Color(0xFFFECACA)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.warning_amber_rounded,
+                                        size: 16,
+                                        color: Color(0xFFDC2626),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          selectedType == PrinterType.usb
+                                              ? 'WebUSB tidak didukung browser ini. Gunakan Chrome/Edge.'
+                                              : 'Web Bluetooth tidak didukung browser ini. Gunakan Chrome/Edge.',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            color: const Color(0xFFDC2626),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
                       // Set as default
                       Container(
                         decoration: BoxDecoration(
@@ -248,15 +572,27 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
                       return;
                     }
 
+                    // Build address from paired device info
+                    String? deviceAddress;
+                    if (needsAddress) {
+                      deviceAddress = addressCtrl.text.trim();
+                    } else if (selectedType == PrinterType.usb) {
+                      final usb = _service.webUsb;
+                      deviceAddress = usb.deviceName ?? existing?.address;
+                    } else if (selectedType == PrinterType.bluetooth) {
+                      final bt = _service.webBluetooth;
+                      deviceAddress = bt.deviceName ?? existing?.address;
+                    } else {
+                      deviceAddress = existing?.address;
+                    }
+
                     final config = PrinterConfig(
                       id: existing?.id ??
                           DateTime.now().millisecondsSinceEpoch.toString(),
                       name: nameCtrl.text.trim(),
                       type: selectedType,
                       paperWidth: selectedWidth,
-                      address: needsAddress
-                          ? addressCtrl.text.trim()
-                          : existing?.address,
+                      address: deviceAddress,
                       isDefault: setAsDefault,
                     );
 
@@ -739,44 +1075,125 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   }
 
   Widget _buildInfoBanner() {
+    final usbSupported = WebUsbPrinter.isSupported;
+    final btSupported = WebBluetoothPrinter.isSupported;
+    final usbConnected = _service.webUsb.isConnected;
+    final btConnected = _service.webBluetooth.isConnected;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF3C7),
+        color: const Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline_rounded,
-              color: Color(0xFFD97706), size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Dukungan Printer',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF92400E),
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline_rounded,
+                  color: Color(0xFF2563EB), size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Dukungan Printer',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1E40AF),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tersedia 3 mode koneksi: Browser Print, USB (WebUSB), '
+                      'dan Bluetooth (Web Bluetooth). USB dan Bluetooth '
+                      'memerlukan Chrome/Edge/Opera dan HTTPS. '
+                      'Pasangkan perangkat di dialog Tambah/Edit Printer.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: const Color(0xFF1E40AF),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Browser Print sudah siap digunakan. '
-                  'Dukungan USB (WebUSB) dan Bluetooth (Web Bluetooth) '
-                  'akan segera hadir. Untuk printer jaringan, pastikan '
-                  'printer dan perangkat berada dalam jaringan yang sama.',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: const Color(0xFF92400E),
-                    height: 1.4,
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Connection status chips
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _statusChip(
+                Icons.language_rounded,
+                'Browser',
+                true,
+                const Color(0xFF2563EB),
+              ),
+              _statusChip(
+                Icons.usb_rounded,
+                usbConnected
+                    ? 'USB: ${_service.webUsb.deviceName}'
+                    : usbSupported
+                        ? 'USB: Siap'
+                        : 'USB: Tidak Didukung',
+                usbSupported,
+                usbConnected
+                    ? const Color(0xFF059669)
+                    : const Color(0xFF6B7280),
+              ),
+              _statusChip(
+                Icons.bluetooth_rounded,
+                btConnected
+                    ? 'BT: ${_service.webBluetooth.deviceName}'
+                    : btSupported
+                        ? 'BT: Siap'
+                        : 'BT: Tidak Didukung',
+                btSupported,
+                btConnected
+                    ? const Color(0xFF7C3AED)
+                    : const Color(0xFF6B7280),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip(
+      IconData icon, String label, bool available, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: available
+            ? color.withValues(alpha: 0.08)
+            : const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: available
+              ? color.withValues(alpha: 0.2)
+              : const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: available ? color : const Color(0xFF9CA3AF)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: available ? color : const Color(0xFF9CA3AF),
             ),
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../core/models/cart.dart';
 import '../../core/models/customer.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/pos_customer_repository.dart';
 import '../providers/pos_cart_provider.dart';
 
@@ -31,7 +32,7 @@ class _CustomerSelectorDialogState extends ConsumerState<CustomerSelectorDialog>
     if (query.length < 2) { setState(() => _results = []); return; }
     setState(() => _loading = true);
     try {
-      _results = await _repo.searchCustomers('a0000000-0000-0000-0000-000000000001', query);
+      _results = await _repo.searchCustomers(ref.read(currentOutletIdProvider), query);
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -41,7 +42,7 @@ class _CustomerSelectorDialogState extends ConsumerState<CustomerSelectorDialog>
     setState(() => _saving = true);
     try {
       final customer = await _repo.createCustomer(
-        'a0000000-0000-0000-0000-000000000001',
+        ref.read(currentOutletIdProvider),
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),

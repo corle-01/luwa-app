@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:web/web.dart' as web;
 
 // ---------------------------------------------------------------------------
 // Queue operation types
@@ -90,18 +92,56 @@ class SyncResult {
 ///   INSERT as 'pending'  -->  INSERT items  -->  UPDATE to 'completed'
 /// so that database triggers fire correctly.
 class OfflineQueueService extends StateNotifier<List<QueuedOperation>> {
-  OfflineQueueService() : super([]);
+  static const _storageKey = 'utter_offline_queue';
+
+  OfflineQueueService() : super([]) {
+    _loadFromStorage();
+  }
+
+  // -- localStorage persistence --------------------------------------------
+
+  /// Load queued operations from localStorage on startup so data survives
+  /// page refreshes.
+  void _loadFromStorage() {
+    try {
+      final raw = web.window.localStorage.getItem(_storageKey);
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+        final ops = decoded
+            .map((e) =>
+                QueuedOperation.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        if (ops.isNotEmpty) {
+          state = ops;
+        }
+      }
+    } catch (_) {
+      // Corrupted data — start fresh
+    }
+  }
+
+  /// Persist the current queue to localStorage.
+  void _saveToStorage() {
+    try {
+      final encoded = jsonEncode(state.map((op) => op.toJson()).toList());
+      web.window.localStorage.setItem(_storageKey, encoded);
+    } catch (_) {
+      // Storage full or unavailable — best effort
+    }
+  }
 
   // -- Queue management -----------------------------------------------------
 
   /// Add an operation to the end of the queue.
   void enqueue(QueuedOperation op) {
     state = [...state, op];
+    _saveToStorage();
   }
 
   /// Remove an operation by its [operationId] after successful sync.
   void dequeue(String operationId) {
     state = state.where((op) => op.id != operationId).toList();
+    _saveToStorage();
   }
 
   /// Number of operations that are not currently being synced.
@@ -114,7 +154,10 @@ class OfflineQueueService extends StateNotifier<List<QueuedOperation>> {
   bool get isEmpty => state.isEmpty;
 
   /// Clear the entire queue.
-  void clearAll() => state = [];
+  void clearAll() {
+    state = [];
+    _saveToStorage();
+  }
 
   // -- Sync all queued operations --------------------------------------------
 
@@ -138,6 +181,7 @@ class OfflineQueueService extends StateNotifier<List<QueuedOperation>> {
         op.isSyncing = true;
         // Force a state update so the UI can show progress
         state = [...state];
+        _saveToStorage();
 
         switch (op.type) {
           case QueueOperationType.createOrder:
@@ -197,6 +241,10 @@ class OfflineQueueService extends StateNotifier<List<QueuedOperation>> {
     // Step 1: INSERT order as 'pending'
     orderData['status'] = 'pending';
     orderData['payment_status'] = 'unpaid';
+    // Remove local ID so Supabase generates a proper server-side UUID
+    orderData.remove('id');
+    // Remove created_at so server uses its default now()
+    orderData.remove('created_at');
 
     final orderRes = await client
         .from('orders')

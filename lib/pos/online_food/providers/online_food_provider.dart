@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
+import '../../../core/providers/outlet_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -150,7 +149,8 @@ class OnlineFoodState {
 // ---------------------------------------------------------------------------
 
 class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
-  OnlineFoodNotifier() : super(const OnlineFoodState());
+  final String outletId;
+  OnlineFoodNotifier({required this.outletId}) : super(const OnlineFoodState());
 
   final _supabase = Supabase.instance.client;
 
@@ -264,7 +264,7 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
       final orderResponse = await _supabase
           .from('orders')
           .insert({
-            'outlet_id': _outletId,
+            'outlet_id': outletId,
             'order_number': orderNumber,
             'order_type': 'online',
             'order_source': platform.sourceName,
@@ -337,5 +337,5 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
 
 final onlineFoodProvider =
     StateNotifierProvider<OnlineFoodNotifier, OnlineFoodState>(
-  (ref) => OnlineFoodNotifier(),
+  (ref) => OnlineFoodNotifier(outletId: ref.watch(currentOutletIdProvider)),
 );

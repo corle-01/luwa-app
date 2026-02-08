@@ -15,7 +15,9 @@ import 'purchase_order_page.dart';
 import 'platform_settings_page.dart';
 import 'outlet_management_page.dart';
 import 'printer_settings_page.dart';
+import 'modifier_management_page.dart';
 import '../ai/pages/ai_settings_page.dart';
+import 'backup_page.dart';
 
 class SettingsHubPage extends StatelessWidget {
   const SettingsHubPage({super.key});
@@ -38,6 +40,12 @@ class SettingsHubPage extends StatelessWidget {
       title: 'Resep',
       subtitle: 'Kelola resep produk dan bahan baku',
       color: Color(0xFFD97706),
+    ),
+    _SettingsItem(
+      icon: Icons.tune_rounded,
+      title: 'Modifier',
+      subtitle: 'Kelola variasi produk: ukuran, topping, dll',
+      color: Color(0xFFEA580C),
     ),
     _SettingsItem(
       icon: Icons.discount_rounded,
@@ -99,6 +107,12 @@ class SettingsHubPage extends StatelessWidget {
       subtitle: 'Pengaturan trust level dan fitur AI',
       color: Color(0xFF8B5CF6),
     ),
+    _SettingsItem(
+      icon: Icons.backup_rounded,
+      title: 'Backup & Recovery',
+      subtitle: 'Ekspor dan impor data outlet',
+      color: Color(0xFF0284C7),
+    ),
   ];
 
   void _navigateTo(BuildContext context, int index) {
@@ -111,25 +125,29 @@ class SettingsHubPage extends StatelessWidget {
       case 2:
         page = const RecipeManagementPage();
       case 3:
-        page = const DiscountManagementPage();
+        page = const ModifierManagementPage();
       case 4:
-        page = const TableManagementPage();
+        page = const DiscountManagementPage();
       case 5:
-        page = const CustomerManagementPage();
+        page = const TableManagementPage();
       case 6:
-        page = const LoyaltyManagementPage();
+        page = const CustomerManagementPage();
       case 7:
-        page = const SupplierManagementPage();
+        page = const LoyaltyManagementPage();
       case 8:
-        page = const PurchaseOrderPage();
+        page = const SupplierManagementPage();
       case 9:
-        page = const PlatformSettingsPage();
+        page = const PurchaseOrderPage();
       case 10:
-        page = const OutletManagementPage();
+        page = const PlatformSettingsPage();
       case 11:
-        page = const PrinterSettingsPage();
+        page = const OutletManagementPage();
       case 12:
+        page = const PrinterSettingsPage();
+      case 13:
         page = const AiSettingsPage();
+      case 14:
+        page = const BackupPage();
       default:
         return;
     }

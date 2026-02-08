@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../shared/widgets/offline_indicator.dart';
+import '../../core/services/sync_service.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../widgets/pos_header.dart';
 import '../widgets/product_search_bar.dart';
 import '../widgets/category_tab_bar.dart';
@@ -16,6 +19,9 @@ class PosMainPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final shiftAsync = ref.watch(posShiftNotifierProvider);
+
+    // Ensure the SyncService is alive so it auto-syncs when back online
+    ref.watch(syncServiceProvider);
 
     return Scaffold(
       body: shiftAsync.when(
@@ -39,25 +45,36 @@ class PosMainPage extends ConsumerWidget {
           if (shift == null) {
             return const _ShiftGatePage();
           }
-          return Row(
+          return Stack(
             children: [
-              Expanded(
-                flex: 6,
-                child: Column(
-                  children: const [
-                    PosHeader(),
-                    SizedBox(height: 8),
-                    ProductSearchBar(),
-                    SizedBox(height: 8),
-                    CategoryTabBar(),
-                    Expanded(child: ProductGrid()),
-                  ],
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      children: const [
+                        PosHeader(),
+                        SizedBox(height: 8),
+                        ProductSearchBar(),
+                        SizedBox(height: 8),
+                        CategoryTabBar(),
+                        Expanded(child: ProductGrid()),
+                      ],
+                    ),
+                  ),
+                  const VerticalDivider(width: 1, thickness: 1),
+                  const Expanded(
+                    flex: 4,
+                    child: CartPanel(),
+                  ),
+                ],
               ),
-              const VerticalDivider(width: 1, thickness: 1),
-              const Expanded(
-                flex: 4,
-                child: CartPanel(),
+              // Offline indicator banner at the top
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: OfflineIndicator(),
               ),
             ],
           );
@@ -103,7 +120,7 @@ class _ShiftGatePageState extends ConsumerState<_ShiftGatePage> {
   Future<void> _loadCashiers() async {
     setState(() { _loadingCashiers = true; _error = null; });
     try {
-      _cashiers = await _repo.getCashiers('a0000000-0000-0000-0000-000000000001');
+      _cashiers = await _repo.getCashiers(ref.read(currentOutletIdProvider));
       if (_cashiers.isEmpty) _error = 'Tidak ada kasir aktif. Tambahkan kasir di Back Office.';
     } catch (e) {
       _error = 'Gagal memuat kasir: $e';

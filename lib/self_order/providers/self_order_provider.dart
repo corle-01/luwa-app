@@ -1,11 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/self_order_repository.dart';
-
-// ---------------------------------------------------------------------------
-// Outlet ID (hardcoded, same as POS providers)
-// ---------------------------------------------------------------------------
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 // ---------------------------------------------------------------------------
 // Repository provider
@@ -20,7 +16,8 @@ final selfOrderRepositoryProvider = Provider<SelfOrderRepository>((ref) {
 final selfOrderCategoriesProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final repo = ref.watch(selfOrderRepositoryProvider);
-  return repo.getCategories(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getCategories(outletId);
 });
 
 // ---------------------------------------------------------------------------
@@ -30,7 +27,8 @@ final selfOrderCategoriesProvider =
 final selfOrderMenuProvider =
     FutureProvider<Map<String, List<Map<String, dynamic>>>>((ref) async {
   final repo = ref.watch(selfOrderRepositoryProvider);
-  final products = await repo.getMenuProducts(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  final products = await repo.getMenuProducts(outletId);
 
   final grouped = <String, List<Map<String, dynamic>>>{};
   for (final product in products) {

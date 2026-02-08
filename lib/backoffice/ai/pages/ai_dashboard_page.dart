@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-
 import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
 import 'package:utter_app/core/providers/ai/ai_action_log_provider.dart';
 import 'package:utter_app/core/providers/ai/ai_trust_provider.dart';
+import 'package:utter_app/core/providers/ai/ai_persona_provider.dart';
+import 'package:utter_app/core/services/ai/ai_memory_service.dart';
+import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
 import 'package:utter_app/shared/themes/app_theme.dart';
 import 'package:utter_app/shared/utils/format_utils.dart';
 import 'package:utter_app/backoffice/ai/providers/bo_ai_provider.dart';
@@ -18,8 +20,10 @@ import 'package:utter_app/backoffice/ai/pages/ai_settings_page.dart';
 
 /// The main AI Dashboard page for the Back Office.
 ///
-/// Two-column desktop layout (Insights + Approvals | Chat + Actions).
-/// On mobile, uses a tabbed single-column layout.
+/// Two-column desktop layout with three AI personas:
+/// - OTAK (Memory): Stored insights from conversations
+/// - BADAN (Action): Chat + function calling
+/// - PERASAAN (Prediction): Business mood, forecasts, warnings
 class AiDashboardPage extends ConsumerStatefulWidget {
   const AiDashboardPage({super.key});
 
@@ -43,6 +47,11 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
         ref.read(boAiProvider.notifier).switchTab(_tabController.index);
       }
     });
+
+    // Load persona data on init
+    Future.microtask(() {
+      ref.read(aiPersonaProvider.notifier).loadAll();
+    });
   }
 
   @override
@@ -59,7 +68,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
       backgroundColor: AppTheme.backgroundColor,
       body: Column(
         children: [
-          // Top bar
+          // Top bar with mood indicator
           _buildTopBar(context),
 
           // Undo banners
@@ -93,6 +102,8 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
   }
 
   Widget _buildTopBar(BuildContext context) {
+    final mood = ref.watch(aiBusinessMoodProvider);
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.spacingM,
@@ -152,7 +163,20 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
               ),
             ],
           ),
+          const SizedBox(width: AppTheme.spacingM),
+          // Business Mood Indicator
+          if (mood != null) _buildMoodBadge(mood),
           const Spacer(),
+          // Refresh button
+          IconButton(
+            onPressed: () {
+              ref.read(aiPersonaProvider.notifier).refreshMood();
+            },
+            icon: const Icon(Icons.refresh_outlined),
+            color: AppTheme.textSecondary,
+            tooltip: 'Refresh mood & prediksi',
+            iconSize: 20,
+          ),
           // Settings button
           IconButton(
             onPressed: () {
@@ -171,13 +195,44 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
     );
   }
 
+  /// Business mood badge shown in the top bar.
+  Widget _buildMoodBadge(BusinessMoodData mood) {
+    final moodConfig = _getMoodConfig(mood.mood);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: moodConfig.color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        border: Border.all(
+          color: moodConfig.color.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(moodConfig.icon, size: 14, color: moodConfig.color),
+          const SizedBox(width: 4),
+          Text(
+            moodConfig.label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: moodConfig.color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ======== DESKTOP LAYOUT ========
 
   Widget _buildDesktopLayout() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // LEFT COLUMN: Insights + Pending Approvals
+        // LEFT COLUMN: Mood + Predictions + Memory + Insights
         Expanded(
           flex: 1,
           child: _buildLeftColumn(),
@@ -201,6 +256,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
     final pendingApprovals = ref.watch(aiPendingApprovalsProvider);
     final insightFilter = ref.watch(boAiInsightFilterProvider);
     final isLoading = ref.watch(aiInsightProvider).isLoading;
+    final personaState = ref.watch(aiPersonaProvider);
 
     // Apply filter
     final filteredInsights = insightFilter == null
@@ -211,9 +267,20 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
       onRefresh: () async {
         await ref.read(aiInsightProvider.notifier).refresh();
         await ref.read(aiActionLogProvider.notifier).refresh();
+        await ref.read(aiPersonaProvider.notifier).refreshMood();
       },
       child: CustomScrollView(
         slivers: [
+          // === PERASAAN: Business Mood + Predictions Card ===
+          SliverToBoxAdapter(
+            child: _buildPredictionCard(personaState),
+          ),
+
+          // === OTAK: AI Memory Section ===
+          SliverToBoxAdapter(
+            child: _buildMemorySection(personaState),
+          ),
+
           // Insights section header + filter chips
           SliverToBoxAdapter(
             child: Padding(
@@ -356,6 +423,402 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
 
           const SliverPadding(
             padding: EdgeInsets.only(bottom: AppTheme.spacingXL),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// PERASAAN: Business Mood + Predictions card at the top of the left column.
+  Widget _buildPredictionCard(AiPersonaState personaState) {
+    final mood = personaState.mood;
+    final prediction = personaState.prediction;
+
+    if (mood == null && prediction == null) {
+      if (personaState.isLoading) {
+        return Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingM),
+          child: Container(
+            padding: const EdgeInsets.all(AppTheme.spacingM),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
+              borderRadius: BorderRadius.circular(AppTheme.radiusL),
+              border: Border.all(color: AppTheme.dividerColor),
+            ),
+            child: const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    final moodConfig = mood != null
+        ? _getMoodConfig(mood.mood)
+        : _getMoodConfig(BusinessMood.steady);
+
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spacingM),
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spacingM),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              moodConfig.color.withValues(alpha: 0.05),
+              moodConfig.color.withValues(alpha: 0.02),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          border: Border.all(
+            color: moodConfig.color.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: PERASAAN
+            Row(
+              children: [
+                Icon(
+                  Icons.favorite_rounded,
+                  size: 18,
+                  color: moodConfig.color,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Perasaan Bisnis',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                // Mood indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: moodConfig.color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(moodConfig.icon, size: 12, color: moodConfig.color),
+                      const SizedBox(width: 3),
+                      Text(
+                        moodConfig.label,
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: moodConfig.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spacingS),
+
+            // Mood description
+            if (mood != null)
+              Text(
+                mood.moodText,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+
+            const SizedBox(height: AppTheme.spacingS),
+
+            // Stats row
+            if (mood != null)
+              Row(
+                children: [
+                  _buildMiniStat(
+                    'Hari ini',
+                    'Rp ${_formatCurrency(mood.todayRevenue)}',
+                    Icons.payments_outlined,
+                  ),
+                  const SizedBox(width: AppTheme.spacingM),
+                  _buildMiniStat(
+                    'Order',
+                    '${mood.todayOrders}',
+                    Icons.receipt_long_outlined,
+                  ),
+                  const SizedBox(width: AppTheme.spacingM),
+                  _buildMiniStat(
+                    'Rata-rata',
+                    'Rp ${_formatCurrency(mood.avgDailyRevenue)}',
+                    Icons.trending_flat_outlined,
+                  ),
+                ],
+              ),
+
+            // Prediction section
+            if (prediction != null &&
+                prediction.predictedBusyHours.isNotEmpty) ...[
+              const SizedBox(height: AppTheme.spacingS),
+              Divider(color: moodConfig.color.withValues(alpha: 0.15)),
+              const SizedBox(height: AppTheme.spacingXS),
+              Row(
+                children: [
+                  Icon(
+                    Icons.schedule_outlined,
+                    size: 14,
+                    color: AppTheme.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Prediksi jam sibuk: ',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      prediction.predictedBusyHours
+                          .map((h) =>
+                              '${h.toString().padLeft(2, '0')}:00')
+                          .join(', '),
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            // Warnings
+            if (mood != null && mood.warnings.isNotEmpty) ...[
+              const SizedBox(height: AppTheme.spacingS),
+              ...mood.warnings.map((warning) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 14,
+                          color: AppTheme.warningColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            warning,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: AppTheme.warningColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// OTAK: AI Memory section showing stored insights.
+  Widget _buildMemorySection(AiPersonaState personaState) {
+    final memories = personaState.memories;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingM,
+        0,
+        AppTheme.spacingM,
+        AppTheme.spacingS,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spacingM),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          border: Border.all(color: AppTheme.dividerColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Icon(
+                  Icons.psychology_outlined,
+                  size: 18,
+                  color: AppTheme.aiPrimary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Memori AI',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                if (memories.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.aiBackground,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                    ),
+                    child: Text(
+                      '${memories.length}',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.aiPrimary,
+                      ),
+                    ),
+                  ),
+                if (memories.isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: () {
+                      _showClearMemoriesDialog(context);
+                    },
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 16,
+                      color: AppTheme.textTertiary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+
+            if (memories.isEmpty) ...[
+              const SizedBox(height: AppTheme.spacingS),
+              Text(
+                'Belum ada memori. AI akan mulai menyimpan pola dan insight penting dari percakapan kamu.',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppTheme.textTertiary,
+                  height: 1.4,
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: AppTheme.spacingS),
+              // Show top 5 memories
+              ...memories.take(5).map((memory) => _buildMemoryItem(memory)),
+              if (memories.length > 5)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    '+${memories.length - 5} memori lainnya',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppTheme.textTertiary,
+                    ),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMemoryItem(AiMemory memory) {
+    final categoryConfig = _getMemoryCategoryConfig(memory.category);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            categoryConfig.icon,
+            size: 13,
+            color: categoryConfig.color,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              memory.insight,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (memory.reinforceCount > 1)
+            Container(
+              margin: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: AppTheme.successColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+              ),
+              child: Text(
+                '${memory.reinforceCount}x',
+                style: GoogleFonts.inter(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.successColor,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(String label, String value, IconData icon) {
+    return Expanded(
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppTheme.textTertiary),
+          const SizedBox(width: 4),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 9,
+                  color: AppTheme.textTertiary,
+                ),
+              ),
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -640,6 +1103,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
   Widget _buildStatusBar() {
     final trustState = ref.watch(aiTrustProvider);
     final settings = trustState.settings;
+    final personaState = ref.watch(aiPersonaProvider);
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -654,6 +1118,28 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
       ),
       child: Row(
         children: [
+          // Persona indicators
+          _buildPersonaDot(
+            'OTAK',
+            Icons.psychology_outlined,
+            AppTheme.aiPrimary,
+            personaState.memories.isNotEmpty,
+          ),
+          const SizedBox(width: AppTheme.spacingS),
+          _buildPersonaDot(
+            'BADAN',
+            Icons.flash_on_outlined,
+            AppTheme.successColor,
+            true, // Always active (function calling)
+          ),
+          const SizedBox(width: AppTheme.spacingS),
+          _buildPersonaDot(
+            'PERASAAN',
+            Icons.favorite_outlined,
+            const Color(0xFFEC4899), // Pink
+            personaState.mood != null,
+          ),
+          const SizedBox(width: AppTheme.spacingM),
           Icon(
             Icons.shield_outlined,
             size: 14,
@@ -661,7 +1147,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
           ),
           const SizedBox(width: 6),
           Text(
-            'Trust Levels:',
+            'Trust:',
             style: GoogleFonts.inter(
               fontSize: 11,
               color: AppTheme.textTertiary,
@@ -671,7 +1157,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
           // Show colored dots for active trust levels
           if (settings.isEmpty)
             Text(
-              'Belum dikonfigurasi',
+              'N/A',
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: AppTheme.textTertiary,
@@ -717,6 +1203,77 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
     );
   }
 
+  Widget _buildPersonaDot(
+    String label,
+    IconData icon,
+    Color color,
+    bool isActive,
+  ) {
+    return Tooltip(
+      message: '$label ${isActive ? "aktif" : "belum aktif"}',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: isActive
+              ? color.withValues(alpha: 0.1)
+              : AppTheme.dividerColor.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 10,
+              color: isActive ? color : AppTheme.textTertiary,
+            ),
+            const SizedBox(width: 2),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: isActive ? color : AppTheme.textTertiary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showClearMemoriesDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          'Hapus Semua Memori?',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'AI akan melupakan semua pola dan insight yang sudah dipelajari. Tindakan ini tidak bisa dibatalkan.',
+          style: GoogleFonts.inter(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(aiPersonaProvider.notifier).clearMemories();
+              Navigator.pop(ctx);
+            },
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ======== HELPER METHODS ========
+
   Color _trustDotColor(int level) {
     switch (level) {
       case 0:
@@ -758,6 +1315,85 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
         return FormatUtils.titleCase(featureKey.replaceAll('_', ' '));
     }
   }
+
+  _MoodConfig _getMoodConfig(BusinessMood mood) {
+    switch (mood) {
+      case BusinessMood.thriving:
+        return _MoodConfig(
+          icon: Icons.rocket_launch_rounded,
+          label: 'Luar Biasa',
+          color: const Color(0xFF10B981), // Emerald
+        );
+      case BusinessMood.good:
+        return _MoodConfig(
+          icon: Icons.thumb_up_rounded,
+          label: 'Bagus',
+          color: const Color(0xFF3B82F6), // Blue
+        );
+      case BusinessMood.steady:
+        return _MoodConfig(
+          icon: Icons.trending_flat_rounded,
+          label: 'Stabil',
+          color: const Color(0xFF6B7280), // Gray
+        );
+      case BusinessMood.slow:
+        return _MoodConfig(
+          icon: Icons.trending_down_rounded,
+          label: 'Lambat',
+          color: const Color(0xFFF59E0B), // Amber
+        );
+      case BusinessMood.concerned:
+        return _MoodConfig(
+          icon: Icons.sentiment_dissatisfied_rounded,
+          label: 'Perlu Perhatian',
+          color: const Color(0xFFEF4444), // Red
+        );
+    }
+  }
+
+  _MemoryCategoryConfig _getMemoryCategoryConfig(String category) {
+    switch (category) {
+      case 'sales':
+        return _MemoryCategoryConfig(
+          icon: Icons.trending_up,
+          color: AppTheme.successColor,
+        );
+      case 'product':
+        return _MemoryCategoryConfig(
+          icon: Icons.restaurant_menu,
+          color: AppTheme.aiPrimary,
+        );
+      case 'stock':
+        return _MemoryCategoryConfig(
+          icon: Icons.inventory_2_outlined,
+          color: AppTheme.warningColor,
+        );
+      case 'customer':
+        return _MemoryCategoryConfig(
+          icon: Icons.people_outline,
+          color: AppTheme.infoColor,
+        );
+      case 'operational':
+        return _MemoryCategoryConfig(
+          icon: Icons.settings_outlined,
+          color: AppTheme.textSecondary,
+        );
+      default:
+        return _MemoryCategoryConfig(
+          icon: Icons.lightbulb_outline,
+          color: AppTheme.textSecondary,
+        );
+    }
+  }
+
+  String _formatCurrency(double amount) {
+    if (amount >= 1000000) {
+      return '${(amount / 1000000).toStringAsFixed(1)}jt';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(0)}rb';
+    }
+    return amount.toStringAsFixed(0);
+  }
 }
 
 class _FilterChipData {
@@ -765,4 +1401,26 @@ class _FilterChipData {
   final String? value;
 
   const _FilterChipData({required this.label, required this.value});
+}
+
+class _MoodConfig {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _MoodConfig({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+}
+
+class _MemoryCategoryConfig {
+  final IconData icon;
+  final Color color;
+
+  const _MemoryCategoryConfig({
+    required this.icon,
+    required this.color,
+  });
 }

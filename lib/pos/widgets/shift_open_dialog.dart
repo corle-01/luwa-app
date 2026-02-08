@@ -7,7 +7,8 @@ import '../repositories/pos_cashier_repository.dart';
 
 class ShiftOpenDialog extends StatefulWidget {
   final Future<void> Function(String cashierId, double openingCash) onOpen;
-  const ShiftOpenDialog({super.key, required this.onOpen});
+  final String outletId;
+  const ShiftOpenDialog({super.key, required this.onOpen, required this.outletId});
 
   @override
   State<ShiftOpenDialog> createState() => _ShiftOpenDialogState();
@@ -69,8 +70,7 @@ class _ShiftOpenDialogState extends State<ShiftOpenDialog>
     });
 
     try {
-      const outletId = 'a0000000-0000-0000-0000-000000000001';
-      final cashiers = await _repository.getCashiers(outletId);
+      final cashiers = await _repository.getCashiers(widget.outletId);
       setState(() {
         _cashiers = cashiers;
         _loadingCashiers = false;

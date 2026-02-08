@@ -4,10 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/discount_provider.dart';
 import '../repositories/discount_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class DiscountManagementPage extends ConsumerWidget {
   const DiscountManagementPage({super.key});
@@ -97,6 +96,7 @@ class DiscountManagementPage extends ConsumerWidget {
       context: context,
       builder: (context) => _DiscountFormDialog(
         discount: discount,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(discountListProvider),
       ),
     );
@@ -325,9 +325,10 @@ class _DiscountCard extends StatelessWidget {
 
 class _DiscountFormDialog extends StatefulWidget {
   final DiscountModel? discount;
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _DiscountFormDialog({this.discount, required this.onSaved});
+  const _DiscountFormDialog({this.discount, required this.outletId, required this.onSaved});
 
   @override
   State<_DiscountFormDialog> createState() => _DiscountFormDialogState();
@@ -544,7 +545,7 @@ class _DiscountFormDialogState extends State<_DiscountFormDialog> {
         );
       } else {
         await repo.createDiscount(
-          outletId: _outletId,
+          outletId: widget.outletId,
           name: name,
           type: _selectedType,
           value: value,

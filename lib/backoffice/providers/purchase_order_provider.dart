@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/purchase_order_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 final purchaseOrderRepositoryProvider =
     Provider((ref) => PurchaseOrderRepository());
@@ -9,7 +8,8 @@ final purchaseOrderRepositoryProvider =
 final purchaseOrderListProvider =
     FutureProvider<List<PurchaseOrderModel>>((ref) async {
   final repo = ref.watch(purchaseOrderRepositoryProvider);
-  return repo.getPurchaseOrders(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getPurchaseOrders(outletId);
 });
 
 final purchaseOrderDetailProvider =

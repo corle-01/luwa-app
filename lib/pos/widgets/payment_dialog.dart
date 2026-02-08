@@ -637,6 +637,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         builder: (_) => OrderSuccessDialog(
           order: result.order!,
           items: result.items ?? [],
+          isOffline: result.isOffline,
         ),
       );
     } else if (result.success) {

@@ -4,19 +4,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../shared/themes/app_theme.dart';
+import '../../core/providers/outlet_provider.dart';
 import 'self_order_menu_page.dart';
 
 // ---------------------------------------------------------------------------
 // Provider to fetch available tables for manual selection
 // ---------------------------------------------------------------------------
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
-
 final _availableTablesProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final outletId = ref.watch(currentOutletIdProvider);
   final response = await Supabase.instance.client
       .from('tables')
       .select('id, table_number, section, capacity, status')
-      .eq('outlet_id', _outletId)
+      .eq('outlet_id', outletId)
       .eq('is_active', true)
       .order('table_number', ascending: true);
 

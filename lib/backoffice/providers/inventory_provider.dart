@@ -1,17 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../repositories/inventory_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 final inventoryRepositoryProvider = Provider((ref) => InventoryRepository());
 
 final ingredientsProvider = FutureProvider<List<IngredientModel>>((ref) async {
   final repo = ref.watch(inventoryRepositoryProvider);
-  return repo.getIngredients(_outletId);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getIngredients(outletId);
 });
 
 final stockMovementsProvider =
     FutureProvider<List<StockMovement>>((ref) async {
   final repo = ref.watch(inventoryRepositoryProvider);
-  return repo.getRecentMovements(_outletId, limit: 50);
+  final outletId = ref.watch(currentOutletIdProvider);
+  return repo.getRecentMovements(outletId, limit: 50);
 });

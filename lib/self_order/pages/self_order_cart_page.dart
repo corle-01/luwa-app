@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../shared/themes/app_theme.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/self_order_provider.dart';
 import '../repositories/self_order_repository.dart';
 import 'self_order_confirmation_page.dart';
@@ -17,8 +18,6 @@ final _currencyFormat = NumberFormat.currency(
   symbol: 'Rp ',
   decimalDigits: 0,
 );
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 /// Cart page for customer self-order flow.
 ///
@@ -70,7 +69,7 @@ class _SelfOrderCartPageState extends ConsumerState<SelfOrderCartPage>
     try {
       final repo = ref.read(selfOrderRepositoryProvider);
       final orderId = await repo.submitOrder(
-        outletId: _outletId,
+        outletId: ref.read(currentOutletIdProvider),
         tableId: widget.tableId,
         orderType: 'dine_in',
         items: cartItems,

@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/recipe_provider.dart';
 import '../repositories/recipe_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
 
 class RecipeManagementPage extends ConsumerStatefulWidget {
   const RecipeManagementPage({super.key});
@@ -203,6 +202,7 @@ class _RecipeManagementPageState extends ConsumerState<RecipeManagementPage> {
       builder: (context) => _RecipeItemFormDialog(
         productId: product.productId,
         productName: product.productName,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(productsWithRecipesProvider),
       ),
     );
@@ -219,6 +219,7 @@ class _RecipeManagementPageState extends ConsumerState<RecipeManagementPage> {
         productId: item.productId,
         productName: item.productName,
         existingItem: item,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () => ref.invalidate(productsWithRecipesProvider),
       ),
     );
@@ -788,12 +789,14 @@ class _RecipeItemFormDialog extends StatefulWidget {
   final String productId;
   final String productName;
   final RecipeItem? existingItem;
+  final String outletId;
   final VoidCallback onSaved;
 
   const _RecipeItemFormDialog({
     required this.productId,
     required this.productName,
     this.existingItem,
+    required this.outletId,
     required this.onSaved,
   });
 
@@ -843,7 +846,7 @@ class _RecipeItemFormDialogState extends State<_RecipeItemFormDialog> {
   Future<void> _loadIngredients() async {
     try {
       final repo = RecipeRepository();
-      final ingredients = await repo.getIngredients(_outletId);
+      final ingredients = await repo.getIngredients(widget.outletId);
       if (mounted) {
         setState(() {
           _ingredients = ingredients;

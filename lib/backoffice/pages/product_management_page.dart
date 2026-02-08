@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/models/product_image.dart';
+import '../../core/services/image_upload_service.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../core/providers/outlet_provider.dart';
 import '../providers/product_provider.dart';
+import '../providers/modifier_provider.dart';
 import '../repositories/product_repository.dart';
-
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
+import '../repositories/modifier_repository.dart';
 
 class ProductManagementPage extends ConsumerStatefulWidget {
   const ProductManagementPage({super.key});
@@ -272,6 +275,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
       context: context,
       builder: (context) => _ProductFormDialog(
         product: product,
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () {
           ref.invalidate(boProductsProvider);
           ref.invalidate(boCategoriesProvider);
@@ -284,6 +288,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
     showDialog(
       context: context,
       builder: (context) => _CategoryFormDialog(
+        outletId: ref.read(currentOutletIdProvider),
         onSaved: () {
           ref.invalidate(boCategoriesProvider);
           ref.invalidate(boProductsProvider);
@@ -296,6 +301,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
     showDialog(
       context: context,
       builder: (context) => _ManageCategoriesDialog(
+        outletId: ref.read(currentOutletIdProvider),
         onChanged: () {
           ref.invalidate(boCategoriesProvider);
           ref.invalidate(boProductsProvider);
@@ -493,7 +499,7 @@ class _ProductCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            // Product icon / image placeholder
+            // Product image / placeholder
             Container(
               width: 48,
               height: 48,
@@ -503,11 +509,29 @@ class _ProductCard extends StatelessWidget {
                     : AppTheme.textTertiary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                Icons.coffee,
-                color: isActive ? AppTheme.primaryColor : AppTheme.textTertiary,
-                size: 24,
-              ),
+              clipBehavior: Clip.antiAlias,
+              child: product.primaryImageUrl != null &&
+                      product.primaryImageUrl!.isNotEmpty
+                  ? Image.network(
+                      product.primaryImageUrl!,
+                      fit: BoxFit.cover,
+                      width: 48,
+                      height: 48,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.coffee,
+                        color: isActive
+                            ? AppTheme.primaryColor
+                            : AppTheme.textTertiary,
+                        size: 24,
+                      ),
+                    )
+                  : Icon(
+                      Icons.coffee,
+                      color: isActive
+                          ? AppTheme.primaryColor
+                          : AppTheme.textTertiary,
+                      size: 24,
+                    ),
             ),
             const SizedBox(width: 16),
 
@@ -676,9 +700,10 @@ class _ProductCard extends StatelessWidget {
 
 class _ProductFormDialog extends StatefulWidget {
   final ProductModel? product;
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _ProductFormDialog({this.product, required this.onSaved});
+  const _ProductFormDialog({this.product, required this.outletId, required this.onSaved});
 
   @override
   State<_ProductFormDialog> createState() => _ProductFormDialogState();
@@ -696,6 +721,16 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
   // Categories loaded from Supabase
   List<CategoryModel> _categories = [];
   bool _loadingCategories = true;
+
+  // Product images
+  List<ProductImage> _images = [];
+  bool _loadingImages = false;
+  bool _uploadingImage = false;
+
+  // Modifier assignments
+  List<BOModifierGroup> _allModifierGroups = [];
+  Set<String> _assignedGroupIds = {};
+  bool _loadingModifiers = false;
 
   bool get _isEditing => widget.product != null;
 
@@ -718,12 +753,167 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
         TextEditingController(text: widget.product?.description ?? '');
     _selectedCategoryId = widget.product?.categoryId;
     _loadCategories();
+    _loadModifierGroups();
+
+    // Load existing images if editing
+    if (_isEditing) {
+      _images = List.from(widget.product!.images);
+      if (_images.isEmpty) {
+        _loadProductImages();
+      }
+    }
+  }
+
+  Future<void> _loadProductImages() async {
+    if (!_isEditing) return;
+    setState(() => _loadingImages = true);
+    try {
+      final repo = ProductRepository();
+      final imgs = await repo.getProductImages(widget.product!.id);
+      if (mounted) {
+        setState(() {
+          _images = imgs;
+          _loadingImages = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingImages = false);
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    if (!_isEditing) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Simpan produk terlebih dahulu sebelum menambah gambar'),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _uploadingImage = true);
+    try {
+      final picked = await ImageUploadService.pickImage();
+      if (picked == null) {
+        if (mounted) setState(() => _uploadingImage = false);
+        return;
+      }
+
+      // Upload to Supabase Storage
+      final publicUrl = await ImageUploadService.uploadImage(
+        productId: widget.product!.id,
+        bytes: picked.bytes,
+        fileName: picked.name,
+        mimeType: picked.mimeType,
+      );
+
+      // Save to product_images table
+      final repo = ProductRepository();
+      final isPrimary = _images.isEmpty; // First image is automatically primary
+      final newImage = await repo.addProductImage(
+        productId: widget.product!.id,
+        imageUrl: publicUrl,
+        sortOrder: _images.length,
+        isPrimary: isPrimary,
+      );
+
+      if (mounted) {
+        setState(() {
+          _images.add(newImage);
+          _uploadingImage = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal upload gambar: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteImage(ProductImage image) async {
+    try {
+      // Delete from storage
+      await ImageUploadService.deleteImage(image.imageUrl);
+      // Delete from DB
+      final repo = ProductRepository();
+      await repo.deleteProductImage(image.id);
+
+      if (mounted) {
+        setState(() {
+          _images.removeWhere((i) => i.id == image.id);
+          // If we deleted the primary, set the first remaining as primary
+          if (image.isPrimary && _images.isNotEmpty) {
+            _images[0] = _images[0].copyWith(isPrimary: true);
+            repo.setPrimaryImage(
+              productId: widget.product!.id,
+              imageId: _images[0].id,
+            );
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal hapus gambar: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _setPrimary(ProductImage image) async {
+    try {
+      final repo = ProductRepository();
+      await repo.setPrimaryImage(
+        productId: widget.product!.id,
+        imageId: image.id,
+      );
+      if (mounted) {
+        setState(() {
+          _images = _images.map((i) {
+            return i.copyWith(isPrimary: i.id == image.id);
+          }).toList();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal set gambar utama: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _moveImage(int oldIndex, int newIndex) async {
+    if (newIndex < 0 || newIndex >= _images.length) return;
+    setState(() {
+      final image = _images.removeAt(oldIndex);
+      _images.insert(newIndex, image);
+    });
+    // Persist new sort order
+    try {
+      final repo = ProductRepository();
+      await repo.reorderImages(_images.map((i) => i.id).toList());
+    } catch (_) {}
   }
 
   Future<void> _loadCategories() async {
     try {
       final repo = ProductRepository();
-      final cats = await repo.getCategories(_outletId);
+      final cats = await repo.getCategories(widget.outletId);
       if (mounted) {
         setState(() {
           _categories = cats;
@@ -734,6 +924,29 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
       if (mounted) {
         setState(() => _loadingCategories = false);
       }
+    }
+  }
+
+  Future<void> _loadModifierGroups() async {
+    setState(() => _loadingModifiers = true);
+    try {
+      final modRepo = BOModifierRepository();
+      final groups = await modRepo.getModifierGroups(widget.outletId);
+      Set<String> assigned = {};
+      if (_isEditing) {
+        final assignments =
+            await modRepo.getProductModifiers(widget.product!.id);
+        assigned = assignments.map((a) => a.modifierGroupId).toSet();
+      }
+      if (mounted) {
+        setState(() {
+          _allModifierGroups = groups;
+          _assignedGroupIds = assigned;
+          _loadingModifiers = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingModifiers = false);
     }
   }
 
@@ -751,11 +964,12 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     return AlertDialog(
       title: Text(_isEditing ? 'Edit Produk' : 'Tambah Produk Baru'),
       content: SizedBox(
-        width: 450,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        width: 500,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
             children: [
               // Name
               TextFormField(
@@ -847,8 +1061,202 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                 ),
                 maxLines: 2,
               ),
+
+              // ── Modifier section ─────────────────────────
+              if (_allModifierGroups.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.tune_rounded,
+                        size: 20, color: AppTheme.textSecondary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Modifier',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (!_isEditing)
+                      Text(
+                        'Simpan produk dulu',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_loadingModifiers)
+                  const LinearProgressIndicator()
+                else
+                  ..._allModifierGroups.map((group) {
+                    final isAssigned =
+                        _assignedGroupIds.contains(group.id);
+                    return CheckboxListTile(
+                      value: isAssigned,
+                      onChanged: _isEditing
+                          ? (v) async {
+                              final modRepo = BOModifierRepository();
+                              try {
+                                if (v == true) {
+                                  await modRepo.assignModifierToProduct(
+                                    productId: widget.product!.id,
+                                    groupId: group.id,
+                                  );
+                                } else {
+                                  await modRepo
+                                      .removeModifierFromProduct(
+                                    productId: widget.product!.id,
+                                    groupId: group.id,
+                                  );
+                                }
+                                setState(() {
+                                  if (v == true) {
+                                    _assignedGroupIds.add(group.id);
+                                  } else {
+                                    _assignedGroupIds
+                                        .remove(group.id);
+                                  }
+                                });
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text('Gagal: $e'),
+                                      backgroundColor:
+                                          AppTheme.errorColor,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          : null,
+                      title: Text(
+                        group.name,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${group.options.length} opsi${group.isRequired ? ' (wajib)' : ''}',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity:
+                          ListTileControlAffinity.leading,
+                    );
+                  }),
+              ],
+
+              // ── Product Images section ──────────────────────
+              if (_isEditing) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.photo_library_outlined,
+                        size: 20, color: AppTheme.textSecondary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Gambar Produk',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (_uploadingImage)
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      TextButton.icon(
+                        onPressed: _pickAndUploadImage,
+                        icon: const Icon(Icons.add_photo_alternate_outlined,
+                            size: 18),
+                        label: const Text('Tambah'),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_loadingImages)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else if (_images.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.backgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.borderColor,
+                        style: BorderStyle.solid,
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.image_outlined,
+                              size: 32, color: AppTheme.textTertiary),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Belum ada gambar',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppTheme.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 110,
+                    child: ReorderableListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _images.length,
+                      onReorder: (oldIndex, newIndex) {
+                        if (newIndex > oldIndex) newIndex--;
+                        _moveImage(oldIndex, newIndex);
+                      },
+                      buildDefaultDragHandles: true,
+                      itemBuilder: (context, index) {
+                        final img = _images[index];
+                        return _ImageThumbnail(
+                          key: ValueKey(img.id),
+                          image: img,
+                          onDelete: () => _deleteImage(img),
+                          onSetPrimary: () => _setPrimary(img),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ],
           ),
+        ),
         ),
       ),
       actions: [
@@ -901,7 +1309,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
         );
       } else {
         await repo.createProduct(
-          outletId: _outletId,
+          outletId: widget.outletId,
           name: name,
           categoryId: _selectedCategoryId,
           sellingPrice: sellingPrice,
@@ -938,13 +1346,133 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Image thumbnail widget (used in product form)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _ImageThumbnail extends StatelessWidget {
+  final ProductImage image;
+  final VoidCallback onDelete;
+  final VoidCallback onSetPrimary;
+
+  const _ImageThumbnail({
+    super.key,
+    required this.image,
+    required this.onDelete,
+    required this.onSetPrimary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 100,
+      margin: const EdgeInsets.only(right: 8),
+      child: Column(
+        children: [
+          // Image with overlay controls
+          Expanded(
+            child: Stack(
+              children: [
+                // Image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    image.imageUrl,
+                    fit: BoxFit.cover,
+                    width: 100,
+                    height: double.infinity,
+                    errorBuilder: (_, __, ___) => Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.broken_image_outlined,
+                            color: AppTheme.textTertiary, size: 24),
+                      ),
+                    ),
+                  ),
+                ),
+                // Primary badge
+                if (image.isPrimary)
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Utama',
+                        style: GoogleFonts.inter(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                // Delete button
+                Positioned(
+                  top: 2,
+                  right: 2,
+                  child: GestureDetector(
+                    onTap: onDelete,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: AppTheme.errorColor.withValues(alpha: 0.85),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close,
+                          color: Colors.white, size: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Set as primary button
+          if (!image.isPrimary)
+            GestureDetector(
+              onTap: onSetPrimary,
+              child: Text(
+                'Set Utama',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+            )
+          else
+            Text(
+              'Gambar Utama',
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.successColor,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Category form dialog
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _CategoryFormDialog extends StatefulWidget {
+  final String outletId;
   final VoidCallback onSaved;
 
-  const _CategoryFormDialog({required this.onSaved});
+  const _CategoryFormDialog({required this.outletId, required this.onSaved});
 
   @override
   State<_CategoryFormDialog> createState() => _CategoryFormDialogState();
@@ -1079,7 +1607,7 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
     try {
       final repo = ProductRepository();
       await repo.createCategory(
-        outletId: _outletId,
+        outletId: widget.outletId,
         name: _nameController.text.trim(),
         color: _selectedColor,
       );
@@ -1114,9 +1642,10 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _ManageCategoriesDialog extends StatefulWidget {
+  final String outletId;
   final VoidCallback onChanged;
 
-  const _ManageCategoriesDialog({required this.onChanged});
+  const _ManageCategoriesDialog({required this.outletId, required this.onChanged});
 
   @override
   State<_ManageCategoriesDialog> createState() =>
@@ -1136,7 +1665,7 @@ class _ManageCategoriesDialogState extends State<_ManageCategoriesDialog> {
 
   Future<void> _loadCategories() async {
     try {
-      final cats = await _repo.getCategories(_outletId);
+      final cats = await _repo.getCategories(widget.outletId);
       if (mounted) setState(() { _categories = cats; _loading = false; });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
@@ -1215,6 +1744,7 @@ class _ManageCategoriesDialogState extends State<_ManageCategoriesDialog> {
               showDialog(
                 context: context,
                 builder: (_) => _CategoryFormDialog(
+                  outletId: widget.outletId,
                   onSaved: () {
                     widget.onChanged();
                   },

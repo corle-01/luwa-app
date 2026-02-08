@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/models/product.dart';
+import '../../../core/providers/outlet_provider.dart';
 import '../providers/online_food_provider.dart';
 
 /// Dark-theme color constants for the Online Food feature.
@@ -15,17 +16,16 @@ class _C {
   static const textTertiary = Color(0xFF6B7280);
 }
 
-const _outletId = 'a0000000-0000-0000-0000-000000000001';
-
 // ---------------------------------------------------------------------------
 // Providers (local to this file – categories, products, filter state)
 // ---------------------------------------------------------------------------
 
 final _categoriesProvider = FutureProvider<List<ProductCategory>>((ref) async {
+  final outletId = ref.watch(currentOutletIdProvider);
   final response = await Supabase.instance.client
       .from('categories')
       .select()
-      .eq('outlet_id', _outletId)
+      .eq('outlet_id', outletId)
       .order('sort_order', ascending: true);
 
   return (response as List)
@@ -34,10 +34,11 @@ final _categoriesProvider = FutureProvider<List<ProductCategory>>((ref) async {
 });
 
 final _productsProvider = FutureProvider<List<Product>>((ref) async {
+  final outletId = ref.watch(currentOutletIdProvider);
   final response = await Supabase.instance.client
       .from('products')
       .select('*, categories(name)')
-      .eq('outlet_id', _outletId)
+      .eq('outlet_id', outletId)
       .eq('is_active', true)
       .order('sort_order', ascending: true);
 
