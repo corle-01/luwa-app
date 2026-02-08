@@ -346,10 +346,10 @@ class PredictionRepository {
 
       predictions.add(PredictionPoint(
         date: predDate,
-        value: predicted,
+        value: predicted.toDouble(),
         isPrediction: true,
-        confidenceLow: confidenceLow,
-        confidenceHigh: confidenceHigh,
+        confidenceLow: confidenceLow.toDouble(),
+        confidenceHigh: confidenceHigh.toDouble(),
       ));
     }
 
@@ -686,7 +686,7 @@ class PredictionRepository {
       productsNeedingRestock: restockCount,
       bestDayName: bestDay.dayName,
       worstDayName: worstDay.dayName,
-      avgDailyRevenue: avgDaily,
+      avgDailyRevenue: avgDaily.toDouble(),
       confidenceScore: confidence,
     );
   }

@@ -136,6 +136,7 @@ class _ProgramTab extends ConsumerWidget {
                   context: context,
                   builder: (context) => _ProgramFormDialog(
                     program: program,
+                    outletId: ref.read(currentOutletIdProvider),
                     onSaved: () => ref.invalidate(loyaltyProgramsProvider),
                   ),
                 );

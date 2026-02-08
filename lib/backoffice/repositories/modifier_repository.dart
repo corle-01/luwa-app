@@ -35,10 +35,10 @@ class BOModifierGroup {
       minSelections: json['min_selections'] as int?,
       maxSelections: json['max_selections'] as int?,
       sortOrder: json['sort_order'] as int? ?? 0,
-      options: (json['modifier_options'] as List?)
+      options: ((json['modifier_options'] as List?)
               ?.map((o) => BOModifierOption.fromJson(o as Map<String, dynamic>))
               .toList()
-            ?..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)) ??
+            ?..sort((a, b) => a.sortOrder.compareTo(b.sortOrder))) ??
           [],
     );
   }
