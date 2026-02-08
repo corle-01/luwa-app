@@ -23,15 +23,13 @@ class PosShiftRepository {
     required double openingCash,
   }) async {
     try {
-      final response = await _supabase.rpc('open_shift', params: {
+      await _supabase.rpc('open_shift', params: {
         'p_outlet_id': outletId,
         'p_cashier_id': cashierId,
         'p_opening_cash': openingCash,
       });
-      if (response is Map<String, dynamic>) return Shift.fromJson(response);
-      return await getActiveShift(outletId) ?? (throw Exception('Failed to open shift'));
     } catch (_) {
-      final response = await _supabase
+      await _supabase
           .from('shifts')
           .insert({
             'outlet_id': outletId,
@@ -42,8 +40,9 @@ class PosShiftRepository {
           })
           .select()
           .single();
-      return Shift.fromJson(response);
     }
+    // Always re-fetch with profiles join so cashierName is populated
+    return await getActiveShift(outletId) ?? (throw Exception('Failed to open shift'));
   }
 
   Future<void> closeShift({

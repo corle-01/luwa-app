@@ -4,6 +4,7 @@ class Order {
   final String? outletId;
   final String? shiftId;
   final String? cashierId;
+  final String? cashierName;
   final String? customerId;
   final String? customerName;
   final String orderType;
@@ -30,6 +31,7 @@ class Order {
     this.outletId,
     this.shiftId,
     this.cashierId,
+    this.cashierName,
     this.customerId,
     this.customerName,
     this.orderType = 'dine_in',
@@ -58,6 +60,7 @@ class Order {
       outletId: json['outlet_id'] as String?,
       shiftId: json['shift_id'] as String?,
       cashierId: json['cashier_id'] as String?,
+      cashierName: json['cashier_name'] as String? ?? json['profiles']?['full_name'] as String?,
       customerId: json['customer_id'] as String?,
       customerName: json['customer_name'] as String?,
       orderType: json['order_type'] as String? ?? 'dine_in',

@@ -32,7 +32,7 @@ class ReceiptPrinter {
     buf.writeln('<div class="info-section">');
     buf.writeln(_infoRow('No', _escapeHtml(order.orderNumber ?? '#${order.id.substring(0, 8)}')));
     buf.writeln(_infoRow('Tanggal', FormatUtils.dateTime(order.createdAt)));
-    buf.writeln(_infoRow('Kasir', order.cashierId != null ? order.cashierId!.substring(0, 8) : '-'));
+    buf.writeln(_infoRow('Kasir', order.cashierName ?? '-'));
     buf.writeln(_infoRow('Tipe', order.orderType == 'dine_in' ? 'Dine In' : 'Takeaway'));
     if (order.tableNumber != null) {
       buf.writeln(_infoRow('Meja', '${order.tableNumber}'));

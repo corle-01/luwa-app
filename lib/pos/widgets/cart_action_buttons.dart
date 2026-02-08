@@ -359,25 +359,25 @@ class _IconButtonWithBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: badgeCount > 0 ? AppTheme.accentColor : AppTheme.borderColor,
-              width: 1,
-            ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(8),
-            color: badgeCount > 0
-                ? AppTheme.accentColor.withValues(alpha: 0.05)
-                : AppTheme.surfaceColor,
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Column(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: badgeCount > 0 ? AppTheme.accentColor : AppTheme.borderColor,
+                  width: 1,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                color: badgeCount > 0
+                    ? AppTheme.accentColor.withValues(alpha: 0.05)
+                    : AppTheme.surfaceColor,
+              ),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
@@ -396,34 +396,34 @@ class _IconButtonWithBadge extends StatelessWidget {
                   ),
                 ],
               ),
-              if (badgeCount > 0)
-                Positioned(
-                  top: -6,
-                  right: -2,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentColor,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Text(
-                      '$badgeCount',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+            ),
+          ),
+          if (badgeCount > 0)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                constraints: const BoxConstraints(
+                  minWidth: 18,
+                  minHeight: 18,
+                ),
+                child: Text(
+                  '$badgeCount',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-            ],
-          ),
-        ),
+              ),
+            ),
+        ],
       ),
     );
   }

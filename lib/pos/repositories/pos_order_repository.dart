@@ -72,15 +72,20 @@ class PosOrderRepository {
     await _supabase.from('order_items').insert(orderItems);
 
     // Step 3: UPDATE to 'completed' — triggers fire on this transition
-    final completedResponse = await _supabase
+    await _supabase
         .from('orders')
         .update({
           'status': 'completed',
           'payment_status': 'paid',
           'updated_at': DateTime.now().toIso8601String(),
         })
+        .eq('id', orderId);
+
+    // Re-fetch with profiles join so cashierName is populated
+    final completedResponse = await _supabase
+        .from('orders')
+        .select('*, profiles(full_name)')
         .eq('id', orderId)
-        .select()
         .single();
 
     return Order.fromJson(completedResponse);
@@ -96,7 +101,7 @@ class PosOrderRepository {
   }) async {
     var query = _supabase
         .from('orders')
-        .select()
+        .select('*, profiles(full_name)')
         .eq('outlet_id', outletId);
 
     if (startDate != null) {
@@ -133,7 +138,7 @@ class PosOrderRepository {
 
     final response = await _supabase
         .from('orders')
-        .select()
+        .select('*, profiles(full_name)')
         .eq('outlet_id', outletId)
         .gte('created_at', startOfDay.toIso8601String())
         .order('created_at', ascending: false);
