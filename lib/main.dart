@@ -15,6 +15,7 @@ import 'backoffice/pages/product_management_page.dart';
 import 'backoffice/pages/inventory_page.dart';
 import 'backoffice/pages/report_page.dart';
 import 'backoffice/pages/report_hub_page.dart';
+import 'kds/pages/kds_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -183,9 +184,11 @@ class RoleSelectionPage extends StatelessWidget {
               Text('Pilih mode untuk masuk', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textSecondary)),
               const SizedBox(height: 40),
 
-              // Two cards
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              // Three entry cards
+              Wrap(
+                spacing: 20,
+                runSpacing: 20,
+                alignment: WrapAlignment.center,
                 children: [
                   _EntryCard(
                     icon: Icons.point_of_sale_rounded,
@@ -194,13 +197,19 @@ class RoleSelectionPage extends StatelessWidget {
                     gradient: const [Color(0xFF4F46E5), Color(0xFF6366F1)],
                     onTap: () => _goTo(context, const PosMainPage()),
                   ),
-                  const SizedBox(width: 20),
                   _EntryCard(
                     icon: Icons.dashboard_rounded,
                     title: 'Back Office',
                     subtitle: 'Dashboard, laporan,\ndan pengaturan bisnis',
                     gradient: const [Color(0xFF7C3AED), Color(0xFF8B5CF6)],
                     onTap: () => _goTo(context, const BackOfficeShell()),
+                  ),
+                  _EntryCard(
+                    icon: Icons.restaurant_rounded,
+                    title: 'Kitchen Display',
+                    subtitle: 'Layar dapur untuk\nkelola pesanan masak',
+                    gradient: const [Color(0xFFEA580C), Color(0xFFF97316)],
+                    onTap: () => _goTo(context, const KdsPage()),
                   ),
                 ],
               ),
