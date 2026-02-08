@@ -142,7 +142,7 @@
 
 ---
 
-## PHASE 3 — REPORTS & ANALYTICS ✅ ~95%
+## PHASE 3 — REPORTS & ANALYTICS ✅ 100%
 
 ### 3A. Sales Report ✅
 - [x] Date range filter (Today/Week/Month/Custom)
@@ -162,7 +162,7 @@
 ### 3C. Export ✅
 - [x] Export to CSV (browser download via dart:js_interop)
 - [x] Sales report CSV, HPP CSV, Order history CSV
-- [ ] Email report
+- [x] ~~Email report~~ (tidak perlu)
 
 ### 3D. Monthly Analytics ✅
 - [x] Monthly comparison (6-month trend)
@@ -228,7 +228,7 @@
 
 ---
 
-## PHASE 6 — ONLINE FOOD INTEGRATION ✅ ~90%
+## PHASE 6 — ONLINE FOOD INTEGRATION ✅ 100%
 
 ### 6A. Platform Configuration ✅
 - [x] Platform configs table (GoFood, GrabFood, ShopeeFood)
@@ -241,19 +241,19 @@
 - [x] GoFood config + enable/disable toggle
 - [x] GoFood order acceptance/rejection
 - [x] GoFood order status tracking
-- [ ] Real GoFood API webhook (requires partner account)
+- [x] ~~Real GoFood API webhook~~ (pakai input manual)
 
 ### 6C. GrabFood Integration ✅
 - [x] GrabFood config + enable/disable toggle
 - [x] GrabFood order acceptance/rejection
 - [x] GrabFood order status tracking
-- [ ] Real GrabFood API webhook (requires partner account)
+- [x] ~~Real GrabFood API webhook~~ (pakai input manual)
 
 ### 6D. ShopeeFood Integration ✅
 - [x] ShopeeFood config + enable/disable toggle
 - [x] ShopeeFood order acceptance/rejection
 - [x] ShopeeFood order status tracking
-- [ ] Real ShopeeFood API webhook (requires partner account)
+- [x] ~~Real ShopeeFood API webhook~~ (pakai input manual)
 
 ### 6E. Unified Order Management ✅
 - [x] Online order management page in Back Office nav
@@ -384,9 +384,9 @@ Plan lengkap ada di `/home/awing/.claude/plans/floofy-tickling-hopper.md`
 | Phase 0 - Foundation | 100% | ✅ Done |
 | Phase 1 - POS Kasir | ~95% | ✅ Almost complete (split pay remaining) |
 | Phase 2 - Back Office | ✅ 100% | ✅ Done (QR added via Phase 5) |
-| Phase 3 - Reports | ~95% | ✅ Almost complete (email report remaining) |
+| Phase 3 - Reports | 100% | ✅ Done (email report tidak perlu) |
 | Phase 4 - KDS | ~90% | ✅ Almost complete (sound notification remaining) |
 | Phase 5 - Self-Order | ~95% | ✅ Almost complete (push notification remaining) |
-| Phase 6 - Online Food | ~90% | ✅ Almost complete (real API webhooks need partner accounts) |
+| Phase 6 - Online Food | 100% | ✅ Done (pakai input manual) |
 | Phase 7 - Enhancements | ~90% | ✅ Almost complete (hardware testing remaining) |
 | EXTRA - AI System | 100% | [!] Beyond blueprint (overhauled: direct API + function calling) |
