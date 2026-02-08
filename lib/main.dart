@@ -12,6 +12,7 @@ import 'backoffice/ai/pages/ai_settings_page.dart';
 import 'backoffice/ai/pages/ai_action_log_page.dart';
 import 'backoffice/ai/pages/ai_conversation_history.dart';
 import 'pos/pages/pos_main_page.dart';
+import 'backoffice/pages/staff_management_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -334,7 +335,7 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
       case 1: return const AiDashboardPage();
       case 2: return const _PlaceholderPage(title: 'Inventori', icon: Icons.inventory_2);
       case 3: return const _PlaceholderPage(title: 'Laporan', icon: Icons.bar_chart);
-      case 4: return const _PlaceholderPage(title: 'Pengaturan', icon: Icons.settings);
+      case 4: return const StaffManagementPage();
       default: return const _DashboardPage();
     }
   }
