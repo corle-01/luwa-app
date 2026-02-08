@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import '../../shared/themes/app_theme.dart';
+import '../online_food/online_food_screen.dart';
 import '../providers/pos_shift_provider.dart';
 import 'automation_toggle.dart';
 import 'shift_close_dialog.dart';
@@ -188,10 +189,59 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
             ),
           ),
           const Spacer(),
-          // Right side: Close shift button + Automation toggle
+          // Right side: Online Food + Close shift button + Automation toggle
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Online Food button
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const OnlineFoodScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.delivery_dining, size: 16, color: Colors.white),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Online Food',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
               shiftAsync.whenData((shift) {
                 if (shift != null) {
                   return TextButton(
