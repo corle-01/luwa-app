@@ -135,6 +135,13 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
     }
   }
 
+  /// Load a conversation by ID (no-op for now, conversations are in-memory only).
+  Future<void> loadConversation(String conversationId) async {
+    // Conversations are kept in memory only for now.
+    // This method exists for compatibility with the conversation history page.
+    state = state.copyWith(conversationId: conversationId);
+  }
+
   /// Start a new conversation, clearing the current messages.
   void newConversation() {
     state = const AiChatState();
