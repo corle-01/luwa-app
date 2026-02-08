@@ -110,3 +110,26 @@ SELECT create_staff_profile(
   'admin@uttercoffee.com',
   '081000000002'
 );
+
+-- ============================================================
+-- 5. RLS Policies for Anon Access (dev/web without Supabase Auth)
+-- ============================================================
+-- The app runs without Supabase Auth login, so auth.uid() is NULL.
+-- Existing policies use get_user_outlet_id() which requires auth.uid().
+-- Add permissive anon policies for POS-critical tables.
+
+DO $$
+DECLARE
+  tbl TEXT;
+BEGIN
+  FOREACH tbl IN ARRAY ARRAY[
+    'profiles', 'shifts', 'orders', 'order_items', 'products',
+    'categories', 'taxes', 'discounts', 'modifier_groups',
+    'modifier_options', 'product_modifier_groups', 'customers',
+    'tables', 'outlets'
+  ] LOOP
+    EXECUTE format('CREATE POLICY IF NOT EXISTS "Allow anon read %1$s" ON %1$I FOR SELECT TO anon USING (true)', tbl);
+    EXECUTE format('CREATE POLICY IF NOT EXISTS "Allow anon insert %1$s" ON %1$I FOR INSERT TO anon WITH CHECK (true)', tbl);
+    EXECUTE format('CREATE POLICY IF NOT EXISTS "Allow anon update %1$s" ON %1$I FOR UPDATE TO anon USING (true)', tbl);
+  END LOOP;
+END $$;
