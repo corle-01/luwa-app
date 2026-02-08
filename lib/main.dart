@@ -62,6 +62,27 @@ class UtterApp extends ConsumerWidget {
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '/');
 
+        // POS route: /pos
+        if (uri.path == '/pos') {
+          return MaterialPageRoute(
+            builder: (_) => const PosMainPage(),
+          );
+        }
+
+        // Back Office route: /backoffice
+        if (uri.path == '/backoffice') {
+          return MaterialPageRoute(
+            builder: (_) => const BackOfficeShell(),
+          );
+        }
+
+        // Kitchen Display route: /kds
+        if (uri.path == '/kds') {
+          return MaterialPageRoute(
+            builder: (_) => const KdsPage(),
+          );
+        }
+
         // Self-order route: /self-order?table=TABLE_ID
         if (uri.path == '/self-order') {
           final tableId = uri.queryParameters['table'];
@@ -70,7 +91,7 @@ class UtterApp extends ConsumerWidget {
           );
         }
 
-        // Default route — splash screen
+        // Default route — splash screen → role selection
         return MaterialPageRoute(
           builder: (_) => const SplashScreen(),
         );
