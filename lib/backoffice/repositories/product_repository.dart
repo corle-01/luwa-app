@@ -181,6 +181,11 @@ class ProductRepository {
     }).eq('id', id);
   }
 
+  /// Delete a product permanently.
+  Future<void> deleteProduct(String id) async {
+    await _supabase.from('products').delete().eq('id', id);
+  }
+
   /// Create a new category.
   Future<void> createCategory({
     required String outletId,
@@ -193,5 +198,27 @@ class ProductRepository {
       'color': color,
       'is_active': true,
     });
+  }
+
+  /// Update category.
+  Future<void> updateCategory(
+    String id, {
+    String? name,
+    String? color,
+  }) async {
+    final data = <String, dynamic>{};
+    if (name != null) data['name'] = name;
+    if (color != null) data['color'] = color;
+    await _supabase.from('categories').update(data).eq('id', id);
+  }
+
+  /// Delete a category permanently.
+  Future<void> deleteCategory(String id) async {
+    // Set products in this category to uncategorized first
+    await _supabase
+        .from('products')
+        .update({'category_id': null})
+        .eq('category_id', id);
+    await _supabase.from('categories').delete().eq('id', id);
   }
 }

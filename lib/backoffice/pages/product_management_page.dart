@@ -62,13 +62,10 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
       appBar: AppBar(
         title: const Text('Kelola Produk'),
         actions: [
-          FilledButton.icon(
-            onPressed: () => _showCategoryDialog(context, ref),
+          OutlinedButton.icon(
+            onPressed: () => _showManageCategoriesDialog(context, ref),
             icon: const Icon(Icons.category, size: 18),
-            label: const Text('Tambah Kategori'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.secondaryColor,
-            ),
+            label: const Text('Kelola Kategori'),
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
@@ -258,6 +255,7 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
           onEdit: () =>
               _showProductDialog(context, ref, product: product),
           onToggle: () => _confirmToggle(context, ref, product),
+          onDelete: () => _confirmDelete(context, ref, product),
         );
       },
     );
@@ -290,6 +288,70 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
           ref.invalidate(boCategoriesProvider);
           ref.invalidate(boProductsProvider);
         },
+      ),
+    );
+  }
+
+  void _showManageCategoriesDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => _ManageCategoriesDialog(
+        onChanged: () {
+          ref.invalidate(boCategoriesProvider);
+          ref.invalidate(boProductsProvider);
+        },
+      ),
+    );
+  }
+
+  void _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    ProductModel product,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Produk'),
+        content: Text(
+          'Yakin ingin menghapus "${product.name}"?\n\nTindakan ini tidak bisa dibatalkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                final repo = ref.read(productRepositoryProvider);
+                await repo.deleteProduct(product.id);
+                ref.invalidate(boProductsProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('"${product.name}" berhasil dihapus'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal menghapus: $e'),
+                      backgroundColor: AppTheme.errorColor,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
       ),
     );
   }
@@ -413,11 +475,13 @@ class _ProductCard extends StatelessWidget {
   final ProductModel product;
   final VoidCallback onEdit;
   final VoidCallback onToggle;
+  final VoidCallback onDelete;
 
   const _ProductCard({
     required this.product,
     required this.onEdit,
     required this.onToggle,
+    required this.onDelete,
   });
 
   @override
@@ -593,6 +657,11 @@ class _ProductCard extends StatelessWidget {
               ),
               onPressed: onToggle,
               tooltip: isActive ? 'Nonaktifkan' : 'Aktifkan',
+            ),
+            IconButton(
+              icon: Icon(Icons.delete_outline, size: 20, color: AppTheme.errorColor),
+              onPressed: onDelete,
+              tooltip: 'Hapus',
             ),
           ],
         ),
@@ -1037,5 +1106,221 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
         );
       }
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Manage categories dialog (list, add, edit, delete)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _ManageCategoriesDialog extends StatefulWidget {
+  final VoidCallback onChanged;
+
+  const _ManageCategoriesDialog({required this.onChanged});
+
+  @override
+  State<_ManageCategoriesDialog> createState() =>
+      _ManageCategoriesDialogState();
+}
+
+class _ManageCategoriesDialogState extends State<_ManageCategoriesDialog> {
+  final _repo = ProductRepository();
+  List<CategoryModel> _categories = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final cats = await _repo.getCategories(_outletId);
+      if (mounted) setState(() { _categories = cats; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Color _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return AppTheme.primaryColor;
+    final cleaned = hex.replaceAll('#', '');
+    if (cleaned.length == 6) return Color(int.parse('FF$cleaned', radix: 16));
+    return AppTheme.primaryColor;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Kelola Kategori'),
+      content: SizedBox(
+        width: 450,
+        height: 400,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _categories.isEmpty
+                ? Center(
+                    child: Text(
+                      'Belum ada kategori',
+                      style: GoogleFonts.inter(color: AppTheme.textSecondary),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final cat = _categories[index];
+                      return ListTile(
+                        leading: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: _hexToColor(cat.color),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        title: Text(cat.name,
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 20),
+                              tooltip: 'Edit',
+                              onPressed: () => _editCategory(cat),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete_outline,
+                                  size: 20, color: AppTheme.errorColor),
+                              tooltip: 'Hapus',
+                              onPressed: () => _deleteCategory(cat),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Tutup'),
+        ),
+        FilledButton.icon(
+          onPressed: () async {
+            Navigator.pop(context);
+            // Open add category dialog (reuse existing)
+            if (context.mounted) {
+              showDialog(
+                context: context,
+                builder: (_) => _CategoryFormDialog(
+                  onSaved: () {
+                    widget.onChanged();
+                  },
+                ),
+              );
+            }
+          },
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('Tambah Kategori'),
+        ),
+      ],
+    );
+  }
+
+  void _editCategory(CategoryModel cat) {
+    final nameController = TextEditingController(text: cat.name);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Kategori'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Nama Kategori',
+            prefixIcon: Icon(Icons.category),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              if (newName.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await _repo.updateCategory(cat.id, name: newName);
+                widget.onChanged();
+                await _loadCategories();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Kategori berhasil diupdate')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal: $e'),
+                      backgroundColor: AppTheme.errorColor,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteCategory(CategoryModel cat) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Kategori'),
+        content: Text(
+          'Yakin ingin menghapus kategori "${cat.name}"?\n\n'
+          'Produk yang menggunakan kategori ini akan menjadi "Tanpa Kategori".',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.errorColor),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await _repo.deleteCategory(cat.id);
+                widget.onChanged();
+                await _loadCategories();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Kategori "${cat.name}" berhasil dihapus')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal: $e'),
+                      backgroundColor: AppTheme.errorColor,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
   }
 }
