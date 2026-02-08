@@ -172,18 +172,40 @@ class GeminiService {
       },
     };
 
-    final response = await _httpClient
-        .post(
-          Uri.parse(url),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 60));
+    // Retry with backoff for rate limiting (429)
+    http.Response? response;
+    for (int attempt = 0; attempt < 3; attempt++) {
+      response = await _httpClient
+          .post(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 60));
+
+      if (response.statusCode == 429) {
+        // Rate limited — wait and retry
+        await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+        continue;
+      }
+      break;
+    }
+
+    if (response!.statusCode == 429) {
+      throw GeminiException(
+        'API sedang sibuk (rate limit). Tunggu beberapa detik lalu coba lagi.',
+      );
+    }
 
     if (response.statusCode != 200) {
-      throw GeminiException(
-        'Gemini API error (${response.statusCode}): ${response.body}',
-      );
+      // Parse error message from response
+      String errorMsg = 'Gemini API error (${response.statusCode})';
+      try {
+        final errData = jsonDecode(response.body) as Map<String, dynamic>;
+        final errMessage = errData['error']?['message'] as String?;
+        if (errMessage != null) errorMsg = errMessage;
+      } catch (_) {}
+      throw GeminiException(errorMsg);
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
