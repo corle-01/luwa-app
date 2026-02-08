@@ -236,25 +236,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
       child: Row(
         children: [
           // Mini avatar in header
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.4),
-                width: 2,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/utter_avatar.png',
-                width: 40,
-                height: 40,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+          UtterMiniAvatar(size: 40),
           const SizedBox(width: 12),
 
           // Title + mood
@@ -420,25 +402,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             // Mini avatar
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/utter_avatar.png',
-                  width: 28,
-                  height: 28,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
+            UtterMiniAvatar(size: 28),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -662,25 +626,7 @@ class _AvatarMessageBubble extends StatelessWidget {
           children: [
             // AI avatar (bird image)
             if (!isUser) ...[
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                    width: 1.5,
-                  ),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/utter_avatar.png',
-                    width: 28,
-                    height: 28,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
+              UtterMiniAvatar(size: 28),
               const SizedBox(width: 8),
             ],
 

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
 import 'package:utter_app/shared/themes/app_theme.dart';
+import 'package:utter_app/shared/widgets/utter_avatar.dart';
 import 'package:utter_app/backoffice/ai/pages/ai_dashboard_page.dart';
 import 'package:utter_app/backoffice/ai/pages/ai_action_log_page.dart';
 import 'package:utter_app/backoffice/ai/pages/ai_settings_page.dart';
@@ -35,25 +36,7 @@ class AiSidebarWidget extends ConsumerWidget {
         dividerColor: Colors.transparent,
       ),
       child: ExpansionTile(
-        leading: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-              width: 1.5,
-            ),
-          ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/utter_avatar.png',
-              width: 32,
-              height: 32,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
+        leading: UtterMiniAvatar(size: 32),
         title: Text(
           'Utter AI',
           style: GoogleFonts.inter(

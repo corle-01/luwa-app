@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:utter_app/core/providers/ai/ai_chat_provider.dart';
 import 'package:utter_app/shared/themes/app_theme.dart';
 import 'package:utter_app/backoffice/ai/widgets/ai_message_bubble.dart';
+import 'package:utter_app/shared/widgets/utter_avatar.dart';
 
 /// Full chat interface widget for the AI dashboard.
 ///
@@ -154,25 +155,7 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/utter_avatar.png',
-                width: 32,
-                height: 32,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+          UtterMiniAvatar(size: 32),
           const SizedBox(width: AppTheme.spacingS),
           Expanded(
             child: Column(
@@ -221,25 +204,7 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                  width: 2,
-                ),
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/utter_avatar.png',
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
+            UtterMiniAvatar(size: 64),
             const SizedBox(height: AppTheme.spacingM),
             Text(
               'Halo! Saya Utter.',
@@ -379,25 +344,7 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                width: 1.5,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/utter_avatar.png',
-                width: 28,
-                height: 28,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+          UtterMiniAvatar(size: 28),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(

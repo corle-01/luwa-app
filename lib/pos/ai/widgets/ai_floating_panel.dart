@@ -7,6 +7,7 @@ import 'package:utter_app/core/providers/ai/ai_chat_provider.dart';
 import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
 import 'package:utter_app/pos/ai/widgets/ai_quick_actions.dart';
 import 'package:utter_app/shared/themes/app_theme.dart';
+import 'package:utter_app/shared/widgets/utter_avatar.dart';
 
 /// AI Floating Panel
 ///
@@ -193,25 +194,7 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
       child: Row(
         children: [
           // AI Avatar
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.4),
-                width: 1.5,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/images/utter_avatar.png',
-                width: 32,
-                height: 32,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
+          UtterMiniAvatar(size: 32),
           const SizedBox(width: AppTheme.spacingS),
 
           // Title
@@ -376,25 +359,7 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                  width: 2,
-                ),
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/utter_avatar.png',
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
+            UtterMiniAvatar(size: 64),
             const SizedBox(height: AppTheme.spacingM),
             Text(
               'Halo! Saya Utter AI',
@@ -492,25 +457,7 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
 
   /// Small AI avatar icon.
   Widget _buildAiAvatar() {
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-          width: 1.5,
-        ),
-      ),
-      child: ClipOval(
-        child: Image.asset(
-          'assets/images/utter_avatar.png',
-          width: 28,
-          height: 28,
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
+    return UtterMiniAvatar(size: 28);
   }
 
   /// Chat input field with send button.
@@ -764,25 +711,7 @@ class _MessageBubble extends StatelessWidget {
           children: [
             // AI avatar (left side)
             if (!isUser) ...[
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                    width: 1.5,
-                  ),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/utter_avatar.png',
-                    width: 28,
-                    height: 28,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
+              UtterMiniAvatar(size: 28),
               const SizedBox(width: AppTheme.spacingS),
             ],
 

@@ -5,6 +5,7 @@ import 'package:utter_app/core/models/ai_message.dart';
 import 'package:utter_app/shared/themes/app_theme.dart';
 import 'package:utter_app/shared/utils/format_utils.dart';
 import 'package:utter_app/backoffice/ai/widgets/ai_function_result_card.dart';
+import 'package:utter_app/shared/widgets/utter_avatar.dart';
 
 /// A single chat message bubble.
 ///
@@ -104,25 +105,9 @@ class _AiMessageBubbleState extends State<AiMessageBubble>
             children: [
               // AI Avatar (only for assistant)
               if (!isUser) ...[
-                Container(
-                  width: 28,
-                  height: 28,
-                  margin: const EdgeInsets.only(right: 8, bottom: 2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/utter_avatar.png',
-                      width: 28,
-                      height: 28,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8, bottom: 2),
+                  child: UtterMiniAvatar(size: 28),
                 ),
               ],
 
