@@ -3,11 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:utter_app/core/config/app_constants.dart';
 import 'package:utter_app/core/repositories/ai_insight_repository.dart';
 
-/// Builds context data for AI conversations.
-///
-/// Gathers relevant business data from the outlet to provide the AI
-/// with current state information. This includes outlet details, current
-/// shift data, sales summaries, stock alerts, and active insights.
+/// Builds rich context data for AI conversations.
 class AiContextBuilder {
   final SupabaseClient _client;
   final AiInsightRepository _insightRepo;
@@ -18,153 +14,174 @@ class AiContextBuilder {
   })  : _client = client ?? Supabase.instance.client,
         _insightRepo = insightRepo ?? AiInsightRepository();
 
-  /// Build a comprehensive context object for the AI.
-  ///
-  /// Gathers data from multiple sources to provide the AI with a
-  /// snapshot of the outlet's current state. All queries are executed
-  /// concurrently for performance.
   Future<Map<String, dynamic>> buildContext(String outletId) async {
-    // Execute all context queries concurrently
     final results = await Future.wait([
       _getOutletInfo(outletId),
       _getCurrentShift(outletId),
-      _getTodaysSalesSummary(outletId),
-      _getLowStockCount(outletId),
+      _getRecentOrders(outletId),
+      _getTopProducts(outletId),
+      _getLowStockItems(outletId),
       _getActiveInsightCount(outletId),
     ]);
 
-    final outletInfo = results[0] as Map<String, dynamic>?;
-    final currentShift = results[1] as Map<String, dynamic>?;
-    final salesSummary = results[2] as Map<String, dynamic>;
-    final lowStockCount = results[3] as int;
-    final activeInsightCount = results[4] as int;
-
     return {
-      'outlet': outletInfo,
-      'current_shift': currentShift,
-      'today_sales': salesSummary,
-      'low_stock_count': lowStockCount,
-      'active_insights_count': activeInsightCount,
-      'timestamp': DateTime.now().toUtc().toIso8601String(),
+      'outlet': results[0],
+      'current_shift': results[1],
+      'recent_orders': results[2],
+      'top_products': results[3],
+      'low_stock_items': results[4],
+      'active_insights_count': results[5],
+      'timestamp': DateTime.now().toIso8601String(),
     };
   }
 
-  /// Get basic outlet information.
   Future<Map<String, dynamic>?> _getOutletInfo(String outletId) async {
     try {
-      final response = await _client
+      return await _client
           .from(AppConstants.tableOutlets)
-          .select('id, name, address, phone, timezone, currency')
+          .select('id, name, address, phone')
           .eq('id', outletId)
           .maybeSingle();
-
-      return response != null
-          ? Map<String, dynamic>.from(response)
-          : null;
-    } catch (e) {
-      // Return null if outlet info cannot be fetched
+    } catch (_) {
       return null;
     }
   }
 
-  /// Get the current active shift for the outlet.
   Future<Map<String, dynamic>?> _getCurrentShift(String outletId) async {
     try {
-      final response = await _client
+      return await _client
           .from(AppConstants.tableShifts)
-          .select('id, started_at, cashier_id, opening_balance')
+          .select('id, started_at, opening_balance')
           .eq('outlet_id', outletId)
           .isFilter('ended_at', null)
           .order('started_at', ascending: false)
           .limit(1)
           .maybeSingle();
-
-      return response != null
-          ? Map<String, dynamic>.from(response)
-          : null;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
 
-  /// Get today's sales summary.
-  Future<Map<String, dynamic>> _getTodaysSalesSummary(
-    String outletId,
-  ) async {
+  /// Get recent orders with item details - the core data AI needs
+  Future<Map<String, dynamic>> _getRecentOrders(String outletId) async {
     try {
-      final today = DateTime.now().toUtc();
-      final startOfDay = DateTime.utc(today.year, today.month, today.day)
-          .toIso8601String();
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
 
-      final response = await _client
+      // Get today's orders with items
+      final orders = await _client
           .from(AppConstants.tableOrders)
-          .select('id, total_amount, status')
+          .select('id, order_number, status, payment_method, total, subtotal, tax_amount, discount_amount, created_at, order_items(product_name, quantity, unit_price, subtotal)')
           .eq('outlet_id', outletId)
           .gte('created_at', startOfDay)
-          .inFilter('status', [
-        AppConstants.orderStatusCompleted,
-        AppConstants.orderStatusReady,
-      ]);
+          .order('created_at', ascending: false)
+          .limit(20);
 
-      final orders = response as List;
+      final orderList = List<Map<String, dynamic>>.from(orders);
+
+      // Calculate summary
       double totalRevenue = 0;
-      int completedOrders = 0;
+      int completedCount = 0;
+      final paymentBreakdown = <String, int>{};
 
-      for (final order in orders) {
-        final amount = order['total_amount'];
-        if (amount != null) {
-          totalRevenue += (amount is int) ? amount.toDouble() : (amount as double);
+      for (final o in orderList) {
+        final total = (o['total'] as num?)?.toDouble() ?? 0;
+        if (o['status'] == 'completed') {
+          totalRevenue += total;
+          completedCount++;
         }
-        if (order['status'] == AppConstants.orderStatusCompleted) {
-          completedOrders++;
-        }
+        final pm = o['payment_method']?.toString() ?? 'unknown';
+        paymentBreakdown[pm] = (paymentBreakdown[pm] ?? 0) + 1;
       }
 
+      // Build order summaries (compact for AI context)
+      final orderSummaries = orderList.map((o) {
+        final items = (o['order_items'] as List?)
+            ?.map((i) => '${i['product_name']} x${i['quantity']}')
+            .join(', ') ?? '';
+        return {
+          'order_number': o['order_number'],
+          'status': o['status'],
+          'total': o['total'],
+          'payment': o['payment_method'],
+          'items': items,
+          'time': o['created_at'],
+        };
+      }).toList();
+
       return {
-        'total_orders': orders.length,
-        'completed_orders': completedOrders,
-        'total_revenue': totalRevenue,
+        'today_total_orders': orderList.length,
+        'today_completed': completedCount,
+        'today_revenue': totalRevenue,
+        'payment_breakdown': paymentBreakdown,
+        'orders': orderSummaries,
       };
-    } catch (e) {
+    } catch (_) {
       return {
-        'total_orders': 0,
-        'completed_orders': 0,
-        'total_revenue': 0.0,
+        'today_total_orders': 0,
+        'today_completed': 0,
+        'today_revenue': 0.0,
+        'orders': [],
       };
     }
   }
 
-  /// Get the count of ingredients with low stock.
-  Future<int> _getLowStockCount(String outletId) async {
+  /// Get top selling products (last 7 days)
+  Future<List<Map<String, dynamic>>> _getTopProducts(String outletId) async {
     try {
-      // Ingredients where current_stock <= min_stock
+      final weekAgo = DateTime.now().subtract(const Duration(days: 7)).toIso8601String();
+
+      final items = await _client
+          .from('order_items')
+          .select('product_name, quantity, subtotal, orders!inner(outlet_id, status, created_at)')
+          .eq('orders.outlet_id', outletId)
+          .eq('orders.status', 'completed')
+          .gte('orders.created_at', weekAgo);
+
+      // Aggregate by product
+      final productMap = <String, Map<String, dynamic>>{};
+      for (final item in List<Map<String, dynamic>>.from(items)) {
+        final name = item['product_name']?.toString() ?? 'Unknown';
+        final qty = (item['quantity'] as num?)?.toInt() ?? 0;
+        final sub = (item['subtotal'] as num?)?.toDouble() ?? 0;
+        productMap.putIfAbsent(name, () => {'name': name, 'qty': 0, 'revenue': 0.0});
+        productMap[name]!['qty'] = (productMap[name]!['qty'] as int) + qty;
+        productMap[name]!['revenue'] = (productMap[name]!['revenue'] as double) + sub;
+      }
+
+      final sorted = productMap.values.toList()
+        ..sort((a, b) => (b['qty'] as int).compareTo(a['qty'] as int));
+      return sorted.take(10).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Get low stock items with names
+  Future<List<Map<String, dynamic>>> _getLowStockItems(String outletId) async {
+    try {
       final response = await _client
           .from(AppConstants.tableIngredients)
-          .select('id, current_stock, min_stock')
+          .select('name, current_stock, min_stock, unit')
           .eq('outlet_id', outletId);
 
-      final ingredients = response as List;
-      int lowCount = 0;
+      final items = List<Map<String, dynamic>>.from(response);
+      final lowStock = items.where((i) {
+        final current = (i['current_stock'] as num?)?.toDouble() ?? 0;
+        final min = (i['min_stock'] as num?)?.toDouble() ?? 0;
+        return current <= min;
+      }).toList();
 
-      for (final item in ingredients) {
-        final currentStock = item['current_stock'] as num? ?? 0;
-        final minStock = item['min_stock'] as num? ?? 0;
-        if (currentStock <= minStock) {
-          lowCount++;
-        }
-      }
-
-      return lowCount;
-    } catch (e) {
-      return 0;
+      return lowStock;
+    } catch (_) {
+      return [];
     }
   }
 
-  /// Get the count of active AI insights.
   Future<int> _getActiveInsightCount(String outletId) async {
     try {
       return await _insightRepo.getInsightCount(outletId);
-    } catch (e) {
+    } catch (_) {
       return 0;
     }
   }

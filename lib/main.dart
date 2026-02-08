@@ -23,8 +23,11 @@ import 'self_order/pages/self_order_shell.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await initializeDateFormatting('id_ID', null);
-  await AppConfig.initialize();
+  // Parallelize independent initialization tasks
+  await Future.wait([
+    initializeDateFormatting('id_ID', null),
+    AppConfig.initialize(),
+  ]);
 
   final supabaseKey = AppConfig.isDevelopment &&
           AppConfig.supabaseServiceRoleKey.isNotEmpty &&
@@ -36,6 +39,9 @@ void main() async {
     url: AppConfig.supabaseUrl,
     anonKey: supabaseKey,
   );
+
+  // Disable runtime font fetching — falls back to system fonts instantly
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   runApp(const ProviderScope(child: UtterApp()));
 }
@@ -97,7 +103,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _navigate() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(

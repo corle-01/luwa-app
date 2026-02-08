@@ -67,7 +67,7 @@ class AiService {
             'p_history': historyJson,
             'p_context': messageContext,
           })
-          .timeout(const Duration(seconds: 35));
+          .timeout(const Duration(seconds: 120));
 
       final data = Map<String, dynamic>.from(response as Map);
 
