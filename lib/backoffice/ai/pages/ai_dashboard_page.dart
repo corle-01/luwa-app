@@ -17,6 +17,7 @@ import 'package:utter_app/backoffice/ai/widgets/ai_chat_widget.dart';
 import 'package:utter_app/backoffice/ai/widgets/action_log_row.dart';
 import 'package:utter_app/backoffice/ai/widgets/undo_banner.dart';
 import 'package:utter_app/backoffice/ai/pages/ai_settings_page.dart';
+import 'package:utter_app/shared/widgets/utter_avatar.dart';
 
 /// The main AI Dashboard page for the Back Office.
 ///
@@ -117,31 +118,8 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage>
       ),
       child: Row(
         children: [
-          // AI Logo + Title
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.aiPrimary, AppTheme.aiSecondary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(AppTheme.radiusM),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.aiPrimary.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.auto_awesome,
-              size: 20,
-              color: Colors.white,
-            ),
-          ),
+          // AI Avatar Logo
+          UtterAvatar(size: 36),
           const SizedBox(width: AppTheme.spacingS),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -109,17 +109,19 @@ class _AiMessageBubbleState extends State<AiMessageBubble>
                   height: 28,
                   margin: const EdgeInsets.only(right: 8, bottom: 2),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.aiPrimary, AppTheme.aiSecondary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppTheme.aiPrimary.withValues(alpha: 0.3),
+                      width: 1.5,
                     ),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                   ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    size: 14,
-                    color: Colors.white,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/utter_avatar.png',
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ],

@@ -158,17 +158,19 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.aiPrimary, AppTheme.aiSecondary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppTheme.aiPrimary.withValues(alpha: 0.3),
+                width: 1.5,
               ),
-              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
             ),
-            child: const Icon(
-              Icons.auto_awesome,
-              size: 16,
-              color: Colors.white,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/utter_avatar.png',
+                width: 32,
+                height: 32,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: AppTheme.spacingS),
@@ -223,20 +225,19 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.aiPrimary.withValues(alpha: 0.15),
-                    AppTheme.aiSecondary.withValues(alpha: 0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppTheme.aiPrimary.withValues(alpha: 0.3),
+                  width: 2,
                 ),
-                borderRadius: BorderRadius.circular(AppTheme.radiusXL),
               ),
-              child: Icon(
-                Icons.auto_awesome,
-                size: 32,
-                color: AppTheme.aiPrimary.withValues(alpha: 0.7),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/utter_avatar.png',
+                  width: 64,
+                  height: 64,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(height: AppTheme.spacingM),
@@ -382,15 +383,19 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppTheme.aiPrimary, AppTheme.aiSecondary],
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppTheme.aiPrimary.withValues(alpha: 0.3),
+                width: 1.5,
               ),
-              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
             ),
-            child: const Icon(
-              Icons.auto_awesome,
-              size: 14,
-              color: Colors.white,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/utter_avatar.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: 8),

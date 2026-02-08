@@ -192,18 +192,24 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
       ),
       child: Row(
         children: [
-          // AI icon
+          // AI Avatar
           Container(
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
             ),
-            child: const Icon(
-              Icons.psychology,
-              color: Colors.white,
-              size: 20,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/utter_avatar.png',
+                width: 32,
+                height: 32,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: AppTheme.spacingS),
@@ -374,13 +380,19 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppTheme.aiBackground,
-                borderRadius: BorderRadius.circular(AppTheme.radiusXL),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppTheme.aiPrimary.withValues(alpha: 0.3),
+                  width: 2,
+                ),
               ),
-              child: const Icon(
-                Icons.psychology,
-                color: AppTheme.aiPrimary,
-                size: 32,
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/utter_avatar.png',
+                  width: 64,
+                  height: 64,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(height: AppTheme.spacingM),
@@ -484,15 +496,19 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
       width: 28,
       height: 28,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.aiSecondary, AppTheme.aiPrimary],
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: AppTheme.aiPrimary.withValues(alpha: 0.3),
+          width: 1.5,
         ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
       ),
-      child: const Icon(
-        Icons.psychology,
-        color: Colors.white,
-        size: 16,
+      child: ClipOval(
+        child: Image.asset(
+          'assets/images/utter_avatar.png',
+          width: 28,
+          height: 28,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
@@ -752,15 +768,19 @@ class _MessageBubble extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.aiSecondary, AppTheme.aiPrimary],
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppTheme.aiPrimary.withValues(alpha: 0.3),
+                    width: 1.5,
                   ),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
                 ),
-                child: const Icon(
-                  Icons.psychology,
-                  color: Colors.white,
-                  size: 16,
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/utter_avatar.png',
+                    width: 28,
+                    height: 28,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(width: AppTheme.spacingS),
