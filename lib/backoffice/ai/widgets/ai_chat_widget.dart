@@ -34,24 +34,24 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
 
   static const List<_QuickAction> _quickActions = [
     _QuickAction(
-      label: 'Cek Stok Menipis',
-      message: 'Tampilkan produk yang stoknya menipis',
-      icon: Icons.inventory_2_outlined,
-    ),
-    _QuickAction(
       label: 'Ringkasan Hari Ini',
-      message: 'Berikan ringkasan penjualan hari ini',
+      message: 'Berikan ringkasan penjualan hari ini lengkap dengan detail order dan produk terlaris',
       icon: Icons.summarize_outlined,
     ),
     _QuickAction(
-      label: 'Produk Terlaris',
-      message: 'Apa produk terlaris minggu ini?',
-      icon: Icons.star_outline,
+      label: 'Cek Stok Menipis',
+      message: 'Tampilkan semua bahan baku yang stoknya menipis',
+      icon: Icons.inventory_2_outlined,
     ),
     _QuickAction(
-      label: 'Forecast Besok',
-      message: 'Berapa forecast penjualan besok?',
-      icon: Icons.trending_up,
+      label: 'Daftar Menu',
+      message: 'Tampilkan semua menu/produk yang aktif beserta harganya',
+      icon: Icons.restaurant_menu,
+    ),
+    _QuickAction(
+      label: 'Tambah Menu Baru',
+      message: 'Saya mau tambah menu baru',
+      icon: Icons.add_circle_outline,
     ),
   ];
 
@@ -250,7 +250,7 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Tanyakan apa saja tentang bisnis kamu.\nSaya bisa bantu cek stok, analisa penjualan, dan lainnya.',
+              'Saya bisa kelola menu, cek stok, analisa penjualan,\ndan eksekusi aksi langsung di sistem POS kamu.',
               style: GoogleFonts.inter(
                 fontSize: 13,
                 color: AppTheme.textSecondary,
