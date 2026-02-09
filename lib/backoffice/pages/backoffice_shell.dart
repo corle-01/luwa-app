@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:web/web.dart' as web;
 
 import '../../shared/themes/app_theme.dart';
+import '../../core/services/realtime_sync_service.dart';
 import '../ai/pages/ai_dashboard_page.dart';
 import 'settings_hub_page.dart';
 import 'dashboard_page.dart';
@@ -15,17 +18,45 @@ import 'purchase_page.dart';
 ///
 /// [onLogoTap] — optional callback when the logo is tapped. If null, the logo
 /// is not clickable (standalone mode).
-class BackOfficeShell extends StatefulWidget {
+class BackOfficeShell extends ConsumerStatefulWidget {
   final void Function(BuildContext context)? onLogoTap;
 
   const BackOfficeShell({super.key, this.onLogoTap});
 
   @override
-  State<BackOfficeShell> createState() => _BackOfficeShellState();
+  ConsumerState<BackOfficeShell> createState() => _BackOfficeShellState();
 }
 
-class _BackOfficeShellState extends State<BackOfficeShell> {
+class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
+  static const _navStorageKey = 'utter_bo_tab';
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreTabIndex();
+  }
+
+  void _restoreTabIndex() {
+    try {
+      final saved = web.window.localStorage.getItem(_navStorageKey);
+      if (saved != null) {
+        final idx = int.tryParse(saved) ?? 0;
+        if (idx >= 0 && idx < _allNavItems.length) {
+          setState(() => _selectedIndex = idx);
+        }
+      }
+    } catch (_) {
+      // Non-web platform or storage unavailable
+    }
+  }
+
+  void _setSelectedIndex(int index) {
+    setState(() => _selectedIndex = index);
+    try {
+      web.window.localStorage.setItem(_navStorageKey, index.toString());
+    } catch (_) {}
+  }
 
   static const _allNavItems = [
     (icon: Icons.dashboard_rounded, label: 'Dashboard'),
@@ -107,7 +138,7 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
                 selected: isSelected,
                 onTap: () {
                   Navigator.pop(ctx);
-                  setState(() => _selectedIndex = realIndex);
+                  _setSelectedIndex(realIndex);
                 },
               );
             }),
@@ -120,6 +151,9 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep Supabase Realtime subscriptions alive
+    ref.watch(realtimeSyncProvider);
+
     final isWide = MediaQuery.of(context).size.width > 1200;
     final isDesktop = MediaQuery.of(context).size.width > 800;
 
@@ -134,7 +168,7 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
           if (isDesktop)
             NavigationRail(
               selectedIndex: _selectedIndex,
-              onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+              onDestinationSelected: _setSelectedIndex,
               extended: isWide,
               backgroundColor: AppTheme.surfaceColor,
               leading: Padding(
@@ -169,10 +203,9 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
               selectedIndex: mobileBottomIndex,
               onDestinationSelected: (i) {
                 if (i == _mobileNavCount) {
-                  // "Lainnya" tapped — show bottom sheet
                   _showMoreMenu(context);
                 } else {
-                  setState(() => _selectedIndex = i);
+                  _setSelectedIndex(i);
                 }
               },
               destinations: [
