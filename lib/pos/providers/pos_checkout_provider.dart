@@ -130,7 +130,7 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
       try {
         final kitchenService = _ref.read(kitchenPrintServiceProvider);
         kitchenService.autoPrintIfEnabled(
-          orderNumber: order.orderNumber,
+          orderNumber: order.orderNumber ?? order.id.substring(0, 8),
           orderType: cart.orderType,
           dateTime: order.createdAt,
           items: orderItems,
