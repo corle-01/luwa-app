@@ -118,6 +118,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final logoWidth = screenWidth < 400 ? screenWidth * 0.5 : 240.0;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -130,25 +133,32 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         child: Center(
           child: FadeTransition(
             opacity: _fadeIn,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/logo_utter_light.png',
-                  width: 240,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  AppConstants.appSlogan,
-                  style: GoogleFonts.inter(fontSize: 14, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w400),
-                ),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: 24, height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white.withValues(alpha: 0.7)),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Image.asset(
+                      'assets/images/logo_utter_light.png',
+                      width: logoWidth,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    AppConstants.appSlogan,
+                    style: GoogleFonts.inter(fontSize: 14, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w400),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: 24, height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white.withValues(alpha: 0.7)),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -175,71 +185,82 @@ class RoleSelectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final logoWidth = screenWidth < 400 ? screenWidth * 0.45 : 200.0;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           color: AppTheme.backgroundColor,
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo
-              Image.asset(
-                'assets/images/logo_utter_dark.png',
-                width: 200,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 8),
-              Text('Pilih mode untuk masuk', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textSecondary)),
-              const SizedBox(height: 40),
-
-              // Three entry cards
-              Wrap(
-                spacing: 20,
-                runSpacing: 20,
-                alignment: WrapAlignment.center,
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _EntryCard(
-                    icon: Icons.point_of_sale_rounded,
-                    title: 'POS Kasir',
-                    subtitle: 'Mode kasir full screen\nuntuk melayani pelanggan',
-                    gradient: const [Color(0xFF4F46E5), Color(0xFF6366F1)],
-                    onTap: () => _goTo(context, const PosMainPage()),
+                  // Logo
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Image.asset(
+                      'assets/images/logo_utter_dark.png',
+                      width: logoWidth,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                  _EntryCard(
-                    icon: Icons.dashboard_rounded,
-                    title: 'Back Office',
-                    subtitle: 'Dashboard, laporan,\ndan pengaturan bisnis',
-                    gradient: const [Color(0xFF7C3AED), Color(0xFF8B5CF6)],
-                    onTap: () => _goTo(context, BackOfficeShell(
-                      onLogoTap: (ctx) => Navigator.of(ctx).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
+                  const SizedBox(height: 8),
+                  Text('Pilih mode untuk masuk', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 40),
+
+                  // Three entry cards
+                  Wrap(
+                    spacing: 20,
+                    runSpacing: 20,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _EntryCard(
+                        icon: Icons.point_of_sale_rounded,
+                        title: 'POS Kasir',
+                        subtitle: 'Mode kasir full screen\nuntuk melayani pelanggan',
+                        gradient: const [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                        onTap: () => _goTo(context, const PosMainPage()),
                       ),
-                    )),
+                      _EntryCard(
+                        icon: Icons.dashboard_rounded,
+                        title: 'Back Office',
+                        subtitle: 'Dashboard, laporan,\ndan pengaturan bisnis',
+                        gradient: const [Color(0xFF7C3AED), Color(0xFF8B5CF6)],
+                        onTap: () => _goTo(context, BackOfficeShell(
+                          onLogoTap: (ctx) => Navigator.of(ctx).pushReplacement(
+                            MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
+                          ),
+                        )),
+                      ),
+                      _EntryCard(
+                        icon: Icons.restaurant_rounded,
+                        title: 'Kitchen Display',
+                        subtitle: 'Layar dapur untuk\nkelola pesanan masak',
+                        gradient: const [Color(0xFFEA580C), Color(0xFFF97316)],
+                        onTap: () => _goTo(context, const KdsPage()),
+                      ),
+                    ],
                   ),
-                  _EntryCard(
-                    icon: Icons.restaurant_rounded,
-                    title: 'Kitchen Display',
-                    subtitle: 'Layar dapur untuk\nkelola pesanan masak',
-                    gradient: const [Color(0xFFEA580C), Color(0xFFF97316)],
-                    onTap: () => _goTo(context, const KdsPage()),
+
+                  const SizedBox(height: 32),
+                  Image.asset(
+                    'assets/images/logo_collab_dark_sm.png',
+                    width: 180,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'v1.0.0',
+                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiary),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 32),
-              Image.asset(
-                'assets/images/logo_collab_dark_sm.png',
-                width: 180,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'v1.0.0',
-                style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiary),
-              ),
-            ],
+            ),
           ),
         ),
       ),
