@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../providers/report_provider.dart';
+import '../providers/operational_cost_provider.dart';
 import '../repositories/report_repository.dart';
 
 class HppReportPage extends ConsumerStatefulWidget {
@@ -280,6 +281,12 @@ class _HppReportPageState extends ConsumerState<HppReportPage> {
   }
 
   Widget _buildSummaryCards(HppSummary summary) {
+    final opCostAsync = ref.watch(totalMonthlyCostProvider);
+    final totalOpCost = opCostAsync.valueOrNull ?? 0.0;
+    final totalQty = summary.items.fold<int>(0, (s, i) => s + i.qtySold);
+    final overheadPerPortion = totalQty > 0 ? totalOpCost / totalQty : 0.0;
+    final netProfit = summary.grossProfit - totalOpCost;
+
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -293,14 +300,26 @@ class _HppReportPageState extends ConsumerState<HppReportPage> {
         _summaryCard(
           icon: Icons.money_off,
           iconColor: AppTheme.errorColor,
-          title: 'Total HPP',
+          title: 'Total HPP Bahan',
           value: FormatUtils.currency(summary.totalCost),
         ),
         _summaryCard(
+          icon: Icons.account_balance_wallet_outlined,
+          iconColor: AppTheme.warningColor,
+          title: 'Biaya Operasional/bln',
+          value: FormatUtils.currency(totalOpCost),
+        ),
+        _summaryCard(
+          icon: Icons.pie_chart_outline,
+          iconColor: AppTheme.accentColor,
+          title: 'Overhead/porsi',
+          value: FormatUtils.currency(overheadPerPortion),
+        ),
+        _summaryCard(
           icon: Icons.account_balance_wallet,
-          iconColor: AppTheme.infoColor,
-          title: 'Laba Kotor',
-          value: FormatUtils.currency(summary.grossProfit),
+          iconColor: netProfit >= 0 ? AppTheme.infoColor : AppTheme.errorColor,
+          title: 'Laba Bersih',
+          value: FormatUtils.currency(netProfit),
         ),
         _summaryCard(
           icon: Icons.percent,

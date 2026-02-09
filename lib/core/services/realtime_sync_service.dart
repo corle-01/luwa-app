@@ -9,6 +9,7 @@ import '../../backoffice/providers/inventory_provider.dart';
 import '../../backoffice/providers/product_stock_provider.dart';
 import '../../backoffice/providers/dashboard_provider.dart';
 import '../../backoffice/providers/purchase_provider.dart';
+import '../../backoffice/providers/operational_cost_provider.dart';
 import '../../pos/providers/pos_product_provider.dart';
 import '../../kds/providers/kds_provider.dart';
 
@@ -119,6 +120,18 @@ final realtimeSyncProvider = Provider<void>((ref) {
     callback: (_) => debounced('purchases', () {
       ref.invalidate(purchaseListProvider);
       ref.invalidate(purchaseStatsProvider);
+    }),
+  );
+
+  // ── Operational Costs ───────────────────────────────────
+  channel.onPostgresChanges(
+    event: PostgresChangeEvent.all,
+    schema: 'public',
+    table: 'operational_costs',
+    callback: (_) => debounced('operational_costs', () {
+      ref.invalidate(operationalCostsProvider);
+      ref.invalidate(totalMonthlyCostProvider);
+      ref.invalidate(costsByCategoryProvider);
     }),
   );
 

@@ -18,6 +18,7 @@ import 'printer_settings_page.dart';
 import 'modifier_management_page.dart';
 import '../ai/pages/ai_settings_page.dart';
 import 'backup_page.dart';
+import 'operational_cost_page.dart';
 
 class SettingsHubPage extends StatelessWidget {
   const SettingsHubPage({super.key});
@@ -113,6 +114,12 @@ class SettingsHubPage extends StatelessWidget {
       subtitle: 'Ekspor dan impor data outlet',
       color: Color(0xFF0284C7),
     ),
+    _SettingsItem(
+      icon: Icons.account_balance_wallet_rounded,
+      title: 'Biaya Operasional',
+      subtitle: 'Kelola biaya bulanan untuk HPP',
+      color: Color(0xFFF59E0B),
+    ),
   ];
 
   void _navigateTo(BuildContext context, int index) {
@@ -148,6 +155,8 @@ class SettingsHubPage extends StatelessWidget {
         page = const AiSettingsPage();
       case 14:
         page = const BackupPage();
+      case 15:
+        page = const OperationalCostPage();
       default:
         return;
     }
