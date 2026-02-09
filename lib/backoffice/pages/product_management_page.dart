@@ -154,6 +154,66 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
   }
 
   Widget _buildFilterRow(List<CategoryModel> categories) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    if (isMobile) {
+      // Mobile: stack search on top, categories below
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        color: AppTheme.surfaceColor,
+        child: Column(
+          children: [
+            // Search field (full width)
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Cari produk...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+            const SizedBox(height: 8),
+            // Category chips (horizontal scroll)
+            SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _CategoryChip(
+                    label: 'Semua',
+                    isSelected: _selectedCategoryId == null,
+                    onTap: () => setState(() => _selectedCategoryId = null),
+                  ),
+                  const SizedBox(width: 8),
+                  ...categories.map((cat) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _CategoryChip(
+                          label: cat.name,
+                          color: _parseColor(cat.color),
+                          isSelected: _selectedCategoryId == cat.id,
+                          onTap: () => setState(() => _selectedCategoryId = cat.id),
+                        ),
+                      )),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: AppTheme.surfaceColor,
@@ -503,49 +563,158 @@ class _ProductCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  Widget _buildProductImage(bool isActive) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: isActive
+            ? AppTheme.primaryColor.withValues(alpha: 0.1)
+            : AppTheme.textTertiary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: product.primaryImageUrl != null &&
+              product.primaryImageUrl!.isNotEmpty
+          ? Image.network(
+              product.primaryImageUrl!,
+              fit: BoxFit.cover,
+              width: 48,
+              height: 48,
+              errorBuilder: (_, __, ___) => Icon(
+                Icons.coffee,
+                color: isActive
+                    ? AppTheme.primaryColor
+                    : AppTheme.textTertiary,
+                size: 24,
+              ),
+            )
+          : Icon(
+              Icons.coffee,
+              color: isActive
+                  ? AppTheme.primaryColor
+                  : AppTheme.textTertiary,
+              size: 24,
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isActive = product.isActive;
+    final isMobile = MediaQuery.of(context).size.width < 700;
 
+    if (isMobile) {
+      return _buildMobileCard(isActive);
+    }
+    return _buildDesktopCard(isActive);
+  }
+
+  /// Mobile: compact 2-line card
+  Widget _buildMobileCard(bool isActive) {
+    return Card(
+      child: InkWell(
+        onTap: onEdit,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              _buildProductImage(isActive),
+              const SizedBox(width: 12),
+              // Name + category + price
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: isActive ? AppTheme.textPrimary : AppTheme.textTertiary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          product.categoryName ?? 'Tanpa Kategori',
+                          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textTertiary),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? AppTheme.successColor.withValues(alpha: 0.1)
+                                : AppTheme.textTertiary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            isActive ? 'Aktif' : 'Off',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isActive ? AppTheme.successColor : AppTheme.textTertiary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Price + actions
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    FormatUtils.currency(product.sellingPrice),
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isActive ? AppTheme.textPrimary : AppTheme.textTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: onToggle,
+                        child: Icon(
+                          isActive ? Icons.toggle_on : Icons.toggle_off,
+                          size: 24,
+                          color: isActive ? AppTheme.successColor : AppTheme.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: onDelete,
+                        child: Icon(Icons.delete_outline, size: 18, color: AppTheme.errorColor),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Desktop: full row with all columns
+  Widget _buildDesktopCard(bool isActive) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            // Product image / placeholder
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                    : AppTheme.textTertiary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: product.primaryImageUrl != null &&
-                      product.primaryImageUrl!.isNotEmpty
-                  ? Image.network(
-                      product.primaryImageUrl!,
-                      fit: BoxFit.cover,
-                      width: 48,
-                      height: 48,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.coffee,
-                        color: isActive
-                            ? AppTheme.primaryColor
-                            : AppTheme.textTertiary,
-                        size: 24,
-                      ),
-                    )
-                  : Icon(
-                      Icons.coffee,
-                      color: isActive
-                          ? AppTheme.primaryColor
-                          : AppTheme.textTertiary,
-                      size: 24,
-                    ),
-            ),
+            _buildProductImage(isActive),
             const SizedBox(width: 16),
 
             // Name + category
