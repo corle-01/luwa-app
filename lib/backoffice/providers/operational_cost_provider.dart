@@ -21,3 +21,8 @@ final costsByCategoryProvider = FutureProvider<Map<String, double>>((ref) {
   final outletId = ref.watch(currentOutletIdProvider);
   return ref.read(operationalCostRepositoryProvider).getCostsByCategory(outletId);
 });
+
+final bonusPercentageProvider = FutureProvider<double>((ref) {
+  final outletId = ref.watch(currentOutletIdProvider);
+  return ref.read(operationalCostRepositoryProvider).getBonusPercentage(outletId);
+});

@@ -49,9 +49,11 @@ class _OperationalCostPageState extends ConsumerState<OperationalCostPage> {
   Widget _buildBody(List<OperationalCost> costs) {
     final operational = costs.where((c) => c.category == 'operational').toList();
     final labor = costs.where((c) => c.category == 'labor').toList();
+    final bonusItem = costs.where((c) => c.category == 'bonus').toList();
     final totalOps = operational.fold(0.0, (sum, c) => sum + c.amount);
     final totalLabor = labor.fold(0.0, (sum, c) => sum + c.amount);
     final grandTotal = totalOps + totalLabor;
+    final bonusPct = bonusItem.isNotEmpty ? bonusItem.first.amount : 0.0;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -82,6 +84,10 @@ class _OperationalCostPageState extends ConsumerState<OperationalCostPage> {
           ),
           const SizedBox(height: 20),
 
+          // Bonus allocation section
+          _buildBonusSection(bonusItem.isNotEmpty ? bonusItem.first : null, bonusPct),
+          const SizedBox(height: 20),
+
           // Info box
           Container(
             padding: const EdgeInsets.all(16),
@@ -96,7 +102,7 @@ class _OperationalCostPageState extends ConsumerState<OperationalCostPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Total biaya bulanan akan otomatis dihitung ke HPP per porsi berdasarkan jumlah penjualan. Rumus: Overhead/porsi = Total Biaya Bulanan \u00f7 Total Porsi Terjual.',
+                    'Total biaya bulanan akan otomatis dihitung ke HPP per porsi berdasarkan jumlah penjualan. Bonus dihitung dari laba bersih (Pendapatan - HPP Bahan - Biaya Operasional).',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppTheme.textSecondary,
@@ -109,6 +115,68 @@ class _OperationalCostPageState extends ConsumerState<OperationalCostPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBonusSection(OperationalCost? bonusItem, double bonusPct) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.card_giftcard_rounded, size: 20, color: AppTheme.warningColor),
+            const SizedBox(width: 8),
+            Text(
+              'Alokasi Bonus Karyawan',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Persentase dari Laba Bersih',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Jika laba bersih positif, sekian persen akan dialokasikan sebagai bonus',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                _BonusPercentInput(
+                  currentValue: bonusPct,
+                  onChanged: bonusItem != null
+                      ? (val) => _updateCost(bonusItem.id, val)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -554,6 +622,126 @@ class _CostItemTileState extends State<_CostItemTile> {
             padding: EdgeInsets.zero,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Bonus percent input widget
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _BonusPercentInput extends StatefulWidget {
+  final double currentValue;
+  final void Function(double)? onChanged;
+
+  const _BonusPercentInput({
+    required this.currentValue,
+    this.onChanged,
+  });
+
+  @override
+  State<_BonusPercentInput> createState() => _BonusPercentInputState();
+}
+
+class _BonusPercentInputState extends State<_BonusPercentInput> {
+  bool _editing = false;
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.currentValue.toStringAsFixed(0),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_BonusPercentInput old) {
+    super.didUpdateWidget(old);
+    if (!_editing) {
+      _controller.text = widget.currentValue.toStringAsFixed(0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final val = double.tryParse(_controller.text.trim()) ?? 0;
+    final clamped = val.clamp(0, 100).toDouble();
+    widget.onChanged?.call(clamped);
+    setState(() => _editing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_editing) {
+      return SizedBox(
+        width: 120,
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  isDense: true,
+                  suffixText: '%',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onSubmitted: (_) => _save(),
+              ),
+            ),
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: _save,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.successColor,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.check, size: 16, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: widget.onChanged != null ? () => setState(() => _editing = true) : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.warningColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${widget.currentValue.toStringAsFixed(0)}%',
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.warningColor,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.edit_outlined, size: 14, color: AppTheme.warningColor),
+          ],
+        ),
       ),
     );
   }

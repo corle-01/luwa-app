@@ -282,10 +282,13 @@ class _HppReportPageState extends ConsumerState<HppReportPage> {
 
   Widget _buildSummaryCards(HppSummary summary) {
     final opCostAsync = ref.watch(totalMonthlyCostProvider);
+    final bonusPctAsync = ref.watch(bonusPercentageProvider);
     final totalOpCost = opCostAsync.valueOrNull ?? 0.0;
+    final bonusPct = bonusPctAsync.valueOrNull ?? 0.0;
     final totalQty = summary.items.fold<int>(0, (s, i) => s + i.qtySold);
     final overheadPerPortion = totalQty > 0 ? totalOpCost / totalQty : 0.0;
     final netProfit = summary.grossProfit - totalOpCost;
+    final bonusAmount = netProfit > 0 ? netProfit * (bonusPct / 100) : 0.0;
 
     return Wrap(
       spacing: 12,
@@ -321,6 +324,13 @@ class _HppReportPageState extends ConsumerState<HppReportPage> {
           title: 'Laba Bersih',
           value: FormatUtils.currency(netProfit),
         ),
+        if (bonusPct > 0)
+          _summaryCard(
+            icon: Icons.card_giftcard,
+            iconColor: AppTheme.warningColor,
+            title: 'Bonus (${bonusPct.toStringAsFixed(0)}%)',
+            value: FormatUtils.currency(bonusAmount),
+          ),
         _summaryCard(
           icon: Icons.percent,
           iconColor: AppTheme.aiPrimary,

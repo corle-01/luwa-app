@@ -54,19 +54,30 @@ class OperationalCostRepository {
         .eq('id', id);
   }
 
-  /// Get total monthly costs (for HPP calculation)
+  /// Get total monthly costs (for HPP calculation) — excludes bonus row
   Future<double> getTotalMonthlyCost(String outletId) async {
     final costs = await getCosts(outletId);
-    return costs.fold(0.0, (sum, c) => sum + c.amount);
+    return costs
+        .where((c) => c.category != 'bonus')
+        .fold(0.0, (sum, c) => sum + c.amount);
   }
 
-  /// Get costs grouped by category
+  /// Get costs grouped by category — excludes bonus row
   Future<Map<String, double>> getCostsByCategory(String outletId) async {
     final costs = await getCosts(outletId);
     final map = <String, double>{};
     for (final c in costs) {
+      if (c.category == 'bonus') continue;
       map[c.category] = (map[c.category] ?? 0) + c.amount;
     }
     return map;
+  }
+
+  /// Get bonus percentage (stored as amount in category='bonus')
+  Future<double> getBonusPercentage(String outletId) async {
+    final costs = await getCosts(outletId);
+    final bonus = costs.where((c) => c.category == 'bonus').toList();
+    if (bonus.isEmpty) return 0;
+    return bonus.first.amount;
   }
 }

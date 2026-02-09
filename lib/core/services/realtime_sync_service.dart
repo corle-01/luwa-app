@@ -132,6 +132,7 @@ final realtimeSyncProvider = Provider<void>((ref) {
       ref.invalidate(operationalCostsProvider);
       ref.invalidate(totalMonthlyCostProvider);
       ref.invalidate(costsByCategoryProvider);
+      ref.invalidate(bonusPercentageProvider);
     }),
   );
 
