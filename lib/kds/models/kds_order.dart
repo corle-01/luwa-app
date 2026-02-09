@@ -30,7 +30,9 @@ class KdsOrder {
       id: json['id'] as String,
       orderNumber: json['order_number'] as String?,
       orderType: json['order_type'] as String? ?? 'dine_in',
-      tableNumber: json['table_number'] as int?,
+      tableNumber: json['table_number'] is int
+          ? json['table_number'] as int
+          : int.tryParse(json['table_number']?.toString() ?? ''),
       customerName: json['customer_name'] as String?,
       kitchenStatus: json['kitchen_status'] as String? ?? 'waiting',
       notes: json['notes'] as String?,
@@ -112,7 +114,12 @@ class KdsOrderItem {
   String get modifierSummary {
     if (!hasModifiers) return '';
     return modifiers!
-        .map((m) => m['option_name'] as String? ?? '')
+        .map((m) =>
+            m['option_name'] as String? ??
+            m['option'] as String? ??
+            m['name'] as String? ??
+            m['modifier_name'] as String? ??
+            '')
         .where((s) => s.isNotEmpty)
         .join(', ');
   }

@@ -12,9 +12,10 @@ class KdsRepository {
     final startOfDay = DateTime(today.year, today.month, today.day);
 
     // Get orders that are completed (paid) and kitchen_status is NOT 'served'
+    // Single query with joins: orders + order_items + tables (fixes N+1 pattern)
     final ordersResponse = await _supabase
         .from('orders')
-        .select()
+        .select('*, order_items(*), tables(table_number)')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
         .neq('kitchen_status', 'served')
@@ -23,18 +24,19 @@ class KdsRepository {
 
     final orders = <KdsOrder>[];
     for (final orderJson in ordersResponse as List) {
-      final orderId = orderJson['id'] as String;
-
-      final itemsResponse = await _supabase
-          .from('order_items')
-          .select()
-          .eq('order_id', orderId);
-
-      final items = (itemsResponse as List)
-          .map((j) => KdsOrderItem.fromJson(j))
+      final itemsList = orderJson['order_items'] as List? ?? [];
+      final items = itemsList
+          .map((j) => KdsOrderItem.fromJson(Map<String, dynamic>.from(j)))
           .toList();
 
-      orders.add(KdsOrder.fromJson(orderJson, items));
+      // Extract table_number from joined tables data
+      final tableData = orderJson['tables'] as Map<String, dynamic>?;
+      final enrichedJson = Map<String, dynamic>.from(orderJson);
+      if (tableData != null) {
+        enrichedJson['table_number'] = tableData['table_number'];
+      }
+
+      orders.add(KdsOrder.fromJson(enrichedJson, items));
     }
 
     return orders;
@@ -73,11 +75,39 @@ class KdsRepository {
   }
 
   /// Mark the entire order as served (removes from KDS view).
+  /// Also releases the table back to 'available' if it was a dine-in order.
   Future<void> markOrderServed(String orderId) async {
+    // Get order to check for table_id before updating
+    final order = await _supabase
+        .from('orders')
+        .select('table_id')
+        .eq('id', orderId)
+        .maybeSingle();
+
     await _supabase.from('orders').update({
       'kitchen_status': 'served',
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', orderId);
+
+    // Release table if this was a dine-in order
+    final tableId = order?['table_id'] as String?;
+    if (tableId != null) {
+      // Only release if no other active orders on this table
+      final otherOrders = await _supabase
+          .from('orders')
+          .select('id')
+          .eq('table_id', tableId)
+          .inFilter('status', ['pending', 'completed'])
+          .neq('kitchen_status', 'served')
+          .neq('id', orderId)
+          .limit(1);
+      if ((otherOrders as List).isEmpty) {
+        await _supabase.from('tables').update({
+          'status': 'available',
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', tableId);
+      }
+    }
   }
 
   /// Recall an order: reset all items back to 'pending'.

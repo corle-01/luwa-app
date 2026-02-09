@@ -56,7 +56,7 @@ bool showBrowserNotification(String title, String body) {
       title,
       web.NotificationOptions(
         body: body,
-        icon: '/icons/Icon-192.png',
+        icon: 'icons/Icon-192.png',
         tag: 'order-ready',
         requireInteraction: true,
       ),
