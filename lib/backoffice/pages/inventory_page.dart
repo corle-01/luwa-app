@@ -565,18 +565,26 @@ class _IngredientsTable extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    ingredient.name,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          ingredient.name,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      _CategoryBadge(category: ingredient.category),
+                    ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
-                    '${ingredient.unit} \u2022 ${FormatUtils.currency(ingredient.costPerUnit)}/${ingredient.unit}${ingredient.supplierName != null ? ' \u2022 ${ingredient.supplierName}' : ''}',
+                    '${FormatUtils.currency(ingredient.costPerUnit)}/${ingredient.unit}${ingredient.supplierName != null ? ' \u2022 ${ingredient.supplierName}' : ''}',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppTheme.textTertiary,
@@ -606,8 +614,8 @@ class _IngredientsTable extends StatelessWidget {
                 _StatusBadge(ingredient: ingredient),
               ],
             ),
-            const SizedBox(width: 8),
-            Icon(Icons.tune, size: 20, color: AppTheme.textTertiary),
+            const SizedBox(width: 6),
+            Icon(Icons.tune, size: 18, color: AppTheme.textTertiary),
           ],
         ),
       ),
@@ -989,6 +997,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: Row(
         children: [
           const Icon(Icons.tune, size: 22),
@@ -998,7 +1007,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Sesuaikan Stok',
+                  'Sesuaikan Stok & Harga',
                   style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -1018,15 +1027,16 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
         ],
       ),
       content: SizedBox(
-        width: 420,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Current stock info
-              Container(
+        width: MediaQuery.of(context).size.width > 500 ? 420 : double.maxFinite,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Current stock info
+                Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppTheme.backgroundColor,
@@ -1218,6 +1228,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
             ],
           ),
         ),
+        ),
       ),
       actions: [
         TextButton(
@@ -1357,6 +1368,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: Row(
         children: [
           const Icon(Icons.add_circle_outline, size: 22),
@@ -1371,14 +1383,15 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
         ],
       ),
       content: SizedBox(
-        width: 420,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
+        width: MediaQuery.of(context).size.width > 500 ? 420 : double.maxFinite,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Nama Bahan *',
                   prefixIcon: Icon(Icons.inventory_2_outlined),
@@ -1484,6 +1497,7 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
               ),
             ],
           ),
+        ),
         ),
       ),
       actions: [
