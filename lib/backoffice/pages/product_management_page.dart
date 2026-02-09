@@ -2330,7 +2330,12 @@ class _RecipeItemInlineDialogState extends State<_RecipeItemInlineDialog> {
                   final ing = match.first;
                   final qty =
                       double.tryParse(_quantityController.text.trim()) ?? 0;
-                  final subtotal = qty * ing.costPerUnit;
+                  final recipeUnit = _unitController.text.trim();
+                  final factor = RecipeItem.unitConversionFactor(
+                    recipeUnit.isEmpty ? ing.unit : recipeUnit,
+                    ing.unit,
+                  );
+                  final subtotal = qty * factor * ing.costPerUnit;
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -2651,6 +2656,7 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   String? _selectedColor;
+  String _selectedStation = 'kitchen';
   bool _saving = false;
 
   static const _presetColors = [
@@ -2742,6 +2748,38 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+
+              // Station selector (Kitchen / Bar)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Station (Tiket Dapur)',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(
+                    value: 'kitchen',
+                    label: Text('Kitchen'),
+                    icon: Icon(Icons.restaurant, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: 'bar',
+                    label: Text('Bar'),
+                    icon: Icon(Icons.local_bar, size: 16),
+                  ),
+                ],
+                selected: {_selectedStation},
+                onSelectionChanged: (v) =>
+                    setState(() => _selectedStation = v.first),
+              ),
             ],
           ),
         ),
@@ -2779,6 +2817,7 @@ class _CategoryFormDialogState extends State<_CategoryFormDialog> {
         outletId: widget.outletId,
         name: _nameController.text.trim(),
         color: _selectedColor,
+        station: _selectedStation,
       );
 
       widget.onSaved();
@@ -2880,6 +2919,21 @@ class _ManageCategoriesDialogState extends State<_ManageCategoriesDialog> {
                         ),
                         title: Text(cat.name,
                             style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                        subtitle: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              cat.station == 'bar' ? Icons.local_bar : Icons.restaurant,
+                              size: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              cat.station == 'bar' ? 'Bar' : 'Kitchen',
+                              style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textSecondary),
+                            ),
+                          ],
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -2930,50 +2984,88 @@ class _ManageCategoriesDialogState extends State<_ManageCategoriesDialog> {
 
   void _editCategory(CategoryModel cat) {
     final nameController = TextEditingController(text: cat.name);
+    String editStation = cat.station;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Kategori'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Nama Kategori',
-            prefixIcon: Icon(Icons.category),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Edit Kategori'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nama Kategori',
+                  prefixIcon: Icon(Icons.category),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Station',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(
+                    value: 'kitchen',
+                    label: Text('Kitchen'),
+                    icon: Icon(Icons.restaurant, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: 'bar',
+                    label: Text('Bar'),
+                    icon: Icon(Icons.local_bar, size: 16),
+                  ),
+                ],
+                selected: {editStation},
+                onSelectionChanged: (v) =>
+                    setDialogState(() => editStation = v.first),
+              ),
+            ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final newName = nameController.text.trim();
+                if (newName.isEmpty) return;
+                Navigator.pop(ctx);
+                try {
+                  await _repo.updateCategory(cat.id, name: newName, station: editStation);
+                  widget.onChanged();
+                  await _loadCategories();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Kategori berhasil diupdate')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Gagal: $e'),
+                        backgroundColor: AppTheme.errorColor,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final newName = nameController.text.trim();
-              if (newName.isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                await _repo.updateCategory(cat.id, name: newName);
-                widget.onChanged();
-                await _loadCategories();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Kategori berhasil diupdate')),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Gagal: $e'),
-                      backgroundColor: AppTheme.errorColor,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
       ),
     );
   }

@@ -102,6 +102,7 @@ class CategoryModel {
   final int sortOrder;
   final bool isActive;
   final bool isFeatured;
+  final String station; // 'kitchen' or 'bar'
 
   CategoryModel({
     required this.id,
@@ -110,6 +111,7 @@ class CategoryModel {
     this.sortOrder = 0,
     this.isActive = true,
     this.isFeatured = false,
+    this.station = 'kitchen',
   });
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
@@ -120,6 +122,7 @@ class CategoryModel {
       sortOrder: json['sort_order'] as int? ?? 0,
       isActive: json['is_active'] as bool? ?? true,
       isFeatured: json['is_featured'] as bool? ?? false,
+      station: json['station'] as String? ?? 'kitchen',
     );
   }
 }
@@ -217,11 +220,13 @@ class ProductRepository {
     required String outletId,
     required String name,
     String? color,
+    String station = 'kitchen',
   }) async {
     await _supabase.from('categories').insert({
       'outlet_id': outletId,
       'name': name,
       'color': color,
+      'station': station,
       'is_active': true,
     });
   }
@@ -231,10 +236,12 @@ class ProductRepository {
     String id, {
     String? name,
     String? color,
+    String? station,
   }) async {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (color != null) data['color'] = color;
+    if (station != null) data['station'] = station;
     await _supabase.from('categories').update(data).eq('id', id);
   }
 

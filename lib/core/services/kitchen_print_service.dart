@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/models/order.dart';
 import '../../pos/widgets/receipt_print_web.dart' if (dart.library.io) '';
@@ -116,6 +117,27 @@ class KitchenPrintService {
   /// All available printers for kitchen selection.
   List<PrinterConfig> get availablePrinters => _printerService.printers;
 
+  /// Look up station ('kitchen' or 'bar') for each product by joining
+  /// products → categories. Returns a map of productId → station.
+  Future<Map<String, String>> _getProductStations(List<String> productIds) async {
+    if (productIds.isEmpty) return {};
+    try {
+      final response = await Supabase.instance.client
+          .from('products')
+          .select('id, categories(station)')
+          .inFilter('id', productIds);
+      final map = <String, String>{};
+      for (final row in response as List) {
+        final id = row['id'] as String;
+        final cat = row['categories'] as Map<String, dynamic>?;
+        map[id] = cat?['station'] as String? ?? 'kitchen';
+      }
+      return map;
+    } catch (_) {
+      return {};
+    }
+  }
+
   /// Print a kitchen ticket for an order.
   Future<bool> printKitchenTicket({
     required String orderNumber,
@@ -128,6 +150,14 @@ class KitchenPrintService {
   }) async {
     final printer = kitchenPrinter;
     if (printer == null) return false;
+
+    // Look up station for each product
+    final productIds = items
+        .map((i) => i.productId)
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+    final stationMap = await _getProductStations(productIds);
 
     // Build kitchen ticket items
     final ticketItems = items.map((item) {
@@ -142,6 +172,7 @@ class KitchenPrintService {
         qty: item.quantity,
         modifiers: mods,
         notes: item.notes,
+        station: stationMap[item.productId] ?? 'kitchen',
       );
     }).toList();
 

@@ -150,6 +150,7 @@ class ProductCategory {
   final String? icon;
   final int sortOrder;
   final bool isFeatured;
+  final String station; // 'kitchen' or 'bar'
 
   ProductCategory({
     required this.id,
@@ -158,6 +159,7 @@ class ProductCategory {
     this.icon,
     this.sortOrder = 0,
     this.isFeatured = false,
+    this.station = 'kitchen',
   });
 
   factory ProductCategory.fromJson(Map<String, dynamic> json) {
@@ -168,6 +170,7 @@ class ProductCategory {
       icon: json['icon'] as String?,
       sortOrder: json['sort_order'] as int? ?? 0,
       isFeatured: json['is_featured'] as bool? ?? false,
+      station: json['station'] as String? ?? 'kitchen',
     );
   }
 }

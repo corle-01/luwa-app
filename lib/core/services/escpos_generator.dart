@@ -391,34 +391,60 @@ class EscPosKitchenTicket {
     }
     _gen.separator('=');
 
-    // ── Items — large, clear ───────────────────────────────────
-    for (var i = 0; i < items.length; i++) {
-      final item = items[i];
+    // ── Items grouped by station (Kitchen / Bar) ──────────────
+    final kitchenItems = items.where((i) => i.station != 'bar').toList();
+    final barItems = items.where((i) => i.station == 'bar').toList();
+    final hasMultipleStations = kitchenItems.isNotEmpty && barItems.isNotEmpty;
 
-      // Quantity + item name in double height
-      _gen.doubleHeight(true);
-      _gen.bold(true);
-      _gen.textLine('${item.qty}x ${item.name}');
-      _gen.bold(false);
-      _gen.doubleHeight(false);
+    void _printItemGroup(List<KitchenTicketItem> group) {
+      for (var i = 0; i < group.length; i++) {
+        final item = group[i];
+        _gen.doubleHeight(true);
+        _gen.bold(true);
+        _gen.textLine('${item.qty}x ${item.name}');
+        _gen.bold(false);
+        _gen.doubleHeight(false);
 
-      // Modifiers
-      if (item.modifiers != null && item.modifiers!.isNotEmpty) {
-        for (final mod in item.modifiers!) {
-          _gen.textLine('  + $mod');
+        if (item.modifiers != null && item.modifiers!.isNotEmpty) {
+          for (final mod in item.modifiers!) {
+            _gen.textLine('  + $mod');
+          }
+        }
+        if (item.notes != null && item.notes!.isNotEmpty) {
+          _gen.bold(true);
+          _gen.textLine('  *** ${item.notes} ***');
+          _gen.bold(false);
+        }
+        if (i < group.length - 1) {
+          _gen.separator('-');
         }
       }
+    }
 
-      // Item notes
-      if (item.notes != null && item.notes!.isNotEmpty) {
-        _gen.bold(true);
-        _gen.textLine('  *** ${item.notes} ***');
-        _gen.bold(false);
-      }
+    if (hasMultipleStations) {
+      // KITCHEN section
+      _gen.alignCenter();
+      _gen.doubleHeight(true);
+      _gen.bold(true);
+      _gen.textLine('[ KITCHEN ]');
+      _gen.bold(false);
+      _gen.doubleHeight(false);
+      _gen.alignLeft();
+      _printItemGroup(kitchenItems);
+      _gen.separator('=');
 
-      if (i < items.length - 1) {
-        _gen.separator('-');
-      }
+      // BAR section
+      _gen.alignCenter();
+      _gen.doubleHeight(true);
+      _gen.bold(true);
+      _gen.textLine('[ BAR ]');
+      _gen.bold(false);
+      _gen.doubleHeight(false);
+      _gen.alignLeft();
+      _printItemGroup(barItems);
+    } else {
+      // Single station — no section headers needed
+      _printItemGroup(items);
     }
     _gen.separator('=');
 
@@ -455,21 +481,40 @@ class EscPosKitchenTicket {
     final dblSep = '=' * (paperWidth == 80 ? 48 : 32);
     final totalItems = items.fold(0, (s, i) => s + i.qty);
 
-    final itemsHtml = StringBuffer();
-    for (var i = 0; i < items.length; i++) {
-      final item = items[i];
-      itemsHtml.write('<div class="item-name">${item.qty}x ${_esc(item.name)}</div>');
-      if (item.modifiers != null) {
-        for (final mod in item.modifiers!) {
-          itemsHtml.write('<div class="mod">+ ${_esc(mod)}</div>');
+    // Group items by station
+    final kitchenItems = items.where((i) => i.station != 'bar').toList();
+    final barItems = items.where((i) => i.station == 'bar').toList();
+    final hasMultipleStations = kitchenItems.isNotEmpty && barItems.isNotEmpty;
+
+    String _buildItemGroupHtml(List<KitchenTicketItem> group) {
+      final buf = StringBuffer();
+      for (var i = 0; i < group.length; i++) {
+        final item = group[i];
+        buf.write('<div class="item-name">${item.qty}x ${_esc(item.name)}</div>');
+        if (item.modifiers != null) {
+          for (final mod in item.modifiers!) {
+            buf.write('<div class="mod">+ ${_esc(mod)}</div>');
+          }
+        }
+        if (item.notes != null && item.notes!.isNotEmpty) {
+          buf.write('<div class="item-note">*** ${_esc(item.notes!)} ***</div>');
+        }
+        if (i < group.length - 1) {
+          buf.write('<div class="sep">$sep</div>');
         }
       }
-      if (item.notes != null && item.notes!.isNotEmpty) {
-        itemsHtml.write('<div class="item-note">*** ${_esc(item.notes!)} ***</div>');
-      }
-      if (i < items.length - 1) {
-        itemsHtml.write('<div class="sep">$sep</div>');
-      }
+      return buf.toString();
+    }
+
+    final itemsHtml = StringBuffer();
+    if (hasMultipleStations) {
+      itemsHtml.write('<div class="station-header">[ KITCHEN ]</div>');
+      itemsHtml.write(_buildItemGroupHtml(kitchenItems));
+      itemsHtml.write('<div class="sep">$dblSep</div>');
+      itemsHtml.write('<div class="station-header">[ BAR ]</div>');
+      itemsHtml.write(_buildItemGroupHtml(barItems));
+    } else {
+      itemsHtml.write(_buildItemGroupHtml(items));
     }
 
     return '''
@@ -491,6 +536,7 @@ class EscPosKitchenTicket {
   .item-name { font-size: 18px; font-weight: bold; margin-top: 6px; }
   .mod { font-size: 13px; padding-left: 12px; }
   .item-note { font-size: 14px; font-weight: bold; padding-left: 12px; color: #333; }
+  .station-header { font-size: 20px; font-weight: bold; text-align: center; margin: 8px 0 4px 0; letter-spacing: 2px; }
   .notes-section { margin-top: 4px; }
   @media print { body { padding: 0; margin: 0; } .ticket { padding: 0 4px; } }
 </style>
@@ -540,12 +586,14 @@ class KitchenTicketItem {
   final int qty;
   final List<String>? modifiers;
   final String? notes;
+  final String station; // 'kitchen' or 'bar'
 
   const KitchenTicketItem({
     required this.name,
     required this.qty,
     this.modifiers,
     this.notes,
+    this.station = 'kitchen',
   });
 }
 

@@ -36,6 +36,18 @@ class GeminiService {
   static const _model = 'deepseek-chat';
   static const _baseUrl = 'https://api.deepseek.com';
 
+  /// Use Edge Function proxy if Supabase URL is configured (keeps API key server-side).
+  /// Falls back to direct DeepSeek API if proxy unavailable.
+  static String get _proxyUrl {
+    final supabaseUrl = AppConfig.supabaseUrl;
+    if (supabaseUrl.isNotEmpty) {
+      return '$supabaseUrl/functions/v1/ai-proxy';
+    }
+    return '';
+  }
+
+  static bool get _useProxy => _proxyUrl.isNotEmpty;
+
   final AiContextBuilder _contextBuilder;
   final http.Client _httpClient;
 
@@ -225,12 +237,13 @@ class GeminiService {
     );
   }
 
-  /// Make a single API call to DeepSeek
+  /// Make a single API call to DeepSeek (via proxy if available, direct otherwise)
   Future<_DeepSeekRawResponse> _callDeepSeek({
     required List<Map<String, dynamic>> messages,
     required List<Map<String, dynamic>> tools,
   }) async {
-    const url = '$_baseUrl/chat/completions';
+    final useProxy = _useProxy;
+    final url = useProxy ? _proxyUrl : '$_baseUrl/chat/completions';
 
     final body = {
       'model': _model,
@@ -240,16 +253,24 @@ class GeminiService {
       'max_tokens': 2048,
     };
 
+    // Build headers: proxy uses Supabase anon key, direct uses DeepSeek API key
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    if (useProxy) {
+      headers['apikey'] = AppConfig.supabaseAnonKey;
+      headers['Authorization'] = 'Bearer ${AppConfig.supabaseAnonKey}';
+    } else {
+      headers['Authorization'] = 'Bearer $_apiKey';
+    }
+
     // Retry with backoff for rate limiting (429)
     http.Response? response;
     for (int attempt = 0; attempt < 3; attempt++) {
       response = await _httpClient
           .post(
             Uri.parse(url),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $_apiKey',
-            },
+            headers: headers,
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 120));

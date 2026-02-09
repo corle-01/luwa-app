@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/date_utils.dart';
 
 class RecipeItem {
   final String id;
@@ -25,7 +26,29 @@ class RecipeItem {
     required this.costPerUnit,
   });
 
-  double get totalCost => quantity * costPerUnit;
+  /// Cost with unit conversion: recipe unit → ingredient unit
+  double get totalCost => quantity * unitConversionFactor(unit, ingredientUnit) * costPerUnit;
+
+  /// Returns a conversion factor to convert recipe quantity to ingredient's base unit.
+  /// Public so UI cost previews can use the same logic.
+  static double unitConversionFactor(String recipeUnit, String ingredientUnit) {
+    final from = recipeUnit.toLowerCase();
+    final to = ingredientUnit.toLowerCase();
+    if (from == to) return 1;
+
+    // Weight
+    if ((from == 'gram' || from == 'g') && to == 'kg') return 0.001;
+    if (from == 'kg' && (to == 'gram' || to == 'g')) return 1000;
+    if (from == 'mg' && (to == 'gram' || to == 'g')) return 0.001;
+    if (from == 'mg' && to == 'kg') return 0.000001;
+    if ((from == 'gram' || from == 'g') && to == 'mg') return 1000;
+
+    // Volume
+    if (from == 'ml' && (to == 'liter' || to == 'l')) return 0.001;
+    if ((from == 'liter' || from == 'l') && to == 'ml') return 1000;
+
+    return 1; // Unknown → 1:1
+  }
 
   factory RecipeItem.fromJson(Map<String, dynamic> json) {
     final product = json['products'] as Map<String, dynamic>? ?? {};
@@ -191,7 +214,7 @@ class RecipeRepository {
       'quantity': quantity,
       'unit': unit,
       'notes': notes,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTimeUtils.nowUtc(),
     }).eq('id', id);
   }
 

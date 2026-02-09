@@ -75,19 +75,21 @@ class KdsRepository {
   /// Mark the entire order as served (removes from KDS view).
   /// Also releases the table back to 'available' if it was a dine-in order.
   Future<void> markOrderServed(String orderId) async {
-    // Get order to check for table_id before updating
-    final order = await _supabase
-        .from('orders')
-        .select('table_id')
-        .eq('id', orderId)
-        .maybeSingle();
-
-    await _supabase.from('orders').update({
-      'kitchen_status': 'served',
-      'updated_at': DateTimeUtils.nowUtc(),
-    }).eq('id', orderId);
+    // Parallel: read table_id AND update status at the same time
+    final results = await Future.wait([
+      _supabase
+          .from('orders')
+          .select('table_id')
+          .eq('id', orderId)
+          .maybeSingle(),
+      _supabase.from('orders').update({
+        'kitchen_status': 'served',
+        'updated_at': DateTimeUtils.nowUtc(),
+      }).eq('id', orderId),
+    ]);
 
     // Release table if this was a dine-in order
+    final order = results[0] as Map<String, dynamic>?;
     final tableId = order?['table_id'] as String?;
     if (tableId != null) {
       // Only release if no other active orders on this table

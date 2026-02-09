@@ -1037,7 +1037,12 @@ class _RecipeItemFormDialogState extends State<_RecipeItemFormDialog> {
     final ingredient = selected.first;
     final qtyText = _quantityController.text.trim();
     final qty = double.tryParse(qtyText) ?? 0;
-    final subtotal = qty * ingredient.costPerUnit;
+    final recipeUnit = _unitController.text.trim();
+    final factor = RecipeItem.unitConversionFactor(
+      recipeUnit.isEmpty ? ingredient.unit : recipeUnit,
+      ingredient.unit,
+    );
+    final subtotal = qty * factor * ingredient.costPerUnit;
 
     return Container(
       padding: const EdgeInsets.all(12),

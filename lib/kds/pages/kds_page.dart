@@ -909,10 +909,21 @@ class _CardItemsList extends ConsumerWidget {
 // Single Item Row — with tappable status badge
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ItemRow extends ConsumerWidget {
+class _ItemRow extends ConsumerStatefulWidget {
   final KdsOrderItem item;
 
   const _ItemRow({required this.item});
+
+  @override
+  ConsumerState<_ItemRow> createState() => _ItemRowState();
+}
+
+class _ItemRowState extends ConsumerState<_ItemRow> {
+  bool _updating = false;
+  /// Optimistic next status shown instantly while network call runs.
+  String? _optimisticStatus;
+
+  KdsOrderItem get item => widget.item;
 
   String _statusLabel(String status) {
     switch (status) {
@@ -976,27 +987,39 @@ class _ItemRow extends ConsumerWidget {
     }
   }
 
-  Future<void> _onTapStatus(WidgetRef ref) async {
-    if (item.kitchenStatus == 'ready') return; // Already done
+  Future<void> _onTapStatus() async {
+    final currentStatus = _optimisticStatus ?? item.kitchenStatus;
+    if (currentStatus == 'ready' || _updating) return;
 
-    final next = _nextStatus(item.kitchenStatus);
+    final next = _nextStatus(currentStatus);
+
+    // Optimistic: show new status instantly
+    setState(() {
+      _updating = true;
+      _optimisticStatus = next;
+    });
+
     try {
       final repo = ref.read(kdsRepositoryProvider);
       await repo.updateItemStatus(item.id, next);
       ref.invalidate(kdsOrdersProvider);
     } catch (e) {
-      // Silently handle — kitchen display should not show error dialogs
+      // Revert optimistic update on failure
+      if (mounted) setState(() => _optimisticStatus = null);
       debugPrint('KDS: Failed to update item status: $e');
+    } finally {
+      if (mounted) setState(() => _updating = false);
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final color = _statusColor(item.kitchenStatus);
-    final bgColor = _statusBgColor(item.kitchenStatus);
-    final label = _statusLabel(item.kitchenStatus);
-    final icon = _statusIcon(item.kitchenStatus);
-    final isTappable = item.kitchenStatus != 'ready';
+  Widget build(BuildContext context) {
+    final displayStatus = _optimisticStatus ?? item.kitchenStatus;
+    final color = _statusColor(displayStatus);
+    final bgColor = _statusBgColor(displayStatus);
+    final label = _statusLabel(displayStatus);
+    final icon = _statusIcon(displayStatus);
+    final isTappable = displayStatus != 'ready';
 
     // Build modifier strings
     final modifierTexts = <String>[];
@@ -1046,7 +1069,7 @@ class _ItemRow extends ConsumerWidget {
 
             // Tappable status badge
             GestureDetector(
-              onTap: isTappable ? () => _onTapStatus(ref) : null,
+              onTap: isTappable ? _onTapStatus : null,
               child: MouseRegion(
                 cursor: isTappable
                     ? SystemMouseCursors.click
@@ -1216,76 +1239,72 @@ class _CardActionsState extends ConsumerState<_CardActions> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: _loading
-          ? const Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: _KdsColors.textSecondary,
+      child: IgnorePointer(
+        ignoring: _loading,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 150),
+          opacity: _loading ? 0.4 : 1.0,
+          child: Row(
+            children: [
+              // Recall button (icon only)
+              _ActionIconButton(
+                icon: Icons.replay,
+                tooltip: 'Recall',
+                color: _KdsColors.textMuted,
+                onTap: () => _runAction(
+                  () => repo.recallOrder(widget.orderId),
                 ),
               ),
-            )
-          : Row(
-              children: [
-                // Recall button (icon only)
-                _ActionIconButton(
-                  icon: Icons.replay,
-                  tooltip: 'Recall',
-                  color: _KdsColors.textMuted,
+
+              const SizedBox(width: 4),
+
+              // Reprint kitchen ticket
+              _ActionIconButton(
+                icon: Icons.print_rounded,
+                tooltip: 'Cetak Ulang',
+                color: _KdsColors.textMuted,
+                onTap: _reprintTicket,
+              ),
+
+              const Spacer(),
+
+              if (widget.allReady) ...[
+                // Serve button — all items ready
+                _ActionButton(
+                  label: 'Sajikan',
+                  icon: Icons.room_service,
+                  color: _KdsColors.statusServed,
                   onTap: () => _runAction(
-                    () => repo.recallOrder(widget.orderId),
+                    () => repo.markOrderServed(widget.orderId),
+                  ),
+                ),
+              ] else ...[
+                // Start All button
+                _ActionButton(
+                  label: 'Mulai Semua',
+                  icon: Icons.local_fire_department,
+                  color: _KdsColors.statusCooking,
+                  onTap: () => _runAction(
+                    () => repo.startAllItems(widget.orderId),
                   ),
                 ),
 
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
 
-                // Reprint kitchen ticket
-                _ActionIconButton(
-                  icon: Icons.print_rounded,
-                  tooltip: 'Cetak Ulang',
-                  color: _KdsColors.textMuted,
-                  onTap: _reprintTicket,
+                // Complete All button
+                _ActionButton(
+                  label: 'Selesai',
+                  icon: Icons.check_circle_outline,
+                  color: _KdsColors.statusReady,
+                  onTap: () => _runAction(
+                    () => repo.completeAllItems(widget.orderId),
+                  ),
                 ),
-
-                const Spacer(),
-
-                if (widget.allReady) ...[
-                  // Serve button — all items ready
-                  _ActionButton(
-                    label: 'Sajikan',
-                    icon: Icons.room_service,
-                    color: _KdsColors.statusServed,
-                    onTap: () => _runAction(
-                      () => repo.markOrderServed(widget.orderId),
-                    ),
-                  ),
-                ] else ...[
-                  // Start All button
-                  _ActionButton(
-                    label: 'Mulai Semua',
-                    icon: Icons.local_fire_department,
-                    color: _KdsColors.statusCooking,
-                    onTap: () => _runAction(
-                      () => repo.startAllItems(widget.orderId),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // Complete All button
-                  _ActionButton(
-                    label: 'Selesai',
-                    icon: Icons.check_circle_outline,
-                    color: _KdsColors.statusReady,
-                    onTap: () => _runAction(
-                      () => repo.completeAllItems(widget.orderId),
-                    ),
-                  ),
-                ],
               ],
-            ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
