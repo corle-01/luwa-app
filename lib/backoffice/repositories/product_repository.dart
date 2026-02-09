@@ -101,6 +101,7 @@ class CategoryModel {
   final String? color;
   final int sortOrder;
   final bool isActive;
+  final bool isFeatured;
 
   CategoryModel({
     required this.id,
@@ -108,6 +109,7 @@ class CategoryModel {
     this.color,
     this.sortOrder = 0,
     this.isActive = true,
+    this.isFeatured = false,
   });
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
@@ -117,6 +119,7 @@ class CategoryModel {
       color: json['color'] as String?,
       sortOrder: json['sort_order'] as int? ?? 0,
       isActive: json['is_active'] as bool? ?? true,
+      isFeatured: json['is_featured'] as bool? ?? false,
     );
   }
 }

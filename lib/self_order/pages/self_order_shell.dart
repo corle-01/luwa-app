@@ -94,8 +94,10 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
 
                     // ── Utter branding ──
                     Image.asset(
-                      'assets/images/logo_collab_dark_sm.png',
-                      width: 240,
+                      Theme.of(context).brightness == Brightness.dark
+                          ? 'assets/images/logo_collab_light_sm.png'
+                          : 'assets/images/logo_collab_dark_sm.png',
+                      width: (MediaQuery.of(context).size.width * 0.6).clamp(180.0, 360.0),
                       fit: BoxFit.contain,
                     ),
                     const SizedBox(height: 8),
@@ -245,7 +247,9 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
 
                     // ── Footer ──
                     Image.asset(
-                      'assets/images/logo_utter_dark_sm.png',
+                      Theme.of(context).brightness == Brightness.dark
+                          ? 'assets/images/logo_utter_light_sm.png'
+                          : 'assets/images/logo_utter_dark_sm.png',
                       width: 100,
                       fit: BoxFit.contain,
                       opacity: const AlwaysStoppedAnimation(0.4),

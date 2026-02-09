@@ -119,7 +119,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final logoWidth = screenWidth < 400 ? screenWidth * 0.5 : 240.0;
+    final logoWidth = screenWidth < 400 ? screenWidth * 0.65 : screenWidth * 0.3;
+    final clampedLogoWidth = logoWidth.clamp(200.0, 420.0);
 
     return Scaffold(
       body: Container(
@@ -134,7 +135,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: FadeTransition(
             opacity: _fadeIn,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -142,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Image.asset(
                       'assets/images/logo_utter_light.png',
-                      width: logoWidth,
+                      width: clampedLogoWidth,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -186,7 +187,7 @@ class RoleSelectionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final logoWidth = screenWidth < 400 ? screenWidth * 0.45 : 200.0;
+    final logoWidth = (screenWidth < 400 ? screenWidth * 0.6 : screenWidth * 0.25).clamp(180.0, 360.0);
 
     return Scaffold(
       body: Container(
@@ -204,7 +205,9 @@ class RoleSelectionPage extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Image.asset(
-                      'assets/images/logo_utter_dark.png',
+                      Theme.of(context).brightness == Brightness.dark
+                          ? 'assets/images/logo_utter_light.png'
+                          : 'assets/images/logo_utter_dark.png',
                       width: logoWidth,
                       fit: BoxFit.contain,
                     ),
@@ -249,7 +252,9 @@ class RoleSelectionPage extends StatelessWidget {
 
                   const SizedBox(height: 32),
                   Image.asset(
-                    'assets/images/logo_collab_dark_sm.png',
+                    Theme.of(context).brightness == Brightness.dark
+                        ? 'assets/images/logo_collab_light_sm.png'
+                        : 'assets/images/logo_collab_dark_sm.png',
                     width: 180,
                     fit: BoxFit.contain,
                   ),

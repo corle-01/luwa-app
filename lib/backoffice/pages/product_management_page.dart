@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/product_image.dart';
 import '../../core/services/image_upload_service.dart';
 import '../../shared/themes/app_theme.dart';
@@ -914,6 +915,11 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
   Set<String> _assignedGroupIds = {};
   bool _loadingModifiers = false;
 
+  // Featured category assignments
+  List<CategoryModel> _featuredCategories = [];
+  Set<String> _assignedFeaturedIds = {};
+  bool _loadingFeatured = false;
+
   bool get _isEditing => widget.product != null;
 
   @override
@@ -936,6 +942,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     _selectedCategoryId = widget.product?.categoryId;
     _loadCategories();
     _loadModifierGroups();
+    _loadFeaturedCategories();
 
     // Load existing images if editing
     if (_isEditing) {
@@ -1132,6 +1139,69 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     }
   }
 
+  Future<void> _loadFeaturedCategories() async {
+    setState(() => _loadingFeatured = true);
+    try {
+      final repo = ProductRepository();
+      final allCats = await repo.getCategories(widget.outletId);
+      final featured = allCats.where((c) => c.isFeatured).toList();
+
+      Set<String> assigned = {};
+      if (_isEditing) {
+        final supabase = Supabase.instance.client;
+        final res = await supabase
+            .from('product_featured_categories')
+            .select('featured_category_id')
+            .eq('product_id', widget.product!.id);
+        assigned = (res as List)
+            .map((r) => r['featured_category_id'] as String)
+            .toSet();
+      }
+
+      if (mounted) {
+        setState(() {
+          _featuredCategories = featured;
+          _assignedFeaturedIds = assigned;
+          _loadingFeatured = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingFeatured = false);
+    }
+  }
+
+  Future<void> _toggleFeaturedCategory(String categoryId, bool assign) async {
+    if (!_isEditing) return;
+    try {
+      final supabase = Supabase.instance.client;
+      if (assign) {
+        await supabase.from('product_featured_categories').insert({
+          'product_id': widget.product!.id,
+          'featured_category_id': categoryId,
+        });
+      } else {
+        await supabase
+            .from('product_featured_categories')
+            .delete()
+            .eq('product_id', widget.product!.id)
+            .eq('featured_category_id', categoryId);
+      }
+      setState(() {
+        if (assign) {
+          _assignedFeaturedIds.add(categoryId);
+        } else {
+          _assignedFeaturedIds.remove(categoryId);
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: AppTheme.errorColor),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -1165,13 +1235,13 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
               ),
               const SizedBox(height: 12),
 
-              // Category dropdown
+              // Category dropdown (exclude featured — those are tags, not primary)
               _loadingCategories
                   ? const LinearProgressIndicator()
                   : DropdownButtonFormField<String>(
                       value: _selectedCategoryId,
                       decoration: const InputDecoration(
-                        labelText: 'Kategori',
+                        labelText: 'Kategori Utama',
                         prefixIcon: Icon(Icons.category),
                       ),
                       items: [
@@ -1179,7 +1249,9 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                           value: null,
                           child: Text('Tanpa Kategori'),
                         ),
-                        ..._categories.map(
+                        ..._categories
+                            .where((c) => !c.isFeatured)
+                            .map(
                           (c) => DropdownMenuItem(
                             value: c.id,
                             child: Text(c.name),
@@ -1243,6 +1315,77 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                 ),
                 maxLines: 2,
               ),
+
+              // ── Featured categories section ──────────────
+              if (_featuredCategories.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.star_rounded,
+                        size: 20, color: AppTheme.accentColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Kategori Khusus',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (!_isEditing)
+                      Text(
+                        'Simpan produk dulu',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Produk akan muncul di tab ini selain kategori utamanya',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppTheme.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (_loadingFeatured)
+                  const LinearProgressIndicator()
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _featuredCategories.map((cat) {
+                      final isAssigned = _assignedFeaturedIds.contains(cat.id);
+                      return FilterChip(
+                        selected: isAssigned,
+                        onSelected: _isEditing
+                            ? (v) => _toggleFeaturedCategory(cat.id, v)
+                            : null,
+                        label: Text(cat.name),
+                        avatar: Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: isAssigned
+                              ? Colors.white
+                              : AppTheme.accentColor,
+                        ),
+                        selectedColor: AppTheme.accentColor,
+                        checkmarkColor: Colors.white,
+                        labelStyle: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: isAssigned ? Colors.white : AppTheme.textPrimary,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+              ],
 
               // ── Modifier section ─────────────────────────
               if (_allModifierGroups.isNotEmpty) ...[

@@ -42,8 +42,27 @@ final selfOrderMenuProvider =
 
 // ---------------------------------------------------------------------------
 // Selected category for filtering (null = show all)
+// Uses category name for regular categories, category ID for featured
 // ---------------------------------------------------------------------------
 final selfOrderSelectedCategoryProvider = StateProvider<String?>((ref) => null);
+
+/// Whether the currently selected category is a featured category
+final _selfOrderSelectedIsFeaturedProvider = Provider<bool>((ref) {
+  final selected = ref.watch(selfOrderSelectedCategoryProvider);
+  if (selected == null) return false;
+  final categories = ref.watch(selfOrderCategoriesProvider).valueOrNull ?? [];
+  return categories.any((c) => c['name'] == selected && c['is_featured'] == true);
+});
+
+/// The ID of the currently selected featured category (or null)
+final _selfOrderSelectedFeaturedIdProvider = Provider<String?>((ref) {
+  final selected = ref.watch(selfOrderSelectedCategoryProvider);
+  final isFeatured = ref.watch(_selfOrderSelectedIsFeaturedProvider);
+  if (!isFeatured || selected == null) return null;
+  final categories = ref.watch(selfOrderCategoriesProvider).valueOrNull ?? [];
+  final match = categories.where((c) => c['name'] == selected).toList();
+  return match.isNotEmpty ? match.first['id'] as String? : null;
+});
 
 // ---------------------------------------------------------------------------
 // Filtered products based on selected category
@@ -52,12 +71,24 @@ final selfOrderFilteredProductsProvider =
     Provider<AsyncValue<List<Map<String, dynamic>>>>((ref) {
   final menuAsync = ref.watch(selfOrderMenuProvider);
   final selectedCategory = ref.watch(selfOrderSelectedCategoryProvider);
+  final isFeatured = ref.watch(_selfOrderSelectedIsFeaturedProvider);
+  final featuredId = ref.watch(_selfOrderSelectedFeaturedIdProvider);
 
   return menuAsync.whenData((grouped) {
     if (selectedCategory == null) {
-      // Return all products flattened
       return grouped.values.expand((list) => list).toList();
     }
+
+    if (isFeatured && featuredId != null) {
+      // Filter by junction table: products tagged with this featured category
+      final allProducts = grouped.values.expand((list) => list).toList();
+      return allProducts.where((p) {
+        final pfc = p['product_featured_categories'];
+        if (pfc is! List) return false;
+        return pfc.any((tag) => tag['featured_category_id'] == featuredId);
+      }).toList();
+    }
+
     return grouped[selectedCategory] ?? [];
   });
 });

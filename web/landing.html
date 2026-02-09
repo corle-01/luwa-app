@@ -141,6 +141,24 @@
       color: #94A3B8;
     }
 
+    /* Dark mode */
+    @media (prefers-color-scheme: dark) {
+      body { background: #0F172A; }
+      .card { background: #1E293B; border-color: #334155; }
+      .card h3 { color: #F1F5F9; }
+      .card p { color: #94A3B8; }
+      .slogan { color: #94A3B8; }
+      .version { color: #64748B; }
+      .logo-dark { display: none; }
+      .logo-light { display: inline; }
+      .collab-dark { display: none; }
+      .collab-light { display: inline; }
+    }
+    @media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
+      .logo-light { display: none; }
+      .collab-light { display: none; }
+    }
+
     @media (max-width: 740px) {
       .cards {
         grid-template-columns: 1fr;
@@ -158,7 +176,8 @@
 </head>
 <body>
   <div class="container">
-    <img src="assets/images/logo_utter_dark.png" class="logo" alt="Utter">
+    <img src="assets/images/logo_utter_dark.png" class="logo logo-dark" alt="Utter">
+    <img src="assets/images/logo_utter_light.png" class="logo logo-light" alt="Utter">
     <p class="slogan">Pilih mode untuk masuk</p>
 
     <div class="cards">
@@ -200,7 +219,8 @@
     </div>
 
     <div class="footer">
-      <img src="assets/images/logo_collab_dark_sm.png" class="collab-logo" alt="Utter x IXON">
+      <img src="assets/images/logo_collab_dark_sm.png" class="collab-logo collab-dark" alt="Utter x IXON">
+      <img src="assets/images/logo_collab_light_sm.png" class="collab-logo collab-light" alt="Utter x IXON">
       <p class="version">v1.0.0</p>
     </div>
   </div>

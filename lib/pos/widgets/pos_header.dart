@@ -67,8 +67,10 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
               // Utter logo
               if (!isMobile)
                 Image.asset(
-                  'assets/images/logo_utter_dark_sm.png',
-                  height: 24,
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'assets/images/logo_utter_light_sm.png'
+                      : 'assets/images/logo_utter_dark_sm.png',
+                  height: 28,
                   fit: BoxFit.contain,
                 ),
               if (!isMobile) const SizedBox(width: 16),

@@ -139,38 +139,15 @@ class _SelfOrderMenuPageState extends ConsumerState<SelfOrderMenuPage>
         children: [
           Row(
             children: [
-              // Outlet logo
+              // Collab logo only
               Image.asset(
-                'assets/images/logo_utter_dark_sm.png',
-                height: 32,
+                Theme.of(context).brightness == Brightness.dark
+                    ? 'assets/images/logo_collab_light_sm.png'
+                    : 'assets/images/logo_collab_dark_sm.png',
+                height: 36,
                 fit: BoxFit.contain,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Utter Cafe',
-                      style: GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Menu & Pesan Sendiri',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppTheme.textTertiary,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const Spacer(),
               // Table badge
               if (tableNumber != null)
                 Container(
@@ -324,35 +301,60 @@ class _SelfOrderMenuPageState extends ConsumerState<SelfOrderMenuPage>
       ),
       error: (_, __) => const SizedBox.shrink(),
       data: (categories) {
+        final featured = categories.where((c) => c['is_featured'] == true).toList();
+        final regular = categories.where((c) => c['is_featured'] != true).toList();
+
+        // Build ordered list: featured → Semua → regular
+        final chips = <Widget>[
+          ...featured.map((cat) {
+            final name = cat['name'] as String? ?? '';
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _CategoryChip(
+                label: name,
+                isSelected: selectedCategory == name,
+                isFeatured: true,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(selfOrderSelectedCategoryProvider.notifier).state = name;
+                },
+              ),
+            );
+          }),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: _CategoryChip(
+              label: 'Semua',
+              isSelected: selectedCategory == null,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                ref.read(selfOrderSelectedCategoryProvider.notifier).state = null;
+              },
+            ),
+          ),
+          ...regular.map((cat) {
+            final name = cat['name'] as String? ?? '';
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _CategoryChip(
+                label: name,
+                isSelected: selectedCategory == name,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(selfOrderSelectedCategoryProvider.notifier).state = name;
+                },
+              ),
+            );
+          }),
+        ];
+
         return Container(
           height: 56,
           padding: const EdgeInsets.only(top: 8),
-          child: ListView.builder(
+          child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: categories.length + 1, // +1 for "Semua"
-            itemBuilder: (context, index) {
-              final isAll = index == 0;
-              final categoryName = isAll
-                  ? null
-                  : categories[index - 1]['name'] as String? ?? '';
-              final isSelected = isAll
-                  ? selectedCategory == null
-                  : selectedCategory == categoryName;
-
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _CategoryChip(
-                  label: isAll ? 'Semua' : categoryName!,
-                  isSelected: isSelected,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    ref.read(selfOrderSelectedCategoryProvider.notifier).state =
-                        isAll ? null : categoryName;
-                  },
-                ),
-              );
-            },
+            children: chips,
           ),
         );
       },
@@ -673,11 +675,13 @@ class _CategoryChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isFeatured;
 
   const _CategoryChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.isFeatured = false,
   });
 
   @override
@@ -689,12 +693,18 @@ class _CategoryChip extends StatelessWidget {
         curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryColor : Colors.white,
+          color: isSelected
+              ? AppTheme.primaryColor
+              : isFeatured
+                  ? AppTheme.accentColor.withValues(alpha: 0.08)
+                  : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isSelected
                 ? AppTheme.primaryColor
-                : AppTheme.borderColor.withValues(alpha: 0.5),
+                : isFeatured
+                    ? AppTheme.accentColor.withValues(alpha: 0.4)
+                    : AppTheme.borderColor.withValues(alpha: 0.5),
             width: 1.2,
           ),
           boxShadow: isSelected
@@ -713,13 +723,26 @@ class _CategoryChip extends StatelessWidget {
                   ),
                 ],
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppTheme.textSecondary,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isFeatured && !isSelected) ...[
+              Icon(Icons.star_rounded, size: 14, color: AppTheme.accentColor),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: isSelected || isFeatured ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? Colors.white
+                    : isFeatured
+                        ? AppTheme.accentColor
+                        : AppTheme.textSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );

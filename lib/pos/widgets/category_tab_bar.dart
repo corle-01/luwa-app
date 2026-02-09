@@ -16,16 +16,28 @@ class CategoryTabBar extends ConsumerWidget {
       height: 44,
       child: categoriesAsync.when(
         data: (categories) {
+          final featured = categories.where((c) => c.isFeatured).toList();
+          final regular = categories.where((c) => !c.isFeatured).toList();
+
           return ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
+              // Featured categories first
+              ...featured.map((cat) => _CategoryChip(
+                label: cat.name,
+                isSelected: selectedCategory == cat.id,
+                onTap: () => ref.read(posSelectedCategoryProvider.notifier).state = cat.id,
+                isFeatured: true,
+              )),
+              // "Semua" after featured
               _CategoryChip(
                 label: 'Semua',
                 isSelected: selectedCategory == null,
                 onTap: () => ref.read(posSelectedCategoryProvider.notifier).state = null,
               ),
-              ...categories.map((cat) => _CategoryChip(
+              // Regular categories
+              ...regular.map((cat) => _CategoryChip(
                 label: cat.name,
                 isSelected: selectedCategory == cat.id,
                 onTap: () => ref.read(posSelectedCategoryProvider.notifier).state = cat.id,
@@ -44,15 +56,21 @@ class _CategoryChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isFeatured;
 
   const _CategoryChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
+    this.isFeatured = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = isFeatured && !isSelected
+        ? AppTheme.accentColor
+        : AppTheme.primaryColor;
+
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
@@ -62,31 +80,50 @@ class _CategoryChip extends StatelessWidget {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryColor : AppTheme.surfaceColor,
+            color: isSelected
+                ? AppTheme.primaryColor
+                : isFeatured
+                    ? AppTheme.accentColor.withValues(alpha: 0.08)
+                    : AppTheme.surfaceColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected
                   ? AppTheme.primaryColor
-                  : AppTheme.borderColor.withValues(alpha: 0.5),
+                  : isFeatured
+                      ? AppTheme.accentColor.withValues(alpha: 0.4)
+                      : AppTheme.borderColor.withValues(alpha: 0.5),
               width: isSelected ? 0 : 1,
             ),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.25),
+                      color: accentColor.withValues(alpha: 0.25),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ]
                 : null,
           ),
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              color: isSelected ? Colors.white : AppTheme.textSecondary,
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isFeatured && !isSelected) ...[
+                Icon(Icons.star_rounded, size: 14, color: AppTheme.accentColor),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: isSelected
+                      ? Colors.white
+                      : isFeatured
+                          ? AppTheme.accentColor
+                          : AppTheme.textSecondary,
+                  fontSize: 13,
+                  fontWeight: isSelected || isFeatured ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),

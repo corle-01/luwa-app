@@ -17,6 +17,7 @@ class Product {
   final String? outletId;
   int? calculatedAvailableQty;
   final List<ProductImage> images;
+  final List<String> featuredCategoryIds;
 
   Product({
     required this.id,
@@ -35,6 +36,7 @@ class Product {
     this.outletId,
     this.calculatedAvailableQty,
     this.images = const [],
+    this.featuredCategoryIds = const [],
   });
 
   /// The primary image URL: first checks the images list for one flagged
@@ -56,6 +58,14 @@ class Product {
         ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     }
 
+    // Parse featured category IDs from junction table
+    List<String> featuredCategoryIds = [];
+    if (json['product_featured_categories'] is List) {
+      featuredCategoryIds = (json['product_featured_categories'] as List)
+          .map((e) => e['featured_category_id'] as String)
+          .toList();
+    }
+
     return Product(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -72,6 +82,7 @@ class Product {
       sortOrder: json['sort_order'] as int? ?? 0,
       outletId: json['outlet_id'] as String?,
       images: images,
+      featuredCategoryIds: featuredCategoryIds,
     );
   }
 
@@ -108,6 +119,7 @@ class Product {
     String? outletId,
     int? calculatedAvailableQty,
     List<ProductImage>? images,
+    List<String>? featuredCategoryIds,
   }) {
     return Product(
       id: id ?? this.id,
@@ -126,6 +138,7 @@ class Product {
       outletId: outletId ?? this.outletId,
       calculatedAvailableQty: calculatedAvailableQty ?? this.calculatedAvailableQty,
       images: images ?? this.images,
+      featuredCategoryIds: featuredCategoryIds ?? this.featuredCategoryIds,
     );
   }
 }
@@ -136,6 +149,7 @@ class ProductCategory {
   final String? color;
   final String? icon;
   final int sortOrder;
+  final bool isFeatured;
 
   ProductCategory({
     required this.id,
@@ -143,6 +157,7 @@ class ProductCategory {
     this.color,
     this.icon,
     this.sortOrder = 0,
+    this.isFeatured = false,
   });
 
   factory ProductCategory.fromJson(Map<String, dynamic> json) {
@@ -152,6 +167,7 @@ class ProductCategory {
       color: json['color'] as String?,
       icon: json['icon'] as String?,
       sortOrder: json['sort_order'] as int? ?? 0,
+      isFeatured: json['is_featured'] as bool? ?? false,
     );
   }
 }

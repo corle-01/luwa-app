@@ -7,7 +7,7 @@ class SelfOrderRepository {
   Future<List<Map<String, dynamic>>> getMenuProducts(String outletId) async {
     final res = await _client
         .from('products')
-        .select('*, categories(*), product_images(*)')
+        .select('*, categories(*), product_images(*), product_featured_categories(featured_category_id)')
         .eq('outlet_id', outletId)
         .eq('is_active', true)
         .order('name');
@@ -20,7 +20,9 @@ class SelfOrderRepository {
         .from('categories')
         .select()
         .eq('outlet_id', outletId)
-        .order('name');
+        .order('is_featured', ascending: false)
+        .order('sort_order', ascending: true)
+        .order('name', ascending: true);
     return List<Map<String, dynamic>>.from(res);
   }
 

@@ -46,11 +46,20 @@ final posFilteredProductsProvider = Provider<AsyncValue<List<Product>>>((ref) {
   final productsAsync = ref.watch(posProductsProvider);
   final selectedCategory = ref.watch(posSelectedCategoryProvider);
   final searchQuery = ref.watch(posSearchQueryProvider).toLowerCase();
+  final categoriesAsync = ref.watch(posCategoriesProvider);
 
   return productsAsync.whenData((products) {
     var filtered = products;
     if (selectedCategory != null) {
-      filtered = filtered.where((p) => p.categoryId == selectedCategory).toList();
+      // Check if selected category is featured → filter by junction table
+      final categories = categoriesAsync.valueOrNull ?? [];
+      final isFeatured = categories.any((c) => c.id == selectedCategory && c.isFeatured);
+
+      if (isFeatured) {
+        filtered = filtered.where((p) => p.featuredCategoryIds.contains(selectedCategory)).toList();
+      } else {
+        filtered = filtered.where((p) => p.categoryId == selectedCategory).toList();
+      }
     }
     if (searchQuery.isNotEmpty) {
       filtered = filtered.where((p) => p.name.toLowerCase().contains(searchQuery)).toList();

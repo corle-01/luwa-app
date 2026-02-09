@@ -58,20 +58,12 @@ class _BackOfficeShellState extends State<BackOfficeShell> {
   Widget _buildLogo() {
     return Column(
       children: [
-        Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset(
-              'assets/images/logo_utter_dark.png',
-              width: 40,
-              height: 40,
-              fit: BoxFit.contain,
-            ),
-          ),
+        Image.asset(
+          Theme.of(context).brightness == Brightness.dark
+              ? 'assets/images/logo_utter_light_sm.png'
+              : 'assets/images/logo_utter_dark_sm.png',
+          height: 28,
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 4),
         Text('Utter', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
