@@ -8,7 +8,7 @@ class PosProductRepository {
     try {
       final response = await _supabase
           .from('products')
-          .select('*, categories(name)')
+          .select('*, categories(name), product_images(*)')
           .eq('outlet_id', outletId)
           .eq('is_available', true)
           .order('sort_order', ascending: true);
@@ -46,7 +46,7 @@ class PosProductRepository {
   Future<List<Product>> searchProducts(String outletId, String query) async {
     final response = await _supabase
         .from('products')
-        .select('*, categories(name)')
+        .select('*, categories(name), product_images(*)')
         .eq('outlet_id', outletId)
         .ilike('name', '%$query%')
         .order('name');

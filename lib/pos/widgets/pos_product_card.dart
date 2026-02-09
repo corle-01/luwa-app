@@ -91,9 +91,9 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                       // Image or Initial Container
                       Expanded(
                         flex: 3,
-                        child: widget.product.imageUrl != null
+                        child: widget.product.primaryImageUrl != null
                             ? CachedNetworkImage(
-                                imageUrl: widget.product.imageUrl!,
+                                imageUrl: widget.product.primaryImageUrl!,
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                                 placeholder: (_, _) => Container(
