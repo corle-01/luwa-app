@@ -1,48 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'core/config/app_config.dart';
+import 'core/config/app_init.dart';
 import 'core/config/app_constants.dart';
 import 'core/providers/theme_provider.dart';
 import 'shared/themes/app_theme.dart';
-import 'backoffice/ai/pages/ai_dashboard_page.dart';
 import 'pos/pages/pos_main_page.dart';
-import 'backoffice/pages/settings_hub_page.dart';
-import 'backoffice/pages/dashboard_page.dart';
-import 'backoffice/pages/product_management_page.dart';
-import 'backoffice/pages/inventory_page.dart';
-import 'backoffice/pages/report_page.dart';
-import 'backoffice/pages/report_hub_page.dart';
-import 'backoffice/pages/online_order_page.dart';
 import 'kds/pages/kds_page.dart';
 import 'self_order/pages/self_order_shell.dart';
+import 'backoffice/pages/backoffice_shell.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Parallelize independent initialization tasks
-  await Future.wait([
-    initializeDateFormatting('id_ID', null),
-    AppConfig.initialize(),
-  ]);
-
-  final supabaseKey = AppConfig.isDevelopment &&
-          AppConfig.supabaseServiceRoleKey.isNotEmpty &&
-          !AppConfig.supabaseServiceRoleKey.startsWith('your-')
-      ? AppConfig.supabaseServiceRoleKey
-      : AppConfig.supabaseAnonKey;
-
-  await Supabase.initialize(
-    url: AppConfig.supabaseUrl,
-    anonKey: supabaseKey,
-  );
-
-  // Disable runtime font fetching — falls back to system fonts instantly
-  GoogleFonts.config.allowRuntimeFetching = false;
-
+  await initializeApp();
   runApp(const ProviderScope(child: UtterApp()));
 }
 
@@ -72,7 +42,11 @@ class UtterApp extends ConsumerWidget {
         // Back Office route: /backoffice
         if (uri.path == '/backoffice') {
           return MaterialPageRoute(
-            builder: (_) => const BackOfficeShell(),
+            builder: (_) => BackOfficeShell(
+              onLogoTap: (ctx) => Navigator.of(ctx).pushReplacement(
+                MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
+              ),
+            ),
           );
         }
 
@@ -238,7 +212,11 @@ class RoleSelectionPage extends StatelessWidget {
                     title: 'Back Office',
                     subtitle: 'Dashboard, laporan,\ndan pengaturan bisnis',
                     gradient: const [Color(0xFF7C3AED), Color(0xFF8B5CF6)],
-                    onTap: () => _goTo(context, const BackOfficeShell()),
+                    onTap: () => _goTo(context, BackOfficeShell(
+                      onLogoTap: (ctx) => Navigator.of(ctx).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
+                      ),
+                    )),
                   ),
                   _EntryCard(
                     icon: Icons.restaurant_rounded,
@@ -361,112 +339,4 @@ class _EntryCardState extends State<_EntryCard> {
   }
 }
 
-// ─────────────────────────────────────────────
-// Back Office Shell — Sidebar Navigation
-// ─────────────────────────────────────────────
-class BackOfficeShell extends StatefulWidget {
-  const BackOfficeShell({super.key});
-
-  @override
-  State<BackOfficeShell> createState() => _BackOfficeShellState();
-}
-
-class _BackOfficeShellState extends State<BackOfficeShell> {
-  int _selectedIndex = 0;
-
-  static const _navItems = [
-    (icon: Icons.dashboard_rounded, label: 'Dashboard'),
-    (icon: Icons.psychology_rounded, label: 'Utter AI'),
-    (icon: Icons.restaurant_menu_rounded, label: 'Produk'),
-    (icon: Icons.inventory_2_rounded, label: 'Inventori'),
-    (icon: Icons.bar_chart_rounded, label: 'Laporan'),
-    (icon: Icons.delivery_dining_rounded, label: 'Online'),
-    (icon: Icons.settings_rounded, label: 'Pengaturan'),
-  ];
-
-  Widget _getPage(int index) {
-    switch (index) {
-      case 0: return const DashboardPage();
-      case 1: return const AiDashboardPage();
-      case 2: return const ProductManagementPage();
-      case 3: return const InventoryPage();
-      case 4: return const ReportHubPage();
-      case 5: return const OnlineOrderPage();
-      case 6: return const SettingsHubPage();
-      default: return const DashboardPage();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 1200;
-    final isDesktop = MediaQuery.of(context).size.width > 800;
-
-    return Scaffold(
-      body: Row(
-        children: [
-          if (isDesktop)
-            NavigationRail(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-              extended: isWide,
-              backgroundColor: AppTheme.surfaceColor,
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: GestureDetector(
-                  onTap: () => Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
-                  ),
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 40, height: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.asset(
-                              'assets/images/logo_utter_dark.png',
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text('Utter', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              destinations: _navItems
-                  .map((item) => NavigationRailDestination(
-                        icon: Icon(item.icon),
-                        selectedIcon: Icon(item.icon, color: AppTheme.primaryColor),
-                        label: Text(item.label),
-                      ))
-                  .toList(),
-            ),
-
-          if (isDesktop) const VerticalDivider(thickness: 1, width: 1),
-
-          Expanded(child: _getPage(_selectedIndex)),
-        ],
-      ),
-      bottomNavigationBar: isDesktop
-          ? null
-          : NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-              destinations: _navItems
-                  .map((item) => NavigationDestination(icon: Icon(item.icon), label: item.label))
-                  .toList(),
-            ),
-    );
-  }
-}
 

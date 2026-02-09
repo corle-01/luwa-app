@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Utter App - AI-Integrated F&B POS Management System">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Utter - AI Business Co-Pilot</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #F8FAFC;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .logo {
+      width: 200px;
+      margin-bottom: 8px;
+    }
+
+    .slogan {
+      color: #64748B;
+      font-size: 14px;
+      margin-bottom: 48px;
+      font-weight: 400;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 220px);
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #E2E8F0;
+      padding: 28px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 8px 24px var(--shadow);
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      background: var(--gradient);
+    }
+
+    .card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1E293B;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: #64748B;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .enter-btn {
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--btn-bg);
+      color: var(--accent);
+    }
+
+    /* POS Card */
+    .card.pos {
+      --accent: #4F46E5;
+      --shadow: rgba(79, 70, 229, 0.12);
+      --gradient: linear-gradient(135deg, #4F46E5, #6366F1);
+      --btn-bg: rgba(79, 70, 229, 0.08);
+    }
+
+    /* Office Card */
+    .card.office {
+      --accent: #7C3AED;
+      --shadow: rgba(124, 58, 237, 0.12);
+      --gradient: linear-gradient(135deg, #7C3AED, #8B5CF6);
+      --btn-bg: rgba(124, 58, 237, 0.08);
+    }
+
+    /* Kitchen Card */
+    .card.kitchen {
+      --accent: #EA580C;
+      --shadow: rgba(234, 88, 12, 0.12);
+      --gradient: linear-gradient(135deg, #EA580C, #F97316);
+      --btn-bg: rgba(234, 88, 12, 0.08);
+    }
+
+    .footer {
+      margin-top: 48px;
+    }
+
+    .collab-logo {
+      width: 180px;
+      margin-bottom: 8px;
+    }
+
+    .version {
+      font-size: 12px;
+      color: #94A3B8;
+    }
+
+    @media (max-width: 740px) {
+      .cards {
+        grid-template-columns: 1fr;
+        max-width: 280px;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="assets/images/logo_utter_dark.png" class="logo" alt="Utter">
+    <p class="slogan">Pilih mode untuk masuk</p>
+
+    <div class="cards">
+      <!-- POS Kasir -->
+      <a href="pos/" class="card pos">
+        <div class="card-icon">
+          <svg width="28" height="28" fill="white" viewBox="0 0 24 24">
+            <path d="M17 2H7c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 4H7V4h10v2zM4 9v11c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V9H4zm7 8H8v-1h3v1zm0-3H8v-1h3v1zm5 3h-3v-1h3v1zm0-3h-3v-1h3v1z"/>
+          </svg>
+        </div>
+        <h3>POS Kasir</h3>
+        <p>Mode kasir full screen<br>untuk melayani pelanggan</p>
+        <span class="enter-btn">Masuk</span>
+      </a>
+
+      <!-- Back Office -->
+      <a href="office/" class="card office">
+        <div class="card-icon">
+          <svg width="28" height="28" fill="white" viewBox="0 0 24 24">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+          </svg>
+        </div>
+        <h3>Back Office</h3>
+        <p>Dashboard, laporan,<br>dan pengaturan bisnis</p>
+        <span class="enter-btn">Masuk</span>
+      </a>
+
+      <!-- Kitchen Display -->
+      <a href="kitchen/" class="card kitchen">
+        <div class="card-icon">
+          <svg width="28" height="28" fill="white" viewBox="0 0 24 24">
+            <path d="M18.06 22.99h1.66c.84 0 1.53-.64 1.63-1.46L23 5.05h-5V1h-1.97v4.05h-4.97l.3 2.34c1.71.47 3.31 1.32 4.27 2.26 1.44 1.42 2.43 2.89 2.43 5.29v8.05zM1 21.99V21h15.03v.99c0 .55-.45 1-1.01 1H2.01c-.56 0-1.01-.45-1.01-1zm15.03-7c0-4.42-4.01-4.73-7.52-4.73S1 10.57 1 15h15.03zM1 17h15.02v2H1v-2z"/>
+          </svg>
+        </div>
+        <h3>Kitchen Display</h3>
+        <p>Layar dapur untuk<br>kelola pesanan masak</p>
+        <span class="enter-btn">Masuk</span>
+      </a>
+    </div>
+
+    <div class="footer">
+      <img src="assets/images/logo_collab_dark_sm.png" class="collab-logo" alt="Utter x IXON">
+      <p class="version">v1.0.0</p>
+    </div>
+  </div>
+
+  <script>
+    // Handle self-order redirect: if URL has table parameter, redirect to office self-order
+    var params = new URLSearchParams(window.location.search);
+    if (params.has('table')) {
+      window.location.href = 'office/#/self-order?table=' + encodeURIComponent(params.get('table'));
+    }
+    // Also handle hash-based self-order route
+    if (window.location.hash && window.location.hash.indexOf('self-order') !== -1) {
+      window.location.href = 'office/' + window.location.hash;
+    }
+  </script>
+</body>
+</html>
