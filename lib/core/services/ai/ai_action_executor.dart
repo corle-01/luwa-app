@@ -3,6 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:utter_app/core/services/ai/ai_memory_service.dart';
 import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
 
+/// Sanitize a string for use in LIKE/ILIKE patterns.
+/// Escapes SQL wildcard characters to prevent pattern injection.
+String _sanitizeLike(String input) =>
+    input.replaceAll('%', '').replaceAll('_', '\\_').trim();
+
 /// Executes AI function calls against the real database.
 ///
 /// This is the bridge between AI intent and actual system actions.
@@ -81,7 +86,7 @@ class AiActionExecutor {
           .from('categories')
           .select('id, name')
           .eq('outlet_id', _outletId)
-          .ilike('name', '%$categoryName%')
+          .ilike('name', '%${_sanitizeLike(categoryName)}%')
           .limit(1);
       if ((cats as List).isNotEmpty) {
         categoryId = cats[0]['id'] as String;
@@ -125,7 +130,7 @@ class AiActionExecutor {
         .from('products')
         .select('id, name, selling_price, cost_price')
         .eq('outlet_id', _outletId)
-        .ilike('name', '%$productName%')
+        .ilike('name', '%${_sanitizeLike(productName)}%')
         .limit(1);
 
     if ((products as List).isEmpty) {
@@ -159,7 +164,7 @@ class AiActionExecutor {
         .from('products')
         .select('id, name')
         .eq('outlet_id', _outletId)
-        .ilike('name', '%$productName%')
+        .ilike('name', '%${_sanitizeLike(productName)}%')
         .limit(1);
 
     if ((products as List).isEmpty) {
@@ -167,11 +172,15 @@ class AiActionExecutor {
     }
 
     final product = products[0];
-    await _client.from('products').delete().eq('id', product['id'] as String);
+    // Soft delete (set inactive) instead of hard delete for safety
+    await _client.from('products').update({
+      'is_active': false,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', product['id'] as String);
 
     return {
       'success': true,
-      'message': 'Produk "${product['name']}" berhasil dihapus',
+      'message': 'Produk "${product['name']}" berhasil dinonaktifkan',
     };
   }
 
@@ -183,7 +192,7 @@ class AiActionExecutor {
         .from('products')
         .select('id, name')
         .eq('outlet_id', _outletId)
-        .ilike('name', '%$productName%')
+        .ilike('name', '%${_sanitizeLike(productName)}%')
         .limit(1);
 
     if ((products as List).isEmpty) {
@@ -269,7 +278,7 @@ class AiActionExecutor {
         .from('categories')
         .select('id, name')
         .eq('outlet_id', _outletId)
-        .ilike('name', '%$categoryName%')
+        .ilike('name', '%${_sanitizeLike(categoryName)}%')
         .limit(1);
 
     if ((cats as List).isEmpty) {
@@ -301,7 +310,7 @@ class AiActionExecutor {
         .from('ingredients')
         .select('id, name, current_stock, unit')
         .eq('outlet_id', _outletId)
-        .ilike('name', '%$ingredientName%')
+        .ilike('name', '%${_sanitizeLike(ingredientName)}%')
         .limit(1);
 
     if ((ingredients as List).isEmpty) {
@@ -543,7 +552,7 @@ class AiActionExecutor {
           .select('id, name, category, amount')
           .eq('outlet_id', _outletId)
           .eq('is_active', true)
-          .ilike('name', '%$costName%')
+          .ilike('name', '%${_sanitizeLike(costName)}%')
           .limit(1);
 
       if ((costs as List).isEmpty) {

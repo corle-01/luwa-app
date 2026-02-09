@@ -334,13 +334,14 @@ class _StaffFormDialogState extends State<_StaffFormDialog> {
                 decoration: const InputDecoration(
                   labelText: 'PIN (opsional)',
                   prefixIcon: Icon(Icons.lock),
-                  hintText: '4 digit',
+                  hintText: '4-6 digit',
                 ),
                 keyboardType: TextInputType.number,
                 maxLength: 6,
                 validator: (v) {
-                  if (v != null && v.isNotEmpty && v.length < 4) {
-                    return 'PIN minimal 4 digit';
+                  if (v != null && v.isNotEmpty) {
+                    if (v.length < 4) return 'PIN minimal 4 digit';
+                    if (!RegExp(r'^\d+$').hasMatch(v)) return 'PIN hanya boleh angka';
                   }
                   return null;
                 },

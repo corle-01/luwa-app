@@ -1089,6 +1089,13 @@ class _CreatePurchaseDialogState extends State<_CreatePurchaseDialog> {
         );
         return;
       }
+      if (item.unitPrice <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Item ${i + 1}: Harga satuan harus lebih dari 0')),
+        );
+        return;
+      }
     }
 
     // Resolve supplier name — always read controller text as fallback

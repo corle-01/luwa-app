@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// A single memory/insight that the AI has extracted from conversations.
 class AiMemory {
@@ -130,8 +131,9 @@ class AiMemoryService {
   factory AiMemoryService() => _instance;
   AiMemoryService._internal();
 
-  /// Initialize: load memories from localStorage (web) or start fresh.
+  /// Initialize: load memories from SharedPreferences.
   Future<void> initialize() async {
+    await _WebStorage.init();
     await _loadFromStorage();
   }
 
@@ -465,23 +467,24 @@ class AiMemoryService {
   }
 }
 
-/// Web storage helper using dart:js_interop-safe approach.
-///
-/// On non-web platforms, these methods are no-ops.
+/// Storage helper using SharedPreferences (works on web + native).
 class _WebStorage {
+  static SharedPreferences? _prefs;
+
+  static Future<void> _ensureInit() async {
+    _prefs ??= await SharedPreferences.getInstance();
+  }
+
   static String? get(String key) {
-    if (!kIsWeb) return null;
-    try {
-      // Using window.localStorage via a platform-safe approach
-      // The actual web interop is handled at build time by Flutter
-      return null; // Will be overridden by _WebStorageImpl on web
-    } catch (_) {
-      return null;
-    }
+    return _prefs?.getString(key);
   }
 
   static void set(String key, String value) {
-    if (!kIsWeb) return;
-    // Will be overridden by _WebStorageImpl on web
+    _prefs?.setString(key, value);
+  }
+
+  /// Must be called once at startup to initialize SharedPreferences.
+  static Future<void> init() async {
+    await _ensureInit();
   }
 }

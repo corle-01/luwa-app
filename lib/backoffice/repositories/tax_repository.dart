@@ -64,6 +64,7 @@ class TaxRepository {
         .from('taxes')
         .select()
         .eq('outlet_id', outletId)
+        .eq('is_active', true)
         .order('created_at', ascending: true);
 
     return (response as List)
