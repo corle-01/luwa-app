@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../providers/online_food_provider.dart';
 import 'amount_input_field.dart';
 
@@ -180,6 +181,7 @@ class OnlineFoodCart extends ConsumerWidget {
                           item.productId,
                           item.productName,
                           variantName: item.variantName,
+                          unitPrice: item.unitPrice,
                         ),
                         onDecrement: () => notifier.removeItem(
                           item.productId,
@@ -206,21 +208,21 @@ class OnlineFoodCart extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Total items
+                // Total items + selling price
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Total',
+                      '${state.totalItems} item',
                       style: GoogleFonts.inter(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: _C.textSecondary,
                       ),
                     ),
                     Text(
-                      '${state.totalItems} item',
+                      FormatUtils.currency(state.totalSellingPrice),
                       style: GoogleFonts.inter(
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: _C.textPrimary,
                       ),
@@ -232,6 +234,40 @@ class OnlineFoodCart extends ConsumerWidget {
 
                 // Final amount input
                 const AmountInputField(),
+
+                // Platform fee breakdown
+                if (state.finalAmount != null && state.finalAmount! > 0 && state.totalSellingPrice > 0) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Komisi Platform',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFF59E0B),
+                          ),
+                        ),
+                        Text(
+                          FormatUtils.currency(state.totalSellingPrice - state.finalAmount!),
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFF59E0B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 16),
 
@@ -379,6 +415,16 @@ class _CartItemTile extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: _C.textSecondary,
+                    ),
+                  ),
+                ],
+                if (item.unitPrice > 0) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    FormatUtils.currency(item.unitPrice),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: _C.textTertiary,
                     ),
                   ),
                 ],

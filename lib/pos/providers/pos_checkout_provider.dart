@@ -58,18 +58,21 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
       final isPlatformOrder = orderSource != null &&
           (orderSource == 'gofood' || orderSource == 'grabfood' || orderSource == 'shopeefood');
 
+      // All orders (POS + online) use real selling prices.
+      // For online orders, amountPaid = amount received from platform.
+      // Difference (total - amountPaid) = platform commission/fee.
       final items = cart.items.map((item) => {
         'product_id': item.product.id,
         'product_name': item.product.name,
         'quantity': item.quantity,
-        'unit_price': isPlatformOrder ? 0.0 : item.unitPrice,
-        'subtotal': isPlatformOrder ? 0.0 : item.itemTotal,
-        'total': isPlatformOrder ? 0.0 : item.itemTotal,
+        'unit_price': item.unitPrice,
+        'subtotal': item.itemTotal,
+        'total': item.itemTotal,
         'notes': item.notes,
         'modifiers': item.selectedModifiers.map((m) => {
           'group_name': m.groupName,
           'option_name': m.optionName,
-          'price_adjustment': isPlatformOrder ? 0.0 : m.priceAdjustment,
+          'price_adjustment': m.priceAdjustment,
         }).toList(),
       }).toList();
 
@@ -101,15 +104,15 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
         cashierId: shiftData.cashierId,
         orderType: isPlatformOrder ? 'online' : cart.orderType,
         paymentMethod: paymentMethod,
-        subtotal: isPlatformOrder ? 0 : cart.subtotal,
-        discountAmount: isPlatformOrder ? 0 : cart.discountAmount,
-        taxAmount: isPlatformOrder ? 0 : cart.taxAmount,
-        serviceChargeAmount: isPlatformOrder ? 0 : cart.serviceChargeAmount,
-        totalAmount: isPlatformOrder ? (amountPaid ?? 0) : cart.total,
+        subtotal: cart.subtotal,
+        discountAmount: cart.discountAmount,
+        taxAmount: cart.taxAmount,
+        serviceChargeAmount: cart.serviceChargeAmount,
+        totalAmount: cart.total,
         items: items,
         amountPaid: amountPaid ?? cart.total,
-        changeAmount: changeAmount ?? 0,
-        discountId: isPlatformOrder ? null : cart.discount?.id,
+        changeAmount: isPlatformOrder ? 0 : (changeAmount ?? 0),
+        discountId: cart.discount?.id,
         customerId: cart.customer?.id,
         tableId: cart.tableId,
         notes: isPlatformOrder

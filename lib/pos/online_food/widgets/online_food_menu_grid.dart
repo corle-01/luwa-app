@@ -470,6 +470,7 @@ class _OnlineFoodProductCardState
           ref.read(onlineFoodProvider.notifier).addItem(
                 widget.product.id,
                 widget.product.name,
+                unitPrice: widget.product.sellingPrice,
               );
         },
         child: AnimatedScale(

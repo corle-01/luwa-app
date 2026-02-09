@@ -282,8 +282,8 @@
 - [x] Auto-refresh every 15 seconds (→ now realtime via Supabase)
 - [x] Incoming order count badge in nav
 - [x] POS integration: GoFood/GrabFood/ShopeeFood as payment methods in PaymentDialog
-- [x] Online food orders: harga 0 (tracking only), stok tetap berkurang, amount = platform income
-- [x] Receipt/report/order detail updated for platform payment display
+- [x] Online food orders: harga jual real (bukan 0), selisih total vs diterima = komisi platform
+- [x] Receipt/report/order detail updated for platform payment + komisi display
 
 ---
 
@@ -417,10 +417,17 @@ DeepSeek menyarankan 10 kekurangan. Setelah cross-check, **7 sudah ada**, 3 bena
 - [x] Natural language AI chat with business context via DeepSeek
 - [x] Updated context builder with operational costs, 12 KEMAMPUAN in system prompt
 
-### Fix: Online Food Order ID ✅ FIXED (2026-02-09)
-- Online food orders now use regular POS order flow (same sequence)
+### Fix: Online Food Revenue & Platform Fee ✅ FIXED (2026-02-09)
+- Online food orders now record real selling prices (bukan 0)
+- `totalAmount` = harga jual real, `amountPaid` = jumlah diterima dari platform
+- Selisih (total - amountPaid) = komisi/potongan platform, ditampilkan di:
+  - Order detail dialog (box kuning "Komisi Platform")
+  - Receipt HTML (row "Komisi Platform")
+  - ESC/POS thermal receipt
+  - Online food cart (realtime breakdown)
+- Payment dialog info text updated (tidak lagi bilang "harga di-0-kan")
+- Online food screen: `OnlineFoodItem` now carries `unitPrice` from product DB
 - GoFood/GrabFood/ShopeeFood as payment methods in PaymentDialog
-- Zero prices for tracking only, stock still deducts
 
 ### Feature: Purchasing/Expense System ✅ DONE (2026-02-09)
 1. DB Migration `021_purchasing_system.sql` — `purchases` + `purchase_items` tables with RLS + auto stock-in trigger

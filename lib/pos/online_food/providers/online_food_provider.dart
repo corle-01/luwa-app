@@ -54,29 +54,35 @@ class OnlineFoodItem {
   final String productName;
   final String? variantName;
   final int quantity;
+  final double unitPrice;
 
   const OnlineFoodItem({
     required this.productId,
     required this.productName,
     this.variantName,
     this.quantity = 1,
+    this.unitPrice = 0,
   });
 
   /// Unique key for deduplication inside the cart.
   /// Items with the same product + variant are treated as the same line.
   String get cartKey => '$productId::${variantName ?? ''}';
 
+  double get totalPrice => unitPrice * quantity;
+
   OnlineFoodItem copyWith({
     String? productId,
     String? productName,
     String? variantName,
     int? quantity,
+    double? unitPrice,
   }) {
     return OnlineFoodItem(
       productId: productId ?? this.productId,
       productName: productName ?? this.productName,
       variantName: variantName ?? this.variantName,
       quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
     );
   }
 }
@@ -115,6 +121,8 @@ class OnlineFoodState {
       !isSubmitting;
 
   int get totalItems => items.fold(0, (sum, item) => sum + item.quantity);
+
+  double get totalSellingPrice => items.fold(0.0, (sum, item) => sum + item.totalPrice);
 
   OnlineFoodState copyWith({
     OnlinePlatform? selectedPlatform,
@@ -178,7 +186,7 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
 
   // -- Item management -------------------------------------------------------
 
-  void addItem(String productId, String productName, {String? variantName}) {
+  void addItem(String productId, String productName, {String? variantName, double unitPrice = 0}) {
     final key = '$productId::${variantName ?? ''}';
     final existingIndex = state.items.indexWhere((i) => i.cartKey == key);
 
@@ -196,6 +204,7 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
             productId: productId,
             productName: productName,
             variantName: variantName,
+            unitPrice: unitPrice,
           ),
         ],
         clearError: true,
@@ -261,6 +270,10 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
       // DB triggers fire on UPDATE, not INSERT -- so we must insert first,
       // then update to 'completed' to trigger stock deduction, shift update,
       // and customer update.
+      // Calculate totals from real selling prices
+      final subtotal = state.totalSellingPrice;
+      final amountPaid = state.finalAmount ?? 0;
+
       final orderResponse = await _supabase
           .from('orders')
           .insert({
@@ -275,12 +288,12 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
             'status': 'pending',
             'payment_method': 'platform',
             'payment_status': 'unpaid',
-            'subtotal': 0,
+            'subtotal': subtotal,
             'discount_amount': 0,
             'tax_amount': 0,
             'service_charge_amount': 0,
-            'total': 0,
-            'amount_paid': 0,
+            'total': subtotal,
+            'amount_paid': amountPaid,
             'change_amount': 0,
             'notes': state.platformNotes.trim().isEmpty ? null : state.platformNotes.trim(),
           })
@@ -289,7 +302,7 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
 
       final orderId = orderResponse['id'] as String;
 
-      // Step 2: Insert order items (prices are 0 for online food)
+      // Step 2: Insert order items with real selling prices
       final orderItems = state.items
           .map((item) => {
                 'order_id': orderId,
@@ -298,9 +311,9 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
                     ? '${item.productName} (${item.variantName})'
                     : item.productName,
                 'quantity': item.quantity,
-                'unit_price': 0,
-                'subtotal': 0,
-                'total': 0,
+                'unit_price': item.unitPrice,
+                'subtotal': item.totalPrice,
+                'total': item.totalPrice,
               })
           .toList();
 

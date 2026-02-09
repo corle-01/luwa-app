@@ -390,7 +390,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Harga item akan di-0-kan (hanya tracking produk). Masukkan jumlah yang diterima dari $_platformLabel. Stok tetap terpotong.',
+                    'Masukkan jumlah yang diterima dari $_platformLabel. Selisih dengan total = komisi platform.',
                     style: TextStyle(fontSize: 12, color: AppTheme.primaryColor),
                   ),
                 ),

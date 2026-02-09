@@ -112,6 +112,11 @@ class ReceiptPrinter {
     }
 
     // Payment info
+    final isPlatformOrder = order.orderSource != null &&
+        order.orderSource != 'pos' &&
+        order.amountPaid > 0 &&
+        order.totalAmount > order.amountPaid;
+
     buf.writeln('<div class="totals-section">');
     if (order.paymentMethod == 'split' && order.paymentDetails != null && order.paymentDetails!.isNotEmpty) {
       buf.writeln(_totalRow('Pembayaran', 'Split'));
@@ -121,6 +126,9 @@ class ReceiptPrinter {
         final label = detail['label'] as String? ?? _paymentLabel(method);
         buf.writeln(_totalRow('  $label', FormatUtils.currency(amount)));
       }
+    } else if (isPlatformOrder) {
+      buf.writeln(_totalRow('Dari ${order.orderSource!.toUpperCase()}', FormatUtils.currency(order.amountPaid)));
+      buf.writeln(_totalRow('Komisi Platform', FormatUtils.currency(order.totalAmount - order.amountPaid)));
     } else {
       buf.writeln(_totalRow('Bayar (${_paymentLabel(order.paymentMethod)})', FormatUtils.currency(order.amountPaid)));
     }

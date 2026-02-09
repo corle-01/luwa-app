@@ -238,6 +238,9 @@ class EscPosReceiptPrinter {
     if (change > 0) {
       _gen.row('Kembali', _formatCurrency(change));
     }
+    if (amountPaid < total && amountPaid > 0) {
+      _gen.row('Komisi Platform', _formatCurrency(total - amountPaid));
+    }
     _gen.lineFeed();
 
     // ── Footer ────────────────────────────────────────────────────

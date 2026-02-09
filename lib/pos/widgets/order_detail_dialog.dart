@@ -123,6 +123,45 @@ class OrderDetailDialog extends ConsumerWidget {
               ],
             ),
 
+            // Platform fee for online food orders
+            if (order.orderSource != null &&
+                order.orderSource != 'pos' &&
+                order.amountPaid > 0 &&
+                order.totalAmount > order.amountPaid) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.warningColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Diterima dari ${order.orderSource!.toUpperCase()}',
+                            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                        Text(FormatUtils.currency(order.amountPaid),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Komisi Platform',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.warningColor)),
+                        Text(FormatUtils.currency(order.totalAmount - order.amountPaid),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.warningColor)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             if (order.notes != null && order.notes!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
