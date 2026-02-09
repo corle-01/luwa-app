@@ -97,6 +97,7 @@ class SelfOrderRepository {
           'amount_paid': paymentMethod == 'qris' ? subtotal : 0,
           'notes': customerNotes,
           'source': 'self_order',
+          'order_source': 'self_order',
         })
         .select('id')
         .single();

@@ -41,8 +41,12 @@ class PosCartNotifier extends StateNotifier<CartState> {
 
   bool _modifiersMatch(List<SelectedModifier> a, List<SelectedModifier> b) {
     if (a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
-      if (a[i].optionName != b[i].optionName) return false;
+    // Sort by groupName+optionName for order-independent comparison
+    final sortedA = [...a]..sort((x, y) => '${x.groupName}:${x.optionName}'.compareTo('${y.groupName}:${y.optionName}'));
+    final sortedB = [...b]..sort((x, y) => '${x.groupName}:${x.optionName}'.compareTo('${y.groupName}:${y.optionName}'));
+    for (int i = 0; i < sortedA.length; i++) {
+      if (sortedA[i].groupName != sortedB[i].groupName ||
+          sortedA[i].optionName != sortedB[i].optionName) return false;
     }
     return true;
   }

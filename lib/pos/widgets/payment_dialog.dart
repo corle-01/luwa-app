@@ -734,7 +734,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     if (_isSplitMode) {
       paymentMethod = 'split';
       amountPaid = _splitTotal;
-      changeAmount = 0;
+      changeAmount = _splitTotal > total ? _splitTotal - total : 0;
       paymentDetails = _splitEntries
           .where((e) => e.amount > 0)
           .map((e) => {

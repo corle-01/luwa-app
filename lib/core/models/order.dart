@@ -69,7 +69,9 @@ class Order {
       customerName: json['customer_name'] as String?,
       orderType: json['order_type'] as String? ?? 'dine_in',
       tableId: json['table_id'] as String?,
-      tableNumber: json['table_number'] as int?,
+      tableNumber: json['table_number'] is int
+          ? json['table_number'] as int
+          : int.tryParse(json['table_number']?.toString() ?? ''),
       status: json['status'] as String? ?? 'completed',
       paymentMethod: json['payment_method'] as String? ?? 'cash',
       paymentStatus: json['payment_status'] as String? ?? 'paid',
@@ -106,6 +108,8 @@ class Order {
     'tax_amount': taxAmount,
     'service_charge_amount': serviceCharge,
     'total': totalAmount,
+    'amount_paid': amountPaid,
+    'change_amount': changeAmount,
     'payment_details': paymentDetails,
     'notes': notes,
     'order_source': orderSource,
