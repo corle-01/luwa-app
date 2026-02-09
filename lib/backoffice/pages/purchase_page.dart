@@ -666,69 +666,26 @@ class _CreatePurchaseDialogState extends State<_CreatePurchaseDialog> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // --- Supplier ---
-                              if (!_manualSupplier)
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: DropdownButtonFormField<String>(
-                                        value: _selectedSupplierId,
-                                        isExpanded: true,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Supplier',
-                                          prefixIcon:
-                                              Icon(Icons.local_shipping),
-                                        ),
-                                        items: _suppliers.map((supplier) {
-                                          return DropdownMenuItem(
-                                            value: supplier.id,
-                                            child: Text(supplier.name),
-                                          );
-                                        }).toList(),
-                                        onChanged: (v) => setState(
-                                            () => _selectedSupplierId = v),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    TextButton(
-                                      onPressed: () => setState(() {
-                                        _manualSupplier = true;
-                                        _selectedSupplierId = null;
-                                      }),
-                                      child: const Text('Ketik Manual'),
-                                    ),
-                                  ],
-                                )
-                              else
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextFormField(
-                                        controller:
-                                            _manualSupplierController,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Nama Supplier',
-                                          prefixIcon:
-                                              Icon(Icons.local_shipping),
-                                          hintText:
-                                              'Ketik nama supplier...',
-                                        ),
-                                        validator: (v) =>
-                                            (v == null || v.trim().isEmpty)
-                                                ? 'Nama supplier wajib diisi'
-                                                : null,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    TextButton(
-                                      onPressed: () => setState(() {
-                                        _manualSupplier = false;
-                                        _manualSupplierController.clear();
-                                      }),
-                                      child: const Text('Pilih Supplier'),
-                                    ),
-                                  ],
-                                ),
+                              // --- Supplier (search + manual unified) ---
+                              _SupplierSearchField(
+                                suppliers: _suppliers,
+                                selectedId: _selectedSupplierId,
+                                manualName: _manualSupplierController.text,
+                                onSelected: (supplier) {
+                                  setState(() {
+                                    _selectedSupplierId = supplier.id;
+                                    _manualSupplier = false;
+                                    _manualSupplierController.clear();
+                                  });
+                                },
+                                onManualEntry: (name) {
+                                  setState(() {
+                                    _selectedSupplierId = null;
+                                    _manualSupplier = true;
+                                    _manualSupplierController.text = name;
+                                  });
+                                },
+                              ),
                               const SizedBox(height: 12),
 
                               // --- PIC + Date row ---
@@ -2012,6 +1969,223 @@ class _ErrorState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Supplier Search Field (unified search + manual entry)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _SupplierSearchField extends StatefulWidget {
+  final List<SupplierModel> suppliers;
+  final String? selectedId;
+  final String? manualName;
+  final void Function(SupplierModel) onSelected;
+  final void Function(String name) onManualEntry;
+
+  const _SupplierSearchField({
+    required this.suppliers,
+    this.selectedId,
+    this.manualName,
+    required this.onSelected,
+    required this.onManualEntry,
+  });
+
+  @override
+  State<_SupplierSearchField> createState() => _SupplierSearchFieldState();
+}
+
+class _SupplierSearchFieldState extends State<_SupplierSearchField> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+  List<SupplierModel> _filtered = [];
+  bool _showSuggestions = false;
+  bool _hasSelection = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.suppliers;
+
+    if (widget.selectedId != null) {
+      final match =
+          widget.suppliers.where((s) => s.id == widget.selectedId).toList();
+      if (match.isNotEmpty) {
+        _controller = TextEditingController(text: match.first.name);
+        _hasSelection = true;
+      } else {
+        _controller = TextEditingController();
+      }
+    } else if (widget.manualName != null && widget.manualName!.isNotEmpty) {
+      _controller = TextEditingController(text: widget.manualName);
+    } else {
+      _controller = TextEditingController();
+    }
+
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus && !_hasSelection) {
+        setState(() => _showSuggestions = true);
+      }
+      if (!_focusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) {
+            setState(() => _showSuggestions = false);
+            // If text doesn't match any supplier, treat as manual
+            if (!_hasSelection && _controller.text.trim().isNotEmpty) {
+              widget.onManualEntry(_controller.text.trim());
+            }
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String query) {
+    final q = query.toLowerCase().trim();
+    setState(() {
+      _hasSelection = false;
+      _showSuggestions = true;
+      if (q.isEmpty) {
+        _filtered = widget.suppliers;
+      } else {
+        _filtered = widget.suppliers
+            .where((s) => s.name.toLowerCase().contains(q))
+            .toList();
+      }
+    });
+  }
+
+  void _selectSupplier(SupplierModel supplier) {
+    setState(() {
+      _hasSelection = true;
+      _controller.text = supplier.name;
+      _showSuggestions = false;
+    });
+    widget.onSelected(supplier);
+    _focusNode.unfocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextFormField(
+          controller: _controller,
+          focusNode: _focusNode,
+          decoration: InputDecoration(
+            labelText: 'Supplier',
+            prefixIcon: const Icon(Icons.local_shipping),
+            hintText: 'Cari atau ketik nama supplier...',
+            suffixIcon: _controller.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () {
+                      setState(() {
+                        _hasSelection = false;
+                        _controller.clear();
+                        _filtered = widget.suppliers;
+                        _showSuggestions = true;
+                      });
+                      widget.onManualEntry('');
+                      _focusNode.requestFocus();
+                    },
+                  )
+                : null,
+          ),
+          onChanged: _onChanged,
+          onTap: () {
+            if (!_hasSelection) {
+              setState(() => _showSuggestions = true);
+            }
+          },
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Supplier wajib diisi' : null,
+        ),
+        if (_showSuggestions && !_hasSelection)
+          Container(
+            constraints: const BoxConstraints(maxHeight: 180),
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.borderColor),
+              boxShadow: AppTheme.shadowSM,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_filtered.isNotEmpty)
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: _filtered.length,
+                      itemBuilder: (context, index) {
+                        final supplier = _filtered[index];
+                        return InkWell(
+                          onTap: () => _selectSupplier(supplier),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    supplier.name,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                if (supplier.phone != null)
+                                  Text(
+                                    supplier.phone!,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: AppTheme.textTertiary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                if (_filtered.isEmpty && _controller.text.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            size: 16, color: AppTheme.textTertiary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Supplier baru: "${_controller.text.trim()}"',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppTheme.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
