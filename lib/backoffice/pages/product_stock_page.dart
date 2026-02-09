@@ -463,6 +463,16 @@ class _ProductStockTable extends StatelessWidget {
                           product,
                         ),
                       ),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline,
+                            size: 20, color: AppTheme.errorColor),
+                        tooltip: 'Hapus Produk',
+                        onPressed: () => _confirmDeleteProduct(
+                          context,
+                          ref,
+                          product,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -596,6 +606,19 @@ class _ProductStockTable extends StatelessWidget {
                   onPressed: () => _showMovementHistory(context, ref, product),
                 ),
               ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  icon: Icon(Icons.delete_outline,
+                      size: 20, color: AppTheme.errorColor),
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Hapus',
+                  onPressed: () =>
+                      _confirmDeleteProduct(context, ref, product),
+                ),
+              ),
             ],
           ),
         ],
@@ -633,6 +656,59 @@ class _ProductStockTable extends StatelessWidget {
           ref.invalidate(productStockListProvider);
           ref.invalidate(allProductStockMovementsProvider);
         },
+      ),
+    );
+  }
+
+  void _confirmDeleteProduct(
+    BuildContext context,
+    WidgetRef ref,
+    ProductStockModel product,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Produk'),
+        content: Text(
+          'Yakin ingin menghapus "${product.name}"?\n\nProduk akan dinonaktifkan dan tidak muncul di POS.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                final repo = ProductStockRepository();
+                await repo.deleteProduct(product.id);
+                ref.invalidate(productStockListProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${product.name} berhasil dihapus'),
+                      backgroundColor: AppTheme.successColor,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal menghapus: $e'),
+                      backgroundColor: AppTheme.errorColor,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
       ),
     );
   }

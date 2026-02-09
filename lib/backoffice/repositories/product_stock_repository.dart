@@ -215,6 +215,17 @@ class ProductStockRepository {
         .eq('id', productId);
   }
 
+  /// Soft-delete a product (set is_active = false).
+  Future<void> deleteProduct(String productId) async {
+    await _supabase
+        .from('products')
+        .update({
+          'is_active': false,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', productId);
+  }
+
   /// Check if a product has recipes (HPP auto-calculated).
   Future<bool> hasRecipe(String productId) async {
     final res = await _supabase
