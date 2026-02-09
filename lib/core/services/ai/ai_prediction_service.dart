@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../utils/date_utils.dart';
 import 'ai_memory_service.dart';
 
 /// PERASAAN - AI Prediction & Emotional Intelligence Service
@@ -22,14 +23,13 @@ class AiPredictionService {
   Future<BusinessMoodData> assessBusinessMood() async {
     try {
       final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
 
       // Get today's orders
       final todayOrders = await _client
           .from('orders')
           .select('total, status, created_at')
           .eq('outlet_id', _outletId)
-          .gte('created_at', startOfDay.toIso8601String())
+          .gte('created_at', DateTimeUtils.startOfTodayUtc())
           .eq('status', 'completed');
 
       final todayList = List<Map<String, dynamic>>.from(todayOrders);
@@ -41,14 +41,13 @@ class AiPredictionService {
 
       // Get last 7 days average (excluding today)
       final weekAgo = now.subtract(const Duration(days: 7));
-      final yesterday = DateTime(now.year, now.month, now.day);
 
       final historicalOrders = await _client
           .from('orders')
           .select('total, status, created_at')
           .eq('outlet_id', _outletId)
-          .gte('created_at', weekAgo.toIso8601String())
-          .lt('created_at', yesterday.toIso8601String())
+          .gte('created_at', DateTimeUtils.toUtcIso(weekAgo))
+          .lt('created_at', DateTimeUtils.startOfTodayUtc())
           .eq('status', 'completed');
 
       final histList = List<Map<String, dynamic>>.from(historicalOrders);
@@ -156,7 +155,7 @@ class AiPredictionService {
           .from('orders')
           .select('total, created_at, order_items(product_name, quantity)')
           .eq('outlet_id', _outletId)
-          .gte('created_at', fourWeeksAgo.toIso8601String())
+          .gte('created_at', DateTimeUtils.toUtcIso(fourWeeksAgo))
           .eq('status', 'completed');
 
       final orderList = List<Map<String, dynamic>>.from(historicalOrders);

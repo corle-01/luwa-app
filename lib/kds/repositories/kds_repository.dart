@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/date_utils.dart';
 import '../models/kds_order.dart';
 
 class KdsRepository {
@@ -8,9 +9,6 @@ class KdsRepository {
   /// Returns completed (paid) orders whose kitchen_status is NOT 'served',
   /// ordered oldest-first (FIFO) so the kitchen prepares in order.
   Future<List<KdsOrder>> getActiveKitchenOrders(String outletId) async {
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-
     // Get orders that are completed (paid) and kitchen_status is NOT 'served'
     // Single query with joins: orders + order_items + tables (fixes N+1 pattern)
     final ordersResponse = await _supabase
@@ -19,7 +17,7 @@ class KdsRepository {
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
         .neq('kitchen_status', 'served')
-        .gte('created_at', startOfDay.toIso8601String())
+        .gte('created_at', DateTimeUtils.startOfTodayUtc())
         .order('created_at', ascending: true); // oldest first (FIFO)
 
     final orders = <KdsOrder>[];
@@ -51,9 +49,9 @@ class KdsRepository {
       'kitchen_status': status,
     };
     if (status == 'cooking') {
-      updates['kitchen_started_at'] = DateTime.now().toIso8601String();
+      updates['kitchen_started_at'] = DateTimeUtils.nowUtc();
     } else if (status == 'ready') {
-      updates['kitchen_completed_at'] = DateTime.now().toIso8601String();
+      updates['kitchen_completed_at'] = DateTimeUtils.nowUtc();
     }
     await _supabase.from('order_items').update(updates).eq('id', itemId);
   }
@@ -62,7 +60,7 @@ class KdsRepository {
   Future<void> startAllItems(String orderId) async {
     await _supabase.from('order_items').update({
       'kitchen_status': 'cooking',
-      'kitchen_started_at': DateTime.now().toIso8601String(),
+      'kitchen_started_at': DateTimeUtils.nowUtc(),
     }).eq('order_id', orderId).eq('kitchen_status', 'pending');
   }
 
@@ -70,7 +68,7 @@ class KdsRepository {
   Future<void> completeAllItems(String orderId) async {
     await _supabase.from('order_items').update({
       'kitchen_status': 'ready',
-      'kitchen_completed_at': DateTime.now().toIso8601String(),
+      'kitchen_completed_at': DateTimeUtils.nowUtc(),
     }).eq('order_id', orderId).neq('kitchen_status', 'ready');
   }
 
@@ -86,7 +84,7 @@ class KdsRepository {
 
     await _supabase.from('orders').update({
       'kitchen_status': 'served',
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTimeUtils.nowUtc(),
     }).eq('id', orderId);
 
     // Release table if this was a dine-in order
@@ -104,7 +102,7 @@ class KdsRepository {
       if ((otherOrders as List).isEmpty) {
         await _supabase.from('tables').update({
           'status': 'available',
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTimeUtils.nowUtc(),
         }).eq('id', tableId);
       }
     }

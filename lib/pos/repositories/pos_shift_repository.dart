@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/shift.dart';
+import '../../core/utils/date_utils.dart';
 
 class PosShiftRepository {
   final _supabase = Supabase.instance.client;
@@ -36,7 +37,7 @@ class PosShiftRepository {
             'cashier_id': cashierId,
             'opening_cash': openingCash,
             'status': 'open',
-            'opened_at': DateTime.now().toIso8601String(),
+            'opened_at': DateTimeUtils.nowUtc(),
           })
           .select()
           .single();
@@ -62,7 +63,7 @@ class PosShiftRepository {
           .update({
             'closing_cash': closingCash,
             'status': 'closed',
-            'closed_at': DateTime.now().toIso8601String(),
+            'closed_at': DateTimeUtils.nowUtc(),
             'notes': notes,
           })
           .eq('id', shiftId);

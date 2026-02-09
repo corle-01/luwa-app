@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/purchase.dart';
+import '../../core/utils/date_utils.dart';
 
 class PurchaseRepository {
   final _supabase = Supabase.instance.client;
@@ -15,10 +16,10 @@ class PurchaseRepository {
         .eq('outlet_id', outletId);
 
     if (from != null) {
-      query = query.gte('purchase_date', from.toIso8601String().split('T')[0]);
+      query = query.gte('purchase_date', DateTimeUtils.toDateOnly(from));
     }
     if (to != null) {
-      query = query.lte('purchase_date', to.toIso8601String().split('T')[0]);
+      query = query.lte('purchase_date', DateTimeUtils.toDateOnly(to));
     }
 
     final response = await query.order('purchase_date', ascending: false);
@@ -128,8 +129,8 @@ class PurchaseRepository {
         .from('purchases')
         .select('total_amount, payment_source')
         .eq('outlet_id', outletId)
-        .gte('purchase_date', from.toIso8601String().split('T')[0])
-        .lte('purchase_date', to.toIso8601String().split('T')[0]);
+        .gte('purchase_date', DateTimeUtils.toDateOnly(from))
+        .lte('purchase_date', DateTimeUtils.toDateOnly(to));
 
     double totalAmount = 0;
     double kasKasirAmount = 0;

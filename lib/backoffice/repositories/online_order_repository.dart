@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/date_utils.dart';
 
 // ============================================================
 // Models
@@ -296,7 +297,7 @@ class OnlineOrderRepository {
   /// Update a platform configuration
   Future<void> updatePlatformConfig(
       String configId, Map<String, dynamic> data) async {
-    data['updated_at'] = DateTime.now().toIso8601String();
+    data['updated_at'] = DateTimeUtils.nowUtc();
     await _supabase
         .from('platform_configs')
         .update(data)
@@ -327,12 +328,10 @@ class OnlineOrderRepository {
       query = query.eq('status', status);
     }
     if (dateFrom != null) {
-      query = query.gte('created_at', dateFrom.toIso8601String());
+      query = query.gte('created_at', DateTimeUtils.toUtcIso(dateFrom));
     }
     if (dateTo != null) {
-      final endOfDay =
-          DateTime(dateTo.year, dateTo.month, dateTo.day, 23, 59, 59);
-      query = query.lte('created_at', endOfDay.toIso8601String());
+      query = query.lte('created_at', DateTimeUtils.endOfDayUtc(dateTo));
     }
 
     final response = await query.order('created_at', ascending: false);
@@ -449,8 +448,8 @@ class OnlineOrderRepository {
         .update({
           'order_id': internalOrderId,
           'status': 'accepted',
-          'accepted_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
+          'accepted_at': DateTimeUtils.nowUtc(),
+          'updated_at': DateTimeUtils.nowUtc(),
         })
         .eq('id', onlineOrderId);
   }
@@ -466,8 +465,8 @@ class OnlineOrderRepository {
         .update({
           'status': 'rejected',
           'notes': reason,
-          'cancelled_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
+          'cancelled_at': DateTimeUtils.nowUtc(),
+          'updated_at': DateTimeUtils.nowUtc(),
         })
         .eq('id', onlineOrderId);
   }
@@ -481,25 +480,25 @@ class OnlineOrderRepository {
       String onlineOrderId, String status) async {
     final data = <String, dynamic>{
       'status': status,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTimeUtils.nowUtc(),
     };
 
     // Set timestamp fields based on status transition
     switch (status) {
       case 'preparing':
-        data['prepared_at'] = DateTime.now().toIso8601String();
+        data['prepared_at'] = DateTimeUtils.nowUtc();
         break;
       case 'ready':
         // prepared_at stays from when preparing started
         break;
       case 'picked_up':
-        data['picked_up_at'] = DateTime.now().toIso8601String();
+        data['picked_up_at'] = DateTimeUtils.nowUtc();
         break;
       case 'delivered':
-        data['delivered_at'] = DateTime.now().toIso8601String();
+        data['delivered_at'] = DateTimeUtils.nowUtc();
         break;
       case 'cancelled':
-        data['cancelled_at'] = DateTime.now().toIso8601String();
+        data['cancelled_at'] = DateTimeUtils.nowUtc();
         break;
     }
 
@@ -519,15 +518,12 @@ class OnlineOrderRepository {
     DateTime dateFrom,
     DateTime dateTo,
   ) async {
-    final endOfDay =
-        DateTime(dateTo.year, dateTo.month, dateTo.day, 23, 59, 59);
-
     final response = await _supabase
         .from('online_orders')
         .select()
         .eq('outlet_id', outletId)
-        .gte('created_at', dateFrom.toIso8601String())
-        .lte('created_at', endOfDay.toIso8601String());
+        .gte('created_at', DateTimeUtils.toUtcIso(dateFrom))
+        .lte('created_at', DateTimeUtils.endOfDayUtc(dateTo));
 
     final orders = (response as List)
         .map((json) => OnlineOrder.fromJson(json))

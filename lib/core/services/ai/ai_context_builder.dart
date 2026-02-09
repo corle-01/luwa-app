@@ -4,6 +4,7 @@ import 'package:utter_app/core/config/app_constants.dart';
 import 'package:utter_app/core/repositories/ai_insight_repository.dart';
 import 'package:utter_app/core/services/ai/ai_memory_service.dart';
 import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
+import 'package:utter_app/core/utils/date_utils.dart';
 
 /// Builds rich context data for AI conversations.
 ///
@@ -112,15 +113,12 @@ class AiContextBuilder {
   /// Get recent orders with item details - the core data AI needs
   Future<Map<String, dynamic>> _getRecentOrders(String outletId) async {
     try {
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
-
       // Get today's orders with items
       final orders = await _client
           .from(AppConstants.tableOrders)
           .select('id, order_number, status, payment_method, total, subtotal, tax_amount, discount_amount, created_at, order_items(product_name, quantity, unit_price, subtotal)')
           .eq('outlet_id', outletId)
-          .gte('created_at', startOfDay)
+          .gte('created_at', DateTimeUtils.startOfTodayUtc())
           .order('created_at', ascending: false)
           .limit(20);
 
@@ -176,7 +174,7 @@ class AiContextBuilder {
   /// Get top selling products (last 7 days)
   Future<List<Map<String, dynamic>>> _getTopProducts(String outletId) async {
     try {
-      final weekAgo = DateTime.now().subtract(const Duration(days: 7)).toIso8601String();
+      final weekAgo = DateTimeUtils.toUtcIso(DateTime.now().subtract(const Duration(days: 7)));
 
       final items = await _client
           .from('order_items')

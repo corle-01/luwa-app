@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:utter_app/core/services/ai/ai_memory_service.dart';
 import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
+import 'package:utter_app/core/utils/date_utils.dart';
 
 /// Sanitize a string for use in LIKE/ILIKE patterns.
 /// Escapes SQL wildcard characters to prevent pattern injection.
@@ -430,8 +431,8 @@ class AiActionExecutor {
         .from('orders')
         .select('id, order_number, total, status, payment_method, created_at, order_items(product_name, quantity, subtotal)')
         .eq('outlet_id', _outletId)
-        .gte('created_at', startDate.toIso8601String())
-        .lte('created_at', endDate.toIso8601String())
+        .gte('created_at', DateTimeUtils.toUtcIso(startDate))
+        .lte('created_at', DateTimeUtils.toUtcIso(endDate))
         .order('created_at', ascending: false);
 
     final orderList = List<Map<String, dynamic>>.from(orders);

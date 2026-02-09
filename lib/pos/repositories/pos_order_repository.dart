@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/order.dart';
+import '../../core/utils/date_utils.dart';
 
 class PosOrderRepository {
   final _supabase = Supabase.instance.client;
@@ -81,7 +82,7 @@ class PosOrderRepository {
         .update({
           'status': 'completed',
           'payment_status': 'paid',
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTimeUtils.nowUtc(),
         })
         .eq('id', orderId);
 
@@ -109,11 +110,10 @@ class PosOrderRepository {
         .eq('outlet_id', outletId);
 
     if (startDate != null) {
-      query = query.gte('created_at', startDate.toIso8601String());
+      query = query.gte('created_at', DateTimeUtils.toUtcIso(startDate));
     }
     if (endDate != null) {
-      final endOfDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
-      query = query.lte('created_at', endOfDay.toIso8601String());
+      query = query.lte('created_at', DateTimeUtils.endOfDayUtc(endDate));
     }
     if (status != null && status.isNotEmpty) {
       query = query.eq('status', status);
@@ -137,14 +137,11 @@ class PosOrderRepository {
   }
 
   Future<List<Order>> getTodayOrders(String outletId) async {
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-
     final response = await _supabase
         .from('orders')
         .select('*, profiles(full_name)')
         .eq('outlet_id', outletId)
-        .gte('created_at', startOfDay.toIso8601String())
+        .gte('created_at', DateTimeUtils.startOfTodayUtc())
         .order('created_at', ascending: false);
 
     return (response as List).map((json) => Order.fromJson(json)).toList();
@@ -161,7 +158,7 @@ class PosOrderRepository {
   Future<void> updateOrderStatus(String orderId, String status) async {
     await _supabase
         .from('orders')
-        .update({'status': status, 'updated_at': DateTime.now().toIso8601String()})
+        .update({'status': status, 'updated_at': DateTimeUtils.nowUtc()})
         .eq('id', orderId);
   }
 
@@ -171,7 +168,7 @@ class PosOrderRepository {
         .update({
           'status': 'cancelled',
           'notes': reason,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTimeUtils.nowUtc(),
         })
         .eq('id', orderId);
   }

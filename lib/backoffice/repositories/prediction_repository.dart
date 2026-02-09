@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/date_utils.dart';
 
 // ─── Models ─────────────────────────────────────────────────────────
 
@@ -144,8 +145,8 @@ class PredictionRepository {
         .select('created_at, total')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
-        .gte('created_at', from.toIso8601String())
-        .lte('created_at', now.toIso8601String())
+        .gte('created_at', DateTimeUtils.toUtcIso(from))
+        .lte('created_at', DateTimeUtils.toUtcIso(now))
         .order('created_at', ascending: true);
 
     final rows = response as List;
@@ -199,8 +200,8 @@ class PredictionRepository {
             'product_id, product_name, quantity, total, orders!inner(outlet_id, status, created_at)')
         .eq('orders.outlet_id', outletId)
         .eq('orders.status', 'completed')
-        .gte('orders.created_at', from.toIso8601String())
-        .lte('orders.created_at', now.toIso8601String());
+        .gte('orders.created_at', DateTimeUtils.toUtcIso(from))
+        .lte('orders.created_at', DateTimeUtils.toUtcIso(now));
 
     final rows = response as List;
 
@@ -448,8 +449,8 @@ class PredictionRepository {
             'product_id, quantity, orders!inner(outlet_id, status, created_at)')
         .eq('orders.outlet_id', outletId)
         .eq('orders.status', 'completed')
-        .gte('orders.created_at', from.toIso8601String())
-        .lte('orders.created_at', now.toIso8601String());
+        .gte('orders.created_at', DateTimeUtils.toUtcIso(from))
+        .lte('orders.created_at', DateTimeUtils.toUtcIso(now));
 
     final items = itemsResp as List;
 

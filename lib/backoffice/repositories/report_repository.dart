@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/date_utils.dart';
 
 // --- Models ---
 
@@ -114,8 +115,8 @@ class ReportRepository {
         .select('total, payment_method, discount_amount, tax_amount, service_charge_amount')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
-        .gte('created_at', from.toIso8601String())
-        .lte('created_at', to.toIso8601String());
+        .gte('created_at', DateTimeUtils.toUtcIso(from))
+        .lte('created_at', DateTimeUtils.toUtcIso(to));
 
     final rows = response as List;
 
@@ -170,8 +171,8 @@ class ReportRepository {
         .select('product_name, quantity, total, orders!inner(outlet_id, status, created_at)')
         .eq('orders.outlet_id', outletId)
         .eq('orders.status', 'completed')
-        .gte('orders.created_at', from.toIso8601String())
-        .lte('orders.created_at', to.toIso8601String());
+        .gte('orders.created_at', DateTimeUtils.toUtcIso(from))
+        .lte('orders.created_at', DateTimeUtils.toUtcIso(to));
 
     final rows = response as List;
 
@@ -217,8 +218,8 @@ class ReportRepository {
         .select('total, created_at')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
-        .gte('created_at', startOfDay.toIso8601String())
-        .lt('created_at', endOfDay.toIso8601String());
+        .gte('created_at', DateTimeUtils.toUtcIso(startOfDay))
+        .lt('created_at', DateTimeUtils.toUtcIso(endOfDay));
 
     final rows = response as List;
 
@@ -246,11 +247,10 @@ class ReportRepository {
       ..sort((a, b) => a.hour.compareTo(b.hour));
   }
 
-  /// Get monthly sales data for the last N months
+  /// Get monthly sales data for the last N months (parallelized)
   Future<List<MonthlySalesData>> getMonthlySales(String outletId,
       {int months = 6}) async {
     final now = DateTime.now();
-    final results = <MonthlySalesData>[];
 
     // Indonesian month names
     const monthNames = [
@@ -269,19 +269,37 @@ class ReportRepository {
       'Des'
     ];
 
+    // Build all month ranges
+    final monthRanges = <Map<String, dynamic>>[];
     for (var i = months - 1; i >= 0; i--) {
       final targetMonth = DateTime(now.year, now.month - i, 1);
       final nextMonth = DateTime(targetMonth.year, targetMonth.month + 1, 1);
+      monthRanges.add({
+        'target': targetMonth,
+        'next': nextMonth,
+      });
+    }
 
-      final response = await _supabase
+    // Fetch all months in parallel
+    final futures = monthRanges.map((range) {
+      final targetMonth = range['target'] as DateTime;
+      final nextMonth = range['next'] as DateTime;
+      return _supabase
           .from('orders')
           .select('total')
           .eq('outlet_id', outletId)
           .eq('status', 'completed')
-          .gte('created_at', targetMonth.toIso8601String())
-          .lt('created_at', nextMonth.toIso8601String());
+          .gte('created_at', DateTimeUtils.toUtcIso(targetMonth))
+          .lt('created_at', DateTimeUtils.toUtcIso(nextMonth));
+    }).toList();
 
-      final rows = response as List;
+    final responses = await Future.wait(futures);
+
+    // Build results
+    final results = <MonthlySalesData>[];
+    for (var i = 0; i < monthRanges.length; i++) {
+      final targetMonth = monthRanges[i]['target'] as DateTime;
+      final rows = responses[i] as List;
       final totalSales = rows.fold<double>(
           0, (sum, r) => sum + ((r['total'] as num?)?.toDouble() ?? 0));
       final orderCount = rows.length;
@@ -348,8 +366,8 @@ class ReportRepository {
             'total, payment_method, source, discount_amount, tax_amount, service_charge_amount')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
-        .gte('created_at', from.toIso8601String())
-        .lte('created_at', to.toIso8601String());
+        .gte('created_at', DateTimeUtils.toUtcIso(from))
+        .lte('created_at', DateTimeUtils.toUtcIso(to));
 
     final orders = ordersResponse as List;
 
@@ -387,8 +405,8 @@ class ReportRepository {
           .from('purchases')
           .select('total_amount, payment_source')
           .eq('outlet_id', outletId)
-          .gte('purchase_date', from.toIso8601String().substring(0, 10))
-          .lte('purchase_date', to.toIso8601String().substring(0, 10));
+          .gte('purchase_date', DateTimeUtils.toDateOnly(from))
+          .lte('purchase_date', DateTimeUtils.toDateOnly(to));
 
       final purchaseRows = purchasesResponse as List;
       purchaseCount = purchaseRows.length;
@@ -446,8 +464,8 @@ class ReportRepository {
             'product_id, product_name, quantity, unit_price, total, orders!inner(outlet_id, status, created_at)')
         .eq('orders.outlet_id', outletId)
         .eq('orders.status', 'completed')
-        .gte('orders.created_at', from.toIso8601String())
-        .lte('orders.created_at', to.toIso8601String());
+        .gte('orders.created_at', DateTimeUtils.toUtcIso(from))
+        .lte('orders.created_at', DateTimeUtils.toUtcIso(to));
 
     // 2. Get product costs
     final productsResponse = await _supabase

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/order.dart';
 import '../../core/providers/outlet_provider.dart';
+import '../../core/utils/date_utils.dart';
 
 // ─────────────────────────────────────────────
 // Model
@@ -28,11 +29,6 @@ class DashboardStats {
 class DashboardRepository {
   final _supabase = Supabase.instance.client;
 
-  DateTime get _startOfToday {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
-  }
-
   /// SUM(total) FROM orders WHERE status='completed' AND created_at >= today
   Future<double> getTodaySales(String outletId) async {
     final response = await _supabase
@@ -40,7 +36,7 @@ class DashboardRepository {
         .select('total')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
-        .gte('created_at', _startOfToday.toIso8601String());
+        .gte('created_at', DateTimeUtils.startOfTodayUtc());
 
     final rows = response as List;
     double total = 0;
@@ -57,7 +53,7 @@ class DashboardRepository {
         .select('id')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
-        .gte('created_at', _startOfToday.toIso8601String());
+        .gte('created_at', DateTimeUtils.startOfTodayUtc());
 
     return (response as List).length;
   }
@@ -73,20 +69,35 @@ class DashboardRepository {
     return (response as List).length;
   }
 
-  /// COUNT(*) FROM ingredients WHERE current_stock <= min_stock AND outlet_id=...
+  /// Count low stock items: ingredients + tracked products
   Future<int> getLowStockCount(String outletId) async {
-    final response = await _supabase
+    // Ingredients low stock
+    final ingredientResponse = await _supabase
         .from('ingredients')
         .select('id, current_stock, min_stock')
         .eq('outlet_id', outletId);
 
-    final rows = response as List;
     int count = 0;
-    for (final row in rows) {
+    for (final row in ingredientResponse as List) {
       final current = (row['current_stock'] as num?)?.toDouble() ?? 0;
       final min = (row['min_stock'] as num?)?.toDouble() ?? 0;
       if (current <= min) count++;
     }
+
+    // Products with stock tracking enabled
+    final productResponse = await _supabase
+        .from('products')
+        .select('id, stock_quantity, min_stock')
+        .eq('outlet_id', outletId)
+        .eq('is_active', true)
+        .eq('track_stock', true);
+
+    for (final row in productResponse as List) {
+      final current = (row['stock_quantity'] as num?)?.toInt() ?? 0;
+      final min = (row['min_stock'] as num?)?.toInt() ?? 0;
+      if (current <= min) count++;
+    }
+
     return count;
   }
 
