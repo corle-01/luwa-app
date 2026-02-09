@@ -43,6 +43,7 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
     double? amountPaid,
     double? changeAmount,
     List<Map<String, dynamic>>? paymentDetails,
+    String? orderSource,
   }) async {
     state = const AsyncLoading();
 
@@ -54,18 +55,21 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
       final shiftData = shift.value;
       if (shiftData == null) return CheckoutResult(success: false, error: 'Shift belum dibuka');
 
+      final isPlatformOrder = orderSource != null &&
+          (orderSource == 'gofood' || orderSource == 'grabfood' || orderSource == 'shopeefood');
+
       final items = cart.items.map((item) => {
         'product_id': item.product.id,
         'product_name': item.product.name,
         'quantity': item.quantity,
-        'unit_price': item.unitPrice,
-        'subtotal': item.itemTotal,
-        'total': item.itemTotal,
+        'unit_price': isPlatformOrder ? 0.0 : item.unitPrice,
+        'subtotal': isPlatformOrder ? 0.0 : item.itemTotal,
+        'total': isPlatformOrder ? 0.0 : item.itemTotal,
         'notes': item.notes,
         'modifiers': item.selectedModifiers.map((m) => {
           'group_name': m.groupName,
           'option_name': m.optionName,
-          'price_adjustment': m.priceAdjustment,
+          'price_adjustment': isPlatformOrder ? 0.0 : m.priceAdjustment,
         }).toList(),
       }).toList();
 
@@ -95,21 +99,24 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
         outletId: _outletId,
         shiftId: shiftData.id,
         cashierId: shiftData.cashierId,
-        orderType: cart.orderType,
+        orderType: isPlatformOrder ? 'online' : cart.orderType,
         paymentMethod: paymentMethod,
-        subtotal: cart.subtotal,
-        discountAmount: cart.discountAmount,
-        taxAmount: cart.taxAmount,
-        serviceChargeAmount: cart.serviceChargeAmount,
-        totalAmount: cart.total,
+        subtotal: isPlatformOrder ? 0 : cart.subtotal,
+        discountAmount: isPlatformOrder ? 0 : cart.discountAmount,
+        taxAmount: isPlatformOrder ? 0 : cart.taxAmount,
+        serviceChargeAmount: isPlatformOrder ? 0 : cart.serviceChargeAmount,
+        totalAmount: isPlatformOrder ? (amountPaid ?? 0) : cart.total,
         items: items,
         amountPaid: amountPaid ?? cart.total,
         changeAmount: changeAmount ?? 0,
-        discountId: cart.discount?.id,
+        discountId: isPlatformOrder ? null : cart.discount?.id,
         customerId: cart.customer?.id,
         tableId: cart.tableId,
-        notes: cart.notes,
+        notes: isPlatformOrder
+            ? '${orderSource!.toUpperCase()} Order${cart.notes != null ? ' - ${cart.notes}' : ''}'
+            : cart.notes,
         paymentDetails: paymentDetails,
+        orderSource: orderSource,
       );
 
       if (cart.orderType == 'dine_in' && cart.tableId != null) {

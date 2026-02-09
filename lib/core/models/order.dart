@@ -22,6 +22,7 @@ class Order {
   final double changeAmount;
   final List<Map<String, dynamic>>? paymentDetails;
   final String? notes;
+  final String? orderSource;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final List<OrderItem>? items;
@@ -50,6 +51,7 @@ class Order {
     this.changeAmount = 0,
     this.paymentDetails,
     this.notes,
+    this.orderSource,
     required this.createdAt,
     this.updatedAt,
     this.items,
@@ -83,6 +85,7 @@ class Order {
               (json['payment_details'] as List).map((e) => Map<String, dynamic>.from(e)))
           : null,
       notes: json['notes'] as String?,
+      orderSource: json['order_source'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
     );
@@ -105,6 +108,7 @@ class Order {
     'total': totalAmount,
     'payment_details': paymentDetails,
     'notes': notes,
+    'order_source': orderSource,
   };
 }
 

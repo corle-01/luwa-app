@@ -56,7 +56,11 @@ class OrderDetailDialog extends ConsumerWidget {
             const Divider(height: 24),
 
             // Order info
-            _DetailRow('Tipe', order.orderType == 'dine_in' ? 'Dine In' : 'Takeaway'),
+            _DetailRow('Tipe', order.orderType == 'online'
+                ? 'Online Food'
+                : order.orderType == 'dine_in' ? 'Dine In' : 'Takeaway'),
+            if (order.orderSource != null && order.orderSource != 'pos')
+              _DetailRow('Platform', order.orderSource!.toUpperCase()),
             if (order.tableNumber != null)
               _DetailRow('Meja', '${order.tableNumber}'),
             _DetailRow('Pembayaran', _paymentMethodLabel(order.paymentMethod)),
@@ -204,6 +208,8 @@ class OrderDetailDialog extends ConsumerWidget {
         return 'Transfer';
       case 'split':
         return 'Split Payment';
+      case 'platform':
+        return 'Online Food';
       default:
         return method.toUpperCase();
     }

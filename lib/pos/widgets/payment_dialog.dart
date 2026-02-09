@@ -144,7 +144,13 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                       ? null
                       : _processPayment,
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.successColor,
+                      backgroundColor: _paymentMethod == 'gofood'
+                          ? const Color(0xFF00880C)
+                          : _paymentMethod == 'grabfood'
+                              ? const Color(0xFF00B14F)
+                              : _paymentMethod == 'shopeefood'
+                                  ? const Color(0xFFEE4D2D)
+                                  : AppTheme.successColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16)),
                   child: _isProcessing
@@ -156,7 +162,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                       : Text(
                           _isSplitMode
                               ? 'Proses Split Payment'
-                              : 'Proses Pembayaran',
+                              : _isPlatformMethod
+                                  ? 'Simpan Order $_platformLabel'
+                                  : 'Proses Pembayaran',
                           style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
@@ -238,6 +246,20 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     );
   }
 
+  bool get _isPlatformMethod =>
+      _paymentMethod == 'gofood' ||
+      _paymentMethod == 'grabfood' ||
+      _paymentMethod == 'shopeefood';
+
+  String get _platformLabel {
+    switch (_paymentMethod) {
+      case 'gofood': return 'GoFood';
+      case 'grabfood': return 'GrabFood';
+      case 'shopeefood': return 'ShopeeFood';
+      default: return '';
+    }
+  }
+
   /// Single payment mode content (existing behavior)
   Widget _buildSinglePaymentContent(double total, double change) {
     return Column(
@@ -277,6 +299,34 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                 isSelected: _paymentMethod == 'bank_transfer',
                 onTap: () =>
                     setState(() => _paymentMethod = 'bank_transfer')),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const Text('Online Food Platform',
+            style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _MethodCard(
+                label: 'GoFood',
+                icon: Icons.delivery_dining,
+                isSelected: _paymentMethod == 'gofood',
+                color: const Color(0xFF00880C),
+                onTap: () => setState(() => _paymentMethod = 'gofood')),
+            _MethodCard(
+                label: 'GrabFood',
+                icon: Icons.delivery_dining,
+                isSelected: _paymentMethod == 'grabfood',
+                color: const Color(0xFF00B14F),
+                onTap: () => setState(() => _paymentMethod = 'grabfood')),
+            _MethodCard(
+                label: 'ShopeeFood',
+                icon: Icons.delivery_dining,
+                isSelected: _paymentMethod == 'shopeefood',
+                color: const Color(0xFFEE4D2D),
+                onTap: () => setState(() => _paymentMethod = 'shopeefood')),
           ],
         ),
         if (_paymentMethod == 'cash') ...[
@@ -320,6 +370,82 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.successColor)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+        if (_isPlatformMethod) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: AppTheme.primaryColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Harga item akan di-0-kan (hanya tracking produk). Masukkan jumlah yang diterima dari $_platformLabel. Stok tetap terpotong.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.primaryColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _cashController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+                labelText: 'Jumlah dari $_platformLabel', prefixText: 'Rp '),
+            onChanged: (_) => setState(() {}),
+          ),
+          if (_cashAmount > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: AppTheme.successColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8)),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total Order',
+                            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                        Text(FormatUtils.currency(total),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Diterima dari $_platformLabel',
+                            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                        Text(FormatUtils.currency(_cashAmount),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    if (total - _cashAmount > 0) ...[
+                      const Divider(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Potongan Platform',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.warningColor)),
+                          Text(FormatUtils.currency(total - _cashAmount),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.warningColor)),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -569,8 +695,10 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         DropdownMenuItem(value: 'qris', child: Text('QRIS')),
         DropdownMenuItem(value: 'card', child: Text('Debit Card')),
         DropdownMenuItem(value: 'e_wallet', child: Text('E-Wallet')),
-        DropdownMenuItem(
-            value: 'bank_transfer', child: Text('Transfer')),
+        DropdownMenuItem(value: 'bank_transfer', child: Text('Transfer')),
+        DropdownMenuItem(value: 'gofood', child: Text('GoFood')),
+        DropdownMenuItem(value: 'grabfood', child: Text('GrabFood')),
+        DropdownMenuItem(value: 'shopeefood', child: Text('ShopeeFood')),
       ];
 
   /// Determines if the process button should be enabled
@@ -583,6 +711,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     } else {
       if (_paymentMethod == 'cash') {
         return _cashAmount >= total;
+      }
+      if (_isPlatformMethod) {
+        return _cashAmount > 0;
       }
       return true;
     }
@@ -597,6 +728,8 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     final double amountPaid;
     final double changeAmount;
     List<Map<String, dynamic>>? paymentDetails;
+
+    String? orderSource;
 
     if (_isSplitMode) {
       paymentMethod = 'split';
@@ -614,6 +747,11 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
       paymentMethod = 'cash';
       amountPaid = _cashAmount;
       changeAmount = _cashAmount - total;
+    } else if (_isPlatformMethod) {
+      paymentMethod = 'platform';
+      amountPaid = _cashAmount;
+      changeAmount = 0;
+      orderSource = _paymentMethod; // gofood/grabfood/shopeefood
     } else {
       paymentMethod = _paymentMethod;
       amountPaid = total;
@@ -626,6 +764,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
               amountPaid: amountPaid,
               changeAmount: changeAmount,
               paymentDetails: paymentDetails,
+              orderSource: orderSource,
             );
     if (!mounted) return;
     setState(() => _isProcessing = false);
@@ -661,6 +800,14 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         return 'E-Wallet';
       case 'bank_transfer':
         return 'Transfer';
+      case 'platform':
+        return 'Platform';
+      case 'gofood':
+        return 'GoFood';
+      case 'grabfood':
+        return 'GrabFood';
+      case 'shopeefood':
+        return 'ShopeeFood';
       default:
         return method;
     }
@@ -672,14 +819,17 @@ class _MethodCard extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color? color;
   const _MethodCard(
       {required this.label,
       required this.icon,
       required this.isSelected,
-      required this.onTap});
+      required this.onTap,
+      this.color});
 
   @override
   Widget build(BuildContext context) {
+    final activeColor = color ?? AppTheme.primaryColor;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -687,19 +837,19 @@ class _MethodCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primaryColor.withValues(alpha: 0.1)
+              ? activeColor.withValues(alpha: 0.1)
               : AppTheme.backgroundColor,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
               color:
-                  isSelected ? AppTheme.primaryColor : AppTheme.borderColor,
+                  isSelected ? activeColor : AppTheme.borderColor,
               width: isSelected ? 2 : 1),
         ),
         child: Column(
           children: [
             Icon(icon,
                 color: isSelected
-                    ? AppTheme.primaryColor
+                    ? activeColor
                     : AppTheme.textSecondary,
                 size: 22),
             const SizedBox(height: 4),
@@ -708,7 +858,7 @@ class _MethodCard extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: isSelected
-                        ? AppTheme.primaryColor
+                        ? activeColor
                         : AppTheme.textSecondary)),
           ],
         ),

@@ -167,6 +167,8 @@ class ReceiptPrinter {
         return 'Transfer';
       case 'split':
         return 'Split Payment';
+      case 'platform':
+        return 'Online Food';
       default:
         return method.toUpperCase();
     }

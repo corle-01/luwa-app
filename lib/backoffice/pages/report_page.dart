@@ -534,6 +534,8 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         return 'E-Wallet';
       case 'split':
         return 'Split Payment';
+      case 'platform':
+        return 'Online Food';
       default:
         return FormatUtils.titleCase(method.replaceAll('_', ' '));
     }
@@ -555,6 +557,8 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         return Icons.account_balance_wallet_outlined;
       case 'split':
         return Icons.call_split;
+      case 'platform':
+        return Icons.delivery_dining;
       default:
         return Icons.payment;
     }
@@ -576,6 +580,8 @@ class _ReportPageState extends ConsumerState<ReportPage> {
         return AppTheme.accentColor;
       case 'split':
         return AppTheme.warningColor;
+      case 'platform':
+        return const Color(0xFFFF6B35);
       default:
         return AppTheme.textSecondary;
     }
