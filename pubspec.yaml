@@ -89,6 +89,7 @@ flutter:
     - assets/images/logo_collab_light.png
     - assets/images/logo_collab_dark_sm.png
     - assets/images/logo_collab_light_sm.png
+    - assets/images/qris_payment.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

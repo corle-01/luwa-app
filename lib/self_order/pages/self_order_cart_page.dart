@@ -36,6 +36,8 @@ class _SelfOrderCartPageState extends ConsumerState<SelfOrderCartPage>
     with SingleTickerProviderStateMixin {
   final _notesController = TextEditingController();
   bool _isSubmitting = false;
+  String _selectedPayment = ''; // '' = not selected, 'cash', 'qris'
+  bool _qrisConfirmed = false;
   late AnimationController _emptyCartController;
   late Animation<double> _emptyCartScale;
 
@@ -59,7 +61,51 @@ class _SelfOrderCartPageState extends ConsumerState<SelfOrderCartPage>
     super.dispose();
   }
 
-  Future<void> _submitOrder() async {
+  void _showPaymentSheet() {
+    setState(() {
+      _selectedPayment = '';
+      _qrisConfirmed = false;
+    });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _PaymentMethodSheet(
+        total: ref.read(selfOrderCartTotalProvider),
+        onSelect: (method) {
+          Navigator.of(ctx).pop();
+          setState(() => _selectedPayment = method);
+          if (method == 'cash') {
+            _submitOrder(paymentMethod: 'cash');
+          }
+          // qris: show QRIS confirmation dialog
+          if (method == 'qris') {
+            _showQrisDialog();
+          }
+        },
+      ),
+    );
+  }
+
+  void _showQrisDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _QrisPaymentDialog(
+        total: ref.read(selfOrderCartTotalProvider),
+        onConfirmPaid: () {
+          Navigator.of(ctx).pop();
+          _submitOrder(paymentMethod: 'qris');
+        },
+        onCancel: () {
+          Navigator.of(ctx).pop();
+          setState(() => _selectedPayment = '');
+        },
+      ),
+    );
+  }
+
+  Future<void> _submitOrder({required String paymentMethod}) async {
     final cartItems = ref.read(selfOrderCartProvider);
     if (cartItems.isEmpty) return;
 
@@ -76,6 +122,7 @@ class _SelfOrderCartPageState extends ConsumerState<SelfOrderCartPage>
         customerNotes: _notesController.text.trim().isNotEmpty
             ? _notesController.text.trim()
             : null,
+        paymentMethod: paymentMethod,
       );
 
       // Clear cart after successful submission
@@ -89,6 +136,7 @@ class _SelfOrderCartPageState extends ConsumerState<SelfOrderCartPage>
           builder: (_) => SelfOrderConfirmationPage(
             orderId: orderId,
             tableId: widget.tableId,
+            paymentMethod: paymentMethod,
           ),
         ),
       );
@@ -818,7 +866,7 @@ class _SelfOrderCartPageState extends ConsumerState<SelfOrderCartPage>
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitOrder,
+                  onPressed: _isSubmitting ? null : _showPaymentSheet,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -968,6 +1016,321 @@ class _QuantityButton extends StatelessWidget {
             color: isDisabled
                 ? AppTheme.textTertiary.withValues(alpha: 0.4)
                 : (iconColor ?? AppTheme.textPrimary),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// PAYMENT METHOD BOTTOM SHEET
+// =============================================================================
+class _PaymentMethodSheet extends StatelessWidget {
+  final double total;
+  final void Function(String method) onSelect;
+
+  const _PaymentMethodSheet({required this.total, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              Text(
+                'Pilih Metode Pembayaran',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Total: ${_currencyFormat.format(total)}',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Cash option
+              _PaymentOption(
+                icon: Icons.payments_rounded,
+                title: 'Bayar di Kasir',
+                subtitle: 'Bayar tunai/debit saat pesanan siap',
+                color: const Color(0xFF059669),
+                onTap: () => onSelect('cash'),
+              ),
+              const SizedBox(height: 12),
+
+              // QRIS option
+              _PaymentOption(
+                icon: Icons.qr_code_2_rounded,
+                title: 'QRIS',
+                subtitle: 'Scan & bayar langsung via e-wallet/m-banking',
+                color: const Color(0xFF2563EB),
+                onTap: () => onSelect('qris'),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _PaymentOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: color, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// QRIS PAYMENT DIALOG
+// =============================================================================
+class _QrisPaymentDialog extends StatelessWidget {
+  final double total;
+  final VoidCallback onConfirmPaid;
+  final VoidCallback onCancel;
+
+  const _QrisPaymentDialog({
+    required this.total,
+    required this.onConfirmPaid,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.qr_code_2_rounded,
+                      color: Color(0xFF2563EB),
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pembayaran QRIS',
+                          style: GoogleFonts.inter(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          _currencyFormat.format(total),
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // QRIS Image
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.borderColor.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/qris_payment.jpeg',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Instructions
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline_rounded,
+                        size: 18, color: Color(0xFFD97706)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Scan QR code di atas menggunakan aplikasi e-wallet atau m-banking kamu, lalu tekan "Sudah Bayar" setelah pembayaran berhasil.',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: const Color(0xFF92400E),
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Confirm button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onConfirmPaid,
+                  icon: const Icon(Icons.check_circle_rounded, size: 20),
+                  label: Text(
+                    'Sudah Bayar',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Cancel button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: onCancel,
+                  child: Text(
+                    'Batal',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

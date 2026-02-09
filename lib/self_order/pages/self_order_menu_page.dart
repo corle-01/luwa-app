@@ -785,7 +785,7 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = product['name'] as String? ?? 'Produk';
-    final price = (product['price'] as num?)?.toDouble() ?? 0;
+    final price = (product['selling_price'] as num?)?.toDouble() ?? 0;
     final imageUrl = _getPrimaryImageUrl(product);
     final category = product['categories'] as Map<String, dynamic>?;
     final categoryName = category?['name'] as String?;
@@ -1004,13 +1004,13 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
 
   double get _itemTotal {
     final unitPrice =
-        (widget.product['price'] as num?)?.toDouble() ?? 0;
+        (widget.product['selling_price'] as num?)?.toDouble() ?? 0;
     return (unitPrice + _selectedModifiersTotal) * _quantity;
   }
 
   void _addToCart() {
     final product = widget.product;
-    final unitPrice = (product['price'] as num?)?.toDouble() ?? 0;
+    final unitPrice = (product['selling_price'] as num?)?.toDouble() ?? 0;
 
     // Build modifier list for the cart item
     final modifiers = <Map<String, dynamic>>[];
@@ -1076,7 +1076,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
   Widget build(BuildContext context) {
     final product = widget.product;
     final name = product['name'] as String? ?? 'Produk';
-    final price = (product['price'] as num?)?.toDouble() ?? 0;
+    final price = (product['selling_price'] as num?)?.toDouble() ?? 0;
     final description = product['description'] as String?;
     final allImageUrls = _getAllImageUrls(product);
     final productId = product['id'] as String;

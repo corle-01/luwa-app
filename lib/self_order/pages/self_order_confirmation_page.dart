@@ -15,11 +15,13 @@ import 'self_order_tracking_page.dart';
 class SelfOrderConfirmationPage extends ConsumerStatefulWidget {
   final String orderId;
   final String tableId;
+  final String paymentMethod;
 
   const SelfOrderConfirmationPage({
     super.key,
     required this.orderId,
     required this.tableId,
+    this.paymentMethod = 'cash',
   });
 
   @override
@@ -265,6 +267,70 @@ class _SelfOrderConfirmationPageState
                               ),
                             ),
                           ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Payment status info
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: widget.paymentMethod == 'qris'
+                                ? const Color(0xFFECFDF5)
+                                : const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: widget.paymentMethod == 'qris'
+                                  ? const Color(0xFF059669).withValues(alpha: 0.2)
+                                  : const Color(0xFFD97706).withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                widget.paymentMethod == 'qris'
+                                    ? Icons.check_circle_rounded
+                                    : Icons.payments_rounded,
+                                size: 24,
+                                color: widget.paymentMethod == 'qris'
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFFD97706),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.paymentMethod == 'qris'
+                                          ? 'Pembayaran QRIS'
+                                          : 'Bayar di Kasir',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: widget.paymentMethod == 'qris'
+                                            ? const Color(0xFF059669)
+                                            : const Color(0xFFD97706),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      widget.paymentMethod == 'qris'
+                                          ? 'Pembayaran sedang diverifikasi kasir'
+                                          : 'Silakan bayar di kasir saat pesanan siap',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: widget.paymentMethod == 'qris'
+                                            ? const Color(0xFF065F46)
+                                            : const Color(0xFF92400E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
 
                         const SizedBox(height: 36),

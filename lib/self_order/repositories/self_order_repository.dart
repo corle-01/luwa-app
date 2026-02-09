@@ -49,8 +49,8 @@ class SelfOrderRepository {
     return List<Map<String, dynamic>>.from(res);
   }
 
-  /// Submit self-order: creates order + order_items as 'pending'.
-  /// Payment is handled later by the cashier.
+  /// Submit self-order: creates order + order_items.
+  /// [paymentMethod] = 'cash' (bayar di kasir) or 'qris' (already paid via QRIS).
   /// Returns order ID.
   Future<String> submitOrder({
     required String outletId,
@@ -58,6 +58,7 @@ class SelfOrderRepository {
     required String orderType,
     required List<SelfOrderItem> items,
     String? customerNotes,
+    String paymentMethod = 'cash',
   }) async {
     // Generate order number with SO- prefix for self-order
     final now = DateTime.now();
@@ -70,8 +71,12 @@ class SelfOrderRepository {
       subtotal += item.totalPrice;
     }
 
+    // Determine payment status based on method:
+    // - qris: customer already paid → 'paid'
+    // - cash: pay later at cashier → 'unpaid'
+    final paymentStatus = paymentMethod == 'qris' ? 'paid' : 'unpaid';
+
     // Step 1: Insert order as 'pending'
-    // Self-orders stay pending until cashier completes payment.
     // DB triggers fire on UPDATE (pending -> completed), not on INSERT.
     final orderRes = await _client
         .from('orders')
@@ -81,11 +86,13 @@ class SelfOrderRepository {
           'order_type': orderType,
           'table_id': tableId,
           'status': 'pending',
-          'payment_status': 'unpaid',
+          'payment_method': paymentMethod,
+          'payment_status': paymentStatus,
           'subtotal': subtotal,
           'tax_amount': 0,
           'discount_amount': 0,
           'total': subtotal,
+          'amount_paid': paymentMethod == 'qris' ? subtotal : 0,
           'notes': customerNotes,
           'source': 'self_order',
         })
