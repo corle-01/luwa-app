@@ -29,7 +29,7 @@ class TaxModel {
       outletId: json['outlet_id'] as String,
       name: json['name'] as String? ?? '',
       type: json['type'] as String? ?? 'percentage',
-      value: (json['value'] as num?)?.toDouble() ?? 0,
+      value: (json['rate'] as num?)?.toDouble() ?? (json['value'] as num?)?.toDouble() ?? 0,
       isInclusive: json['is_inclusive'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] != null
@@ -84,7 +84,7 @@ class TaxRepository {
           'outlet_id': outletId,
           'name': name,
           'type': type,
-          'value': value,
+          'rate': value,
           'is_inclusive': isInclusive,
           'is_active': true,
         })
@@ -106,7 +106,7 @@ class TaxRepository {
         .update({
           'name': name,
           'type': type,
-          'value': value,
+          'rate': value,
           'is_inclusive': isInclusive,
           'updated_at': DateTime.now().toIso8601String(),
         })
