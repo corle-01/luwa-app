@@ -915,41 +915,34 @@ class _RecipeItemFormDialogState extends State<_RecipeItemFormDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Ingredient dropdown
+              // Ingredient search autocomplete
               _loadingIngredients
                   ? const LinearProgressIndicator()
-                  : DropdownButtonFormField<String>(
-                      value: _selectedIngredientId,
-                      decoration: const InputDecoration(
-                        labelText: 'Bahan Baku',
-                        prefixIcon: Icon(Icons.inventory_2),
-                      ),
-                      items: _ingredients.map((ingredient) {
-                        return DropdownMenuItem(
-                          value: ingredient.id,
-                          child: Text(
-                            '${ingredient.name} (${ingredient.unit})',
+                  : _isEditing
+                      ? TextFormField(
+                          initialValue: _ingredients
+                              .where((i) => i.id == _selectedIngredientId)
+                              .map((i) => '${i.name} (${i.unit})')
+                              .firstOrNull ?? '',
+                          decoration: const InputDecoration(
+                            labelText: 'Bahan Baku',
+                            prefixIcon: Icon(Icons.inventory_2),
                           ),
-                        );
-                      }).toList(),
-                      onChanged: _isEditing
-                          ? null
-                          : (v) {
-                              setState(() => _selectedIngredientId = v);
-                              // Auto-fill unit from selected ingredient
-                              if (v != null) {
-                                final selected = _ingredients
-                                    .where((i) => i.id == v)
-                                    .toList();
-                                if (selected.isNotEmpty) {
-                                  _unitController.text = selected.first.unit;
-                                }
-                              }
-                            },
-                      validator: (v) => v == null || v.isEmpty
-                          ? 'Pilih bahan baku'
-                          : null,
-                    ),
+                          enabled: false,
+                        )
+                      : _IngredientSearchField(
+                          ingredients: _ingredients,
+                          selectedId: _selectedIngredientId,
+                          onSelected: (ingredient) {
+                            setState(() {
+                              _selectedIngredientId = ingredient.id;
+                              _unitController.text = ingredient.unit;
+                            });
+                          },
+                          validator: (_) => _selectedIngredientId == null
+                              ? 'Pilih bahan baku'
+                              : null,
+                        ),
               const SizedBox(height: 12),
 
               // Quantity + Unit row
@@ -1135,5 +1128,205 @@ class _RecipeItemFormDialogState extends State<_RecipeItemFormDialog> {
         );
       }
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Ingredient Search Field (autocomplete replacement for dropdown)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _IngredientSearchField extends StatefulWidget {
+  final List<IngredientOption> ingredients;
+  final String? selectedId;
+  final void Function(IngredientOption) onSelected;
+  final String? Function(String?)? validator;
+
+  const _IngredientSearchField({
+    required this.ingredients,
+    this.selectedId,
+    required this.onSelected,
+    this.validator,
+  });
+
+  @override
+  State<_IngredientSearchField> createState() => _IngredientSearchFieldState();
+}
+
+class _IngredientSearchFieldState extends State<_IngredientSearchField> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+  List<IngredientOption> _filtered = [];
+  bool _showSuggestions = false;
+  IngredientOption? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill if editing
+    if (widget.selectedId != null) {
+      final match = widget.ingredients
+          .where((i) => i.id == widget.selectedId)
+          .toList();
+      if (match.isNotEmpty) {
+        _selected = match.first;
+        _controller = TextEditingController(
+            text: '${match.first.name} (${match.first.unit})');
+      } else {
+        _controller = TextEditingController();
+      }
+    } else {
+      _controller = TextEditingController();
+    }
+    _filtered = widget.ingredients;
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus && _selected == null) {
+        setState(() => _showSuggestions = true);
+      }
+      if (!_focusNode.hasFocus) {
+        // Delay to allow tap on suggestion
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() => _showSuggestions = false);
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String query) {
+    final q = query.toLowerCase().trim();
+    setState(() {
+      _selected = null;
+      _showSuggestions = true;
+      if (q.isEmpty) {
+        _filtered = widget.ingredients;
+      } else {
+        _filtered = widget.ingredients
+            .where((i) => i.name.toLowerCase().contains(q))
+            .toList();
+      }
+    });
+  }
+
+  void _selectIngredient(IngredientOption ingredient) {
+    setState(() {
+      _selected = ingredient;
+      _controller.text = '${ingredient.name} (${ingredient.unit})';
+      _showSuggestions = false;
+    });
+    widget.onSelected(ingredient);
+    _focusNode.unfocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextFormField(
+          controller: _controller,
+          focusNode: _focusNode,
+          decoration: InputDecoration(
+            labelText: 'Cari Bahan Baku',
+            prefixIcon: const Icon(Icons.search),
+            hintText: 'Ketik nama bahan...',
+            suffixIcon: _selected != null
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () {
+                      setState(() {
+                        _selected = null;
+                        _controller.clear();
+                        _filtered = widget.ingredients;
+                        _showSuggestions = true;
+                      });
+                      _focusNode.requestFocus();
+                    },
+                  )
+                : null,
+          ),
+          onChanged: _onChanged,
+          validator: widget.validator,
+          onTap: () {
+            if (_selected == null) {
+              setState(() => _showSuggestions = true);
+            }
+          },
+        ),
+        if (_showSuggestions && _selected == null)
+          Container(
+            constraints: const BoxConstraints(maxHeight: 200),
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.borderColor),
+              boxShadow: AppTheme.shadowSM,
+            ),
+            child: _filtered.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Tidak ditemukan',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppTheme.textTertiary,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: _filtered.length,
+                    itemBuilder: (context, index) {
+                      final ingredient = _filtered[index];
+                      return InkWell(
+                        onTap: () => _selectIngredient(ingredient),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  ingredient.name,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                ingredient.unit,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppTheme.textTertiary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                FormatUtils.currency(ingredient.costPerUnit),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+      ],
+    );
   }
 }
