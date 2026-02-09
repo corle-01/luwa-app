@@ -65,18 +65,31 @@ class _ProductManagementPageState extends ConsumerState<ProductManagementPage> {
       appBar: AppBar(
         title: const Text('Kelola Produk'),
         actions: [
-          OutlinedButton.icon(
-            onPressed: () => _showManageCategoriesDialog(context, ref),
-            icon: const Icon(Icons.category, size: 18),
-            label: const Text('Kelola Kategori'),
-          ),
+          if (MediaQuery.of(context).size.width > 600) ...[
+            OutlinedButton.icon(
+              onPressed: () => _showManageCategoriesDialog(context, ref),
+              icon: const Icon(Icons.category, size: 18),
+              label: const Text('Kelola Kategori'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: () => _showProductDialog(context, ref),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Tambah Produk'),
+            ),
+          ] else ...[
+            IconButton(
+              onPressed: () => _showManageCategoriesDialog(context, ref),
+              icon: const Icon(Icons.category, size: 20),
+              tooltip: 'Kelola Kategori',
+            ),
+            IconButton(
+              onPressed: () => _showProductDialog(context, ref),
+              icon: const Icon(Icons.add_circle, size: 20),
+              tooltip: 'Tambah Produk',
+            ),
+          ],
           const SizedBox(width: 8),
-          FilledButton.icon(
-            onPressed: () => _showProductDialog(context, ref),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Tambah Produk'),
-          ),
-          const SizedBox(width: 16),
         ],
       ),
       body: productsAsync.when(

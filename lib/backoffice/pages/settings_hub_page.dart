@@ -193,14 +193,15 @@ class SettingsHubPage extends StatelessWidget {
                     : constraints.maxWidth >= 600
                         ? 2
                         : 1;
+                final aspectRatio = crossAxisCount == 1 ? 3.5 : 2.2;
 
                 return GridView.builder(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(crossAxisCount == 1 ? 12 : 20),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
                     crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 2.2,
+                    mainAxisSpacing: crossAxisCount == 1 ? 10 : 16,
+                    childAspectRatio: aspectRatio,
                   ),
                   itemCount: _items.length,
                   itemBuilder: (context, index) {

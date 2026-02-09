@@ -215,8 +215,11 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+    final cardWidth = constraints.maxWidth < 420 ? (constraints.maxWidth - 16) / 2 : 200.0;
     return SizedBox(
-      width: 200,
+      width: cardWidth,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -264,6 +267,8 @@ class _StatCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 }
@@ -367,6 +372,8 @@ class _RecentOrdersList extends StatelessWidget {
 
   const _RecentOrdersList({required this.orders});
 
+  bool _isMobile(BuildContext context) => MediaQuery.of(context).size.width < 600;
+
   String _paymentLabel(String method) {
     switch (method) {
       case 'cash':
@@ -411,6 +418,8 @@ class _RecentOrdersList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mobile = _isMobile(context);
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
@@ -426,67 +435,75 @@ class _RecentOrdersList extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Header row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'No. Order',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textSecondary,
+          if (!mobile) ...[
+            // Header row (desktop only)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'No. Order',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Waktu',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textSecondary,
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Waktu',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Total',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textSecondary,
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Total',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                      textAlign: TextAlign.right,
                     ),
-                    textAlign: TextAlign.right,
                   ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Pembayaran',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textSecondary,
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      'Pembayaran',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                      textAlign: TextAlign.right,
                     ),
-                    textAlign: TextAlign.right,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const Divider(height: 1),
+            const Divider(height: 1),
+          ],
           // Order rows
-          ...orders.map((order) => _OrderRow(
-                order: order,
-                paymentLabel: _paymentLabel(order.paymentMethod),
-                paymentIcon: _paymentIcon(order.paymentMethod),
-              )),
+          ...orders.map((order) => mobile
+              ? _MobileOrderRow(
+                  order: order,
+                  paymentLabel: _paymentLabel(order.paymentMethod),
+                  paymentIcon: _paymentIcon(order.paymentMethod),
+                )
+              : _OrderRow(
+                  order: order,
+                  paymentLabel: _paymentLabel(order.paymentMethod),
+                  paymentIcon: _paymentIcon(order.paymentMethod),
+                )),
         ],
       ),
     );
@@ -566,6 +583,72 @@ class _OrderRow extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Mobile Order Row (compact 2-line layout)
+// ─────────────────────────────────────────────
+
+class _MobileOrderRow extends StatelessWidget {
+  final Order order;
+  final String paymentLabel;
+  final IconData paymentIcon;
+
+  const _MobileOrderRow({
+    required this.order,
+    required this.paymentLabel,
+    required this.paymentIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppTheme.dividerColor.withValues(alpha: 0.5)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '#${order.orderNumber ?? order.id.substring(0, 8)}',
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  FormatUtils.time(order.createdAt),
+                  style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                FormatUtils.currency(order.totalAmount),
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(paymentIcon, size: 12, color: AppTheme.textTertiary),
+                  const SizedBox(width: 3),
+                  Text(paymentLabel, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textSecondary)),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -695,8 +778,10 @@ class _QuickMenuCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final menuWidth = screenWidth < 420 ? (screenWidth - 60) / 2 : 180.0;
     return SizedBox(
-      width: 180,
+      width: menuWidth,
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../../shared/widgets/offline_indicator.dart';
@@ -12,6 +13,7 @@ import '../widgets/product_grid.dart';
 import '../widgets/cart_panel.dart';
 import '../repositories/pos_cashier_repository.dart';
 import '../providers/pos_shift_provider.dart';
+import '../providers/pos_cart_provider.dart';
 
 class PosMainPage extends ConsumerWidget {
   const PosMainPage({super.key});
@@ -46,39 +48,51 @@ class PosMainPage extends ConsumerWidget {
             return const _ShiftGatePage();
           }
 
-          return Stack(
-            children: [
-              Row(
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 768;
+
+              if (isMobile) {
+                // Mobile: full-width product grid + floating cart button + cart as bottom sheet
+                return _MobilePosLayout();
+              }
+
+              // Desktop/Tablet: side-by-side layout
+              return Stack(
                 children: [
-                  Expanded(
-                    flex: 6,
-                    child: Column(
-                      children: const [
-                        PosHeader(),
-                        SizedBox(height: 8),
-                        ProductSearchBar(),
-                        SizedBox(height: 8),
-                        CategoryTabBar(),
-                        Expanded(child: ProductGrid()),
-                      ],
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 6,
+                        child: Column(
+                          children: const [
+                            PosHeader(),
+                            SizedBox(height: 8),
+                            ProductSearchBar(),
+                            SizedBox(height: 8),
+                            CategoryTabBar(),
+                            Expanded(child: ProductGrid()),
+                          ],
+                        ),
+                      ),
+                      const VerticalDivider(width: 1, thickness: 1),
+                      const Expanded(
+                        flex: 4,
+                        child: CartPanel(),
+                      ),
+                    ],
                   ),
-                  const VerticalDivider(width: 1, thickness: 1),
-                  const Expanded(
-                    flex: 4,
-                    child: CartPanel(),
+
+                  // Offline indicator banner at the top
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: OfflineIndicator(),
                   ),
                 ],
-              ),
-
-              // Offline indicator banner at the top
-              const Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: OfflineIndicator(),
-              ),
-            ],
+              );
+            },
           );
         },
       ),
@@ -147,10 +161,13 @@ class _ShiftGatePageState extends ConsumerState<_ShiftGatePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth < 480 ? screenWidth - 32 : 420.0;
+
     return Center(
       child: Container(
-        width: 420,
-        padding: const EdgeInsets.all(32),
+        width: cardWidth,
+        padding: EdgeInsets.all(screenWidth < 480 ? 20 : 32),
         decoration: BoxDecoration(
           color: AppTheme.surfaceColor,
           borderRadius: BorderRadius.circular(16),
@@ -292,6 +309,129 @@ class _ShiftGatePageState extends ConsumerState<_ShiftGatePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Mobile POS Layout: product grid full-screen with floating cart FAB
+/// Tapping the FAB opens CartPanel as a modal bottom sheet
+class _MobilePosLayout extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cart = ref.watch(posCartProvider);
+    final itemCount = cart.itemCount;
+
+    return Stack(
+      children: [
+        Column(
+          children: const [
+            PosHeader(),
+            SizedBox(height: 4),
+            ProductSearchBar(),
+            SizedBox(height: 4),
+            CategoryTabBar(),
+            Expanded(child: ProductGrid()),
+          ],
+        ),
+
+        // Offline indicator
+        const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: OfflineIndicator(),
+        ),
+
+        // Floating cart button
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: GestureDetector(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => DraggableScrollableSheet(
+                  initialChildSize: 0.85,
+                  minChildSize: 0.4,
+                  maxChildSize: 0.95,
+                  builder: (context, scrollController) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          // Drag handle
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 12, bottom: 4),
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: AppTheme.textTertiary.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: CartPanel()),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(Icons.shopping_cart, color: Colors.white, size: 28),
+                  if (itemCount > 0)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                        child: Text(
+                          '$itemCount',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

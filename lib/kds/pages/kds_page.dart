@@ -197,8 +197,11 @@ class _KdsTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 20, vertical: isMobile ? 8 : 12),
       decoration: const BoxDecoration(
         color: _KdsColors.surface,
         boxShadow: [
@@ -209,159 +212,234 @@ class _KdsTopBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // Chef hat icon + title
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _KdsColors.statusCooking.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.restaurant,
-              color: _KdsColors.statusCooking,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Kitchen Display',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: _KdsColors.textPrimary,
-            ),
-          ),
+      child: isMobile ? _buildMobileBar(context) : _buildDesktopBar(context),
+    );
+  }
 
-          const SizedBox(width: 24),
-
-          // Status badges
-          _StatusBadge(
-            label: '$waitingCount Menunggu',
-            color: _KdsColors.statusCooking,
-            backgroundColor: _KdsColors.badgeCookingBg,
-          ),
-          const SizedBox(width: 10),
-          _StatusBadge(
-            label: '$inProgressCount Diproses',
-            color: _KdsColors.statusServed,
-            backgroundColor: const Color(0xFF1E3A5F),
-          ),
-          const SizedBox(width: 10),
-          _StatusBadge(
-            label: '$readyCount Siap',
-            color: _KdsColors.statusReady,
-            backgroundColor: _KdsColors.badgeReadyBg,
-          ),
-
-          const SizedBox(width: 16),
-
-          // Auto-refresh indicator (pulsing dot)
-          _PulsingDot(flash: flashNewOrder),
-
-          const Spacer(),
-
-          // Sound mute/unmute toggle
-          Tooltip(
-            message: isMuted ? 'Aktifkan Notifikasi Suara' : 'Bisukan Notifikasi',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onToggleMute,
+  Widget _buildMobileBar(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // First row: title + clock + mute + back
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: _KdsColors.statusCooking.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
+              ),
+              child: const Icon(Icons.restaurant, color: _KdsColors.statusCooking, size: 20),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'KDS',
+              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: _KdsColors.textPrimary),
+            ),
+            const SizedBox(width: 8),
+            _PulsingDot(flash: flashNewOrder),
+            const Spacer(),
+            // Mute icon only
+            GestureDetector(
+              onTap: onToggleMute,
+              child: Icon(
+                isMuted ? Icons.volume_off : Icons.volume_up,
+                size: 20,
+                color: isMuted ? _KdsColors.timerRed : _KdsColors.statusReady,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _formatClock(now),
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _KdsColors.textPrimary,
+                fontFeatures: [const FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        // Second row: status badges
+        Row(
+          children: [
+            _StatusBadge(
+              label: '$waitingCount',
+              color: _KdsColors.statusCooking,
+              backgroundColor: _KdsColors.badgeCookingBg,
+            ),
+            const SizedBox(width: 6),
+            _StatusBadge(
+              label: '$inProgressCount',
+              color: _KdsColors.statusServed,
+              backgroundColor: const Color(0xFF1E3A5F),
+            ),
+            const SizedBox(width: 6),
+            _StatusBadge(
+              label: '$readyCount',
+              color: _KdsColors.statusReady,
+              backgroundColor: _KdsColors.badgeReadyBg,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopBar(BuildContext context) {
+    return Row(
+      children: [
+        // Chef hat icon + title
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _KdsColors.statusCooking.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.restaurant,
+            color: _KdsColors.statusCooking,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          'Kitchen Display',
+          style: GoogleFonts.inter(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: _KdsColors.textPrimary,
+          ),
+        ),
+
+        const SizedBox(width: 24),
+
+        // Status badges
+        _StatusBadge(
+          label: '$waitingCount Menunggu',
+          color: _KdsColors.statusCooking,
+          backgroundColor: _KdsColors.badgeCookingBg,
+        ),
+        const SizedBox(width: 10),
+        _StatusBadge(
+          label: '$inProgressCount Diproses',
+          color: _KdsColors.statusServed,
+          backgroundColor: const Color(0xFF1E3A5F),
+        ),
+        const SizedBox(width: 10),
+        _StatusBadge(
+          label: '$readyCount Siap',
+          color: _KdsColors.statusReady,
+          backgroundColor: _KdsColors.badgeReadyBg,
+        ),
+
+        const SizedBox(width: 16),
+
+        // Auto-refresh indicator (pulsing dot)
+        _PulsingDot(flash: flashNewOrder),
+
+        const Spacer(),
+
+        // Sound mute/unmute toggle
+        Tooltip(
+          message: isMuted ? 'Aktifkan Notifikasi Suara' : 'Bisukan Notifikasi',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onToggleMute,
+              borderRadius: BorderRadius.circular(8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isMuted
+                      ? _KdsColors.timerRed.withValues(alpha: 0.12)
+                      : _KdsColors.statusReady.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
                     color: isMuted
-                        ? _KdsColors.timerRed.withValues(alpha: 0.12)
-                        : _KdsColors.statusReady.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isMuted
-                          ? _KdsColors.timerRed.withValues(alpha: 0.3)
-                          : _KdsColors.statusReady.withValues(alpha: 0.3),
-                    ),
+                        ? _KdsColors.timerRed.withValues(alpha: 0.3)
+                        : _KdsColors.statusReady.withValues(alpha: 0.3),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isMuted ? Icons.volume_off : Icons.volume_up,
-                        size: 18,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isMuted ? Icons.volume_off : Icons.volume_up,
+                      size: 18,
+                      color: isMuted
+                          ? _KdsColors.timerRed
+                          : _KdsColors.statusReady,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isMuted ? 'Muted' : 'Sound',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                         color: isMuted
                             ? _KdsColors.timerRed
                             : _KdsColors.statusReady,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        isMuted ? 'Muted' : 'Sound',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isMuted
-                              ? _KdsColors.timerRed
-                              : _KdsColors.statusReady,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
+        ),
 
-          const SizedBox(width: 12),
+        const SizedBox(width: 12),
 
-          // Clock
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: _KdsColors.background.withValues(alpha: 0.5),
+        // Clock
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: _KdsColors.background.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.access_time, color: _KdsColors.textSecondary, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                _formatClock(now),
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: _KdsColors.textPrimary,
+                  fontFeatures: [const FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(width: 16),
+
+        // Back button
+        TextButton.icon(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.arrow_back, color: _KdsColors.textSecondary, size: 18),
+          label: Text(
+            'Kembali',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: _KdsColors.textSecondary,
+            ),
+          ),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.access_time, color: _KdsColors.textSecondary, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  _formatClock(now),
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: _KdsColors.textPrimary,
-                    fontFeatures: [const FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
+              side: BorderSide(color: _KdsColors.textMuted.withValues(alpha: 0.3)),
             ),
           ),
-
-          const SizedBox(width: 16),
-
-          // Back button
-          TextButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back, color: _KdsColors.textSecondary, size: 18),
-            label: Text(
-              'Kembali',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: _KdsColors.textSecondary,
-              ),
-            ),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: _KdsColors.textMuted.withValues(alpha: 0.3)),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

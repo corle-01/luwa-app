@@ -42,10 +42,12 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
   @override
   Widget build(BuildContext context) {
     final shiftAsync = ref.watch(posShiftNotifierProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
 
     return Container(
       height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 20),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         boxShadow: [
@@ -63,17 +65,18 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Utter logo
-              Image.asset(
-                'assets/images/logo_utter_dark_sm.png',
-                height: 24,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(width: 16),
+              if (!isMobile)
+                Image.asset(
+                  'assets/images/logo_utter_dark_sm.png',
+                  height: 24,
+                  fit: BoxFit.contain,
+                ),
+              if (!isMobile) const SizedBox(width: 16),
               // Clock with monospace look
               Text(
                 _timeString,
                 style: GoogleFonts.inter(
-                  fontSize: 16,
+                  fontSize: isMobile ? 14 : 16,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textPrimary,
                   letterSpacing: 0.5,
@@ -82,7 +85,7 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
               ),
             ],
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: isMobile ? 8 : 24),
           // Middle: Shift status pill
           Expanded(
             child: shiftAsync.when(
@@ -199,7 +202,7 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: 7),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
@@ -219,21 +222,23 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.delivery_dining, size: 16, color: Colors.white),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Online Food',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                        if (!isMobile) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            'Online Food',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: isMobile ? 6 : 12),
               shiftAsync.whenData((shift) {
                 if (shift != null) {
                   return TextButton(
@@ -256,8 +261,8 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
                 }
                 return const SizedBox.shrink();
               }).value ?? const SizedBox.shrink(),
-              const SizedBox(width: 8),
-              const AutomationToggle(),
+              if (!isMobile) const SizedBox(width: 8),
+              if (!isMobile) const AutomationToggle(),
             ],
           ),
         ],
