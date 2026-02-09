@@ -214,7 +214,11 @@ class KitchenPrintService {
 
 final kitchenPrintServiceProvider = Provider<KitchenPrintService>((ref) {
   final printerService = PrinterService();
+  // Ensure browser-default printer is always available
+  printerService.addPrinter(PrinterConfig.browserDefault());
   final service = KitchenPrintService(printerService);
+  // Load kitchen config (async but fire-and-forget — config
+  // will be ready by the time the user submits an order)
   service.loadConfig();
   return service;
 });
