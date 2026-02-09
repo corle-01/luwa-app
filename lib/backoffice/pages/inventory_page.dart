@@ -1257,7 +1257,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
                   prefixIcon: const Icon(Icons.numbers),
                   hintText: _selectedType == 'waste'
                       ? 'Masukkan jumlah waste'
-                      : 'Masukkan jumlah',
+                      : 'Kosongkan jika tidak ubah stok',
                   helperText: _selectedType == 'waste'
                       ? 'Stok akan dikurangi'
                       : _selectedType == 'purchase'
@@ -1267,12 +1267,11 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Jumlah wajib diisi';
-                  }
-                  final parsed = double.tryParse(v.trim());
-                  if (parsed == null || parsed == 0) {
-                    return 'Masukkan angka yang valid';
+                  if (v != null && v.trim().isNotEmpty) {
+                    final parsed = double.tryParse(v.trim());
+                    if (parsed == null || parsed == 0) {
+                      return 'Masukkan angka yang valid';
+                    }
                   }
                   return null;
                 },
@@ -1323,20 +1322,8 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
 
     try {
       final repo = InventoryRepository();
-      final rawQuantity =
-          double.parse(_quantityController.text.trim());
-
-      // For waste type, always make quantity negative
-      // For purchase, always positive
-      // For adjustment, keep as-is (user can enter negative)
-      final double quantity;
-      if (_selectedType == 'waste') {
-        quantity = -(rawQuantity.abs());
-      } else if (_selectedType == 'purchase') {
-        quantity = rawQuantity.abs();
-      } else {
-        quantity = rawQuantity;
-      }
+      final qtyText = _quantityController.text.trim();
+      final rawQuantity = qtyText.isNotEmpty ? double.tryParse(qtyText) : null;
 
       final notes = _notesController.text.trim().isEmpty
           ? null
@@ -1354,13 +1341,28 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
         );
       }
 
-      await repo.adjustStock(
-        ingredientId: widget.ingredient.id,
-        outletId: widget.outletId,
-        quantity: quantity,
-        type: _selectedType,
-        notes: notes,
-      );
+      // Only adjust stock if quantity was entered
+      if (rawQuantity != null && rawQuantity != 0) {
+        // For waste type, always make quantity negative
+        // For purchase, always positive
+        // For adjustment, keep as-is (user can enter negative)
+        final double quantity;
+        if (_selectedType == 'waste') {
+          quantity = -(rawQuantity.abs());
+        } else if (_selectedType == 'purchase') {
+          quantity = rawQuantity.abs();
+        } else {
+          quantity = rawQuantity;
+        }
+
+        await repo.adjustStock(
+          ingredientId: widget.ingredient.id,
+          outletId: widget.outletId,
+          quantity: quantity,
+          type: _selectedType,
+          notes: notes,
+        );
+      }
 
       widget.onSaved();
       if (mounted) {
