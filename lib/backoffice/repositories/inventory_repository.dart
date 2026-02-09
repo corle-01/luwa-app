@@ -200,6 +200,7 @@ class InventoryRepository {
     double? minStock,
     double? maxStock,
     double? costPerUnit,
+    String? category,
   }) async {
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
@@ -208,6 +209,7 @@ class InventoryRepository {
     if (minStock != null) updates['min_stock'] = minStock;
     if (maxStock != null) updates['max_stock'] = maxStock;
     if (costPerUnit != null) updates['cost_per_unit'] = costPerUnit;
+    if (category != null) updates['category'] = category;
 
     await _supabase.from('ingredients').update(updates).eq('id', id);
   }

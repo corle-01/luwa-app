@@ -970,6 +970,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
   final _notesController = TextEditingController();
   final _costController = TextEditingController();
   String _selectedType = 'purchase';
+  late String _category;
   bool _saving = false;
 
   static const _types = [
@@ -978,9 +979,16 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
     ('waste', 'Waste', Icons.delete_outline),
   ];
 
+  static const _categories = [
+    ('makanan', 'Makanan'),
+    ('minuman', 'Minuman'),
+    ('snack', 'Snack'),
+  ];
+
   @override
   void initState() {
     super.initState();
+    _category = widget.ingredient.category;
     _costController.text = widget.ingredient.costPerUnit > 0
         ? widget.ingredient.costPerUnit.toStringAsFixed(0)
         : '';
@@ -1089,6 +1097,62 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 16),
+
+              // Category selector
+              Text(
+                'Kategori',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: _categories.map((c) {
+                  final isSelected = _category == c.$1;
+                  final color = _catColor(c.$1);
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: c.$1 != _categories.last.$1 ? 8 : 0),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        onTap: () => setState(() => _category = c.$1),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? color.withValues(alpha: 0.1) : AppTheme.backgroundColor,
+                            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                            border: Border.all(
+                              color: isSelected ? color : AppTheme.borderColor,
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                _catIcon(c.$1),
+                                size: 20,
+                                color: isSelected ? color : AppTheme.textTertiary,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                c.$2,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                  color: isSelected ? color : AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 16),
 
@@ -1278,12 +1342,15 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
           ? null
           : _notesController.text.trim();
 
-      // Update cost_per_unit if changed
+      // Update cost_per_unit and/or category if changed
       final newCost = double.tryParse(_costController.text.trim().replaceAll('.', ''));
-      if (newCost != null && newCost != widget.ingredient.costPerUnit) {
+      final costChanged = newCost != null && newCost != widget.ingredient.costPerUnit;
+      final categoryChanged = _category != widget.ingredient.category;
+      if (costChanged || categoryChanged) {
         await repo.updateIngredient(
           widget.ingredient.id,
-          costPerUnit: newCost,
+          costPerUnit: costChanged ? newCost : null,
+          category: categoryChanged ? _category : null,
         );
       }
 
@@ -1317,6 +1384,24 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
           ),
         );
       }
+    }
+  }
+
+  static Color _catColor(String cat) {
+    switch (cat) {
+      case 'makanan': return const Color(0xFFE67E22);
+      case 'minuman': return const Color(0xFF3498DB);
+      case 'snack': return const Color(0xFF9B59B6);
+      default: return AppTheme.textSecondary;
+    }
+  }
+
+  static IconData _catIcon(String cat) {
+    switch (cat) {
+      case 'makanan': return Icons.restaurant;
+      case 'minuman': return Icons.local_cafe;
+      case 'snack': return Icons.cookie;
+      default: return Icons.inventory_2;
     }
   }
 }

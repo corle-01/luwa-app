@@ -11,6 +11,7 @@ import '../providers/product_provider.dart';
 import '../providers/modifier_provider.dart';
 import '../repositories/product_repository.dart';
 import '../repositories/modifier_repository.dart';
+import '../repositories/recipe_repository.dart';
 
 class ProductManagementPage extends ConsumerStatefulWidget {
   const ProductManagementPage({super.key});
@@ -920,6 +921,10 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
   Set<String> _assignedFeaturedIds = {};
   bool _loadingFeatured = false;
 
+  // Recipe items
+  List<RecipeItem> _recipeItems = [];
+  bool _loadingRecipes = false;
+
   bool get _isEditing => widget.product != null;
 
   @override
@@ -944,12 +949,13 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     _loadModifierGroups();
     _loadFeaturedCategories();
 
-    // Load existing images if editing
+    // Load existing images and recipes if editing
     if (_isEditing) {
       _images = List.from(widget.product!.images);
       if (_images.isEmpty) {
         _loadProductImages();
       }
+      _loadRecipes();
     }
   }
 
@@ -1200,6 +1206,91 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
         );
       }
     }
+  }
+
+  Future<void> _loadRecipes() async {
+    if (!_isEditing) return;
+    setState(() => _loadingRecipes = true);
+    try {
+      final repo = RecipeRepository();
+      final items = await repo.getRecipesForProduct(widget.product!.id);
+      if (mounted) {
+        setState(() {
+          _recipeItems = items;
+          _loadingRecipes = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingRecipes = false);
+    }
+  }
+
+  void _showAddRecipeItemDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => _RecipeItemInlineDialog(
+        productId: widget.product!.id,
+        productName: _nameController.text.trim(),
+        outletId: widget.outletId,
+        onSaved: () => _loadRecipes(),
+      ),
+    );
+  }
+
+  void _showEditRecipeItemDialog(RecipeItem item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _RecipeItemInlineDialog(
+        productId: widget.product!.id,
+        productName: _nameController.text.trim(),
+        outletId: widget.outletId,
+        existingItem: item,
+        onSaved: () => _loadRecipes(),
+      ),
+    );
+  }
+
+  void _confirmDeleteRecipeItem(RecipeItem item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Bahan'),
+        content: Text('Yakin ingin menghapus "${item.ingredientName}" dari resep?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.errorColor),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await RecipeRepository().deleteRecipeItem(item.id);
+                _loadRecipes();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('"${item.ingredientName}" dihapus dari resep')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal: $e'), backgroundColor: AppTheme.errorColor),
+                  );
+                }
+              }
+            },
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmtQty(double qty) {
+    if (qty == qty.truncateToDouble()) return qty.toInt().toString();
+    return qty.toStringAsFixed(3).replaceAll(RegExp(r'0+$'), '');
   }
 
   @override
@@ -1579,6 +1670,268 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                     ),
                   ),
               ],
+
+              // ── Recipe / HPP section ──────────────────────
+              if (_isEditing) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.menu_book_rounded,
+                        size: 20,
+                        color: _recipeItems.isEmpty
+                            ? AppTheme.warningColor
+                            : AppTheme.successColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Resep & HPP',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    if (_recipeItems.isEmpty && !_loadingRecipes) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.warningColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Belum ada',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.warningColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: _showAddRecipeItemDialog,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Tambah Bahan'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_loadingRecipes)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else if (_recipeItems.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.warningColor.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.warningColor.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.menu_book_outlined,
+                              size: 32, color: AppTheme.warningColor),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Belum ada resep',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.warningColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tambahkan bahan baku untuk menghitung HPP otomatis',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppTheme.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else ...[
+                  // Recipe items list
+                  ...(_recipeItems.map((item) => Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.backgroundColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.ingredientName,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                              if (item.notes != null && item.notes!.isNotEmpty)
+                                Text(
+                                  item.notes!,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: AppTheme.textTertiary,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '${_fmtQty(item.quantity)} ${item.unit}',
+                            textAlign: TextAlign.right,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            FormatUtils.currency(item.totalCost),
+                            textAlign: TextAlign.right,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 60,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              InkWell(
+                                onTap: () => _showEditRecipeItemDialog(item),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(4),
+                                  child: Icon(Icons.edit_outlined, size: 16),
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () => _confirmDeleteRecipeItem(item),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(Icons.delete_outline,
+                                      size: 16, color: AppTheme.errorColor),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ))),
+
+                  // HPP summary
+                  const SizedBox(height: 8),
+                  Builder(builder: (_) {
+                    final totalCost = _recipeItems.fold(
+                        0.0, (sum, i) => sum + i.totalCost);
+                    final sellingPrice =
+                        double.tryParse(_sellingPriceController.text.trim()) ?? 0;
+                    final margin = sellingPrice - totalCost;
+                    final marginPct =
+                        sellingPrice > 0 ? (margin / sellingPrice) * 100 : 0.0;
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: marginPct > 0
+                            ? AppTheme.successColor.withValues(alpha: 0.06)
+                            : AppTheme.errorColor.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: marginPct > 0
+                              ? AppTheme.successColor.withValues(alpha: 0.2)
+                              : AppTheme.errorColor.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calculate_outlined,
+                              size: 18,
+                              color: marginPct > 0
+                                  ? AppTheme.successColor
+                                  : AppTheme.errorColor),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'HPP: ${FormatUtils.currency(totalCost)}',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  '${_recipeItems.length} bahan baku',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: AppTheme.textTertiary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Margin: ${FormatUtils.currency(margin)}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: marginPct > 0
+                                      ? AppTheme.successColor
+                                      : AppTheme.errorColor,
+                                ),
+                              ),
+                              Text(
+                                '${marginPct.toStringAsFixed(1)}%',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: marginPct > 0
+                                      ? AppTheme.successColor
+                                      : AppTheme.errorColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
             ],
           ),
         ),
@@ -1785,6 +2138,497 @@ class _ImageThumbnail extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Recipe item inline dialog (add / edit ingredient in product form)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _RecipeItemInlineDialog extends StatefulWidget {
+  final String productId;
+  final String productName;
+  final String outletId;
+  final RecipeItem? existingItem;
+  final VoidCallback onSaved;
+
+  const _RecipeItemInlineDialog({
+    required this.productId,
+    required this.productName,
+    required this.outletId,
+    this.existingItem,
+    required this.onSaved,
+  });
+
+  @override
+  State<_RecipeItemInlineDialog> createState() =>
+      _RecipeItemInlineDialogState();
+}
+
+class _RecipeItemInlineDialogState extends State<_RecipeItemInlineDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _quantityController;
+  late final TextEditingController _unitController;
+  late final TextEditingController _notesController;
+  String? _selectedIngredientId;
+  bool _saving = false;
+  List<IngredientOption> _ingredients = [];
+  bool _loadingIngredients = true;
+
+  bool get _isEditing => widget.existingItem != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _quantityController = TextEditingController(
+      text: widget.existingItem != null
+          ? _fmtQty(widget.existingItem!.quantity)
+          : '',
+    );
+    _unitController = TextEditingController(
+      text: widget.existingItem?.unit ?? 'gram',
+    );
+    _notesController = TextEditingController(
+      text: widget.existingItem?.notes ?? '',
+    );
+    _selectedIngredientId = widget.existingItem?.ingredientId;
+    _loadIngredients();
+  }
+
+  String _fmtQty(double qty) {
+    if (qty == qty.truncateToDouble()) return qty.toInt().toString();
+    return qty.toStringAsFixed(3).replaceAll(RegExp(r'0+$'), '');
+  }
+
+  Future<void> _loadIngredients() async {
+    try {
+      final repo = RecipeRepository();
+      final list = await repo.getIngredients(widget.outletId);
+      if (mounted) {
+        setState(() {
+          _ingredients = list;
+          _loadingIngredients = false;
+          if (_selectedIngredientId != null) {
+            final match = list.where((i) => i.id == _selectedIngredientId).toList();
+            if (match.isNotEmpty) _unitController.text = match.first.unit;
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingIngredients = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _unitController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(_isEditing ? 'Edit Bahan' : 'Tambah Bahan ke Resep'),
+      content: SizedBox(
+        width: 450,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Ingredient selector
+              _loadingIngredients
+                  ? const LinearProgressIndicator()
+                  : _isEditing
+                      ? TextFormField(
+                          initialValue: _ingredients
+                              .where((i) => i.id == _selectedIngredientId)
+                              .map((i) => '${i.name} (${i.unit})')
+                              .firstOrNull ?? widget.existingItem?.ingredientName ?? '',
+                          decoration: const InputDecoration(
+                            labelText: 'Bahan Baku',
+                            prefixIcon: Icon(Icons.inventory_2),
+                          ),
+                          enabled: false,
+                        )
+                      : _IngredientSearchInline(
+                          ingredients: _ingredients,
+                          selectedId: _selectedIngredientId,
+                          onSelected: (ingredient) {
+                            setState(() {
+                              _selectedIngredientId = ingredient.id;
+                              _unitController.text = ingredient.unit;
+                            });
+                          },
+                          validator: (_) => _selectedIngredientId == null
+                              ? 'Pilih bahan baku'
+                              : null,
+                        ),
+              const SizedBox(height: 12),
+
+              // Quantity + Unit
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _quantityController,
+                      decoration: const InputDecoration(
+                        labelText: 'Jumlah',
+                        prefixIcon: Icon(Icons.straighten),
+                      ),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Wajib diisi';
+                        final parsed = double.tryParse(v.trim());
+                        if (parsed == null || parsed <= 0) return 'Harus > 0';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 1,
+                    child: TextFormField(
+                      controller: _unitController,
+                      decoration: const InputDecoration(
+                        labelText: 'Satuan',
+                        prefixIcon: Icon(Icons.scale),
+                      ),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Wajib' : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Notes
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Catatan (opsional)',
+                  prefixIcon: Icon(Icons.notes),
+                  hintText: 'Contoh: iris tipis, cincang halus',
+                ),
+                maxLines: 2,
+              ),
+
+              // Cost preview
+              if (_selectedIngredientId != null) ...[
+                const SizedBox(height: 16),
+                Builder(builder: (_) {
+                  final match = _ingredients
+                      .where((i) => i.id == _selectedIngredientId)
+                      .toList();
+                  if (match.isEmpty) return const SizedBox.shrink();
+                  final ing = match.first;
+                  final qty =
+                      double.tryParse(_quantityController.text.trim()) ?? 0;
+                  final subtotal = qty * ing.costPerUnit;
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.successColor.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.successColor.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calculate_outlined,
+                            size: 18, color: AppTheme.successColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${FormatUtils.currency(ing.costPerUnit)}/${ing.unit}',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'Subtotal: ${FormatUtils.currency(subtotal)}',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.successColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : Text(_isEditing ? 'Simpan' : 'Tambah'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      final repo = RecipeRepository();
+      final quantity = double.parse(_quantityController.text.trim());
+      final unit = _unitController.text.trim();
+      final notes = _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim();
+
+      if (_isEditing) {
+        await repo.updateRecipeItem(
+          id: widget.existingItem!.id,
+          quantity: quantity,
+          unit: unit,
+          notes: notes,
+        );
+      } else {
+        await repo.addRecipeItem(
+          productId: widget.productId,
+          ingredientId: _selectedIngredientId!,
+          quantity: quantity,
+          unit: unit,
+          notes: notes,
+        );
+      }
+
+      widget.onSaved();
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEditing
+                ? 'Bahan berhasil diupdate'
+                : 'Bahan berhasil ditambahkan ke resep'),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _saving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: AppTheme.errorColor),
+        );
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Ingredient search field (inline for product form recipe dialog)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _IngredientSearchInline extends StatefulWidget {
+  final List<IngredientOption> ingredients;
+  final String? selectedId;
+  final void Function(IngredientOption) onSelected;
+  final String? Function(String?)? validator;
+
+  const _IngredientSearchInline({
+    required this.ingredients,
+    this.selectedId,
+    required this.onSelected,
+    this.validator,
+  });
+
+  @override
+  State<_IngredientSearchInline> createState() =>
+      _IngredientSearchInlineState();
+}
+
+class _IngredientSearchInlineState extends State<_IngredientSearchInline> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+  List<IngredientOption> _filtered = [];
+  bool _showSuggestions = false;
+  IngredientOption? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selectedId != null) {
+      final match =
+          widget.ingredients.where((i) => i.id == widget.selectedId).toList();
+      if (match.isNotEmpty) {
+        _selected = match.first;
+        _controller =
+            TextEditingController(text: '${match.first.name} (${match.first.unit})');
+      } else {
+        _controller = TextEditingController();
+      }
+    } else {
+      _controller = TextEditingController();
+    }
+    _filtered = widget.ingredients;
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus && _selected == null) {
+        setState(() => _showSuggestions = true);
+      }
+      if (!_focusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() => _showSuggestions = false);
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String query) {
+    final q = query.toLowerCase().trim();
+    setState(() {
+      _selected = null;
+      _showSuggestions = true;
+      _filtered = q.isEmpty
+          ? widget.ingredients
+          : widget.ingredients.where((i) => i.name.toLowerCase().contains(q)).toList();
+    });
+  }
+
+  void _selectIngredient(IngredientOption ingredient) {
+    setState(() {
+      _selected = ingredient;
+      _controller.text = '${ingredient.name} (${ingredient.unit})';
+      _showSuggestions = false;
+    });
+    widget.onSelected(ingredient);
+    _focusNode.unfocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextFormField(
+          controller: _controller,
+          focusNode: _focusNode,
+          decoration: InputDecoration(
+            labelText: 'Cari Bahan Baku',
+            prefixIcon: const Icon(Icons.search),
+            hintText: 'Ketik nama bahan...',
+            suffixIcon: _selected != null
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () {
+                      setState(() {
+                        _selected = null;
+                        _controller.clear();
+                        _filtered = widget.ingredients;
+                        _showSuggestions = true;
+                      });
+                      _focusNode.requestFocus();
+                    },
+                  )
+                : null,
+          ),
+          onChanged: _onChanged,
+          validator: widget.validator,
+          onTap: () {
+            if (_selected == null) setState(() => _showSuggestions = true);
+          },
+        ),
+        if (_showSuggestions && _selected == null)
+          Container(
+            constraints: const BoxConstraints(maxHeight: 200),
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.borderColor),
+              boxShadow: AppTheme.shadowSM,
+            ),
+            child: _filtered.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Tidak ditemukan',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppTheme.textTertiary,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: _filtered.length,
+                    itemBuilder: (context, index) {
+                      final ing = _filtered[index];
+                      return InkWell(
+                        onTap: () => _selectIngredient(ing),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  ing.name,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                ing.unit,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppTheme.textTertiary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                FormatUtils.currency(ing.costPerUnit),
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+      ],
     );
   }
 }
