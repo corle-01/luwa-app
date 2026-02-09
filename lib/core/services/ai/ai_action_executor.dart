@@ -319,20 +319,14 @@ class AiActionExecutor {
     if (newQuantity != null) {
       finalStock = newQuantity;
       movementQty = newQuantity - currentStock;
-      movementType = movementQty >= 0 ? 'adjustment_in' : 'adjustment_out';
+      movementType = movementQty >= 0 ? 'stock_in' : 'adjustment';
     } else if (adjustment != null) {
       finalStock = currentStock + adjustment;
       movementQty = adjustment;
-      movementType = adjustment >= 0 ? 'adjustment_in' : 'adjustment_out';
+      movementType = adjustment >= 0 ? 'stock_in' : 'adjustment';
     } else {
       return {'success': false, 'error': 'Harus isi new_quantity atau adjustment'};
     }
-
-    // Update stock
-    await _client.from('ingredients').update({
-      'current_stock': finalStock,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', ingredientId);
 
     // Record stock movement
     await _client.from('stock_movements').insert({
@@ -341,6 +335,12 @@ class AiActionExecutor {
       'movement_type': movementType,
       'quantity': movementQty.abs(),
       'notes': notes ?? 'Updated via AI',
+    });
+
+    // Atomic stock update via RPC (prevents race conditions)
+    await _client.rpc('increment_ingredient_stock', params: {
+      'p_ingredient_id': ingredientId,
+      'p_quantity': movementQty,
     });
 
     return {

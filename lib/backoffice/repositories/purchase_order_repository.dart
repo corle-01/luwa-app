@@ -270,31 +270,20 @@ class PurchaseOrderRepository {
       if (receivedQty > 0) {
         final ingredientId = item['ingredient_id'] as String;
 
-        // Insert stock_movement
+        // Insert stock_movement (with outlet_id)
         await _supabase.from('stock_movements').insert({
           'ingredient_id': ingredientId,
+          'outlet_id': outletId,
           'movement_type': 'purchase',
           'quantity': receivedQty,
           'notes': 'Penerimaan PO',
         });
 
-        // Update ingredient current_stock
-        final current = await _supabase
-            .from('ingredients')
-            .select('current_stock')
-            .eq('id', ingredientId)
-            .single();
-
-        final currentStock = PurchaseOrderItemModel._toDouble(current['current_stock']);
-        final newStock = currentStock + receivedQty;
-
-        await _supabase
-            .from('ingredients')
-            .update({
-              'current_stock': newStock,
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .eq('id', ingredientId);
+        // Atomic stock update via RPC (prevents race conditions)
+        await _supabase.rpc('increment_ingredient_stock', params: {
+          'p_ingredient_id': ingredientId,
+          'p_quantity': receivedQty,
+        });
       }
     }
 

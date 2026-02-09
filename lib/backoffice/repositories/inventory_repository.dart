@@ -175,24 +175,11 @@ class InventoryRepository {
       'notes': notes,
     });
 
-    // Update current_stock on the ingredient
-    // Fetch current stock first, then update
-    final current = await _supabase
-        .from('ingredients')
-        .select('current_stock')
-        .eq('id', ingredientId)
-        .single();
-
-    final currentStock = IngredientModel._toDouble(current['current_stock']);
-    final newStock = currentStock + quantity;
-
-    await _supabase
-        .from('ingredients')
-        .update({
-          'current_stock': newStock < 0 ? 0 : newStock,
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', ingredientId);
+    // Atomic stock update via RPC (prevents race conditions)
+    await _supabase.rpc('increment_ingredient_stock', params: {
+      'p_ingredient_id': ingredientId,
+      'p_quantity': quantity,
+    });
   }
 
   Future<void> updateIngredient(

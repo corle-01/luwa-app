@@ -1491,7 +1491,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
           : _notesController.text.trim();
 
       // Update cost_per_unit and/or category if changed
-      final newCost = double.tryParse(_costController.text.trim().replaceAll('.', ''));
+      final newCost = double.tryParse(_costController.text.trim().replaceAll('.', '').replaceAll(',', ''));
       final costChanged = newCost != null && newCost != widget.ingredient.costPerUnit;
       final categoryChanged = _category != widget.ingredient.category;
       if (costChanged || categoryChanged) {

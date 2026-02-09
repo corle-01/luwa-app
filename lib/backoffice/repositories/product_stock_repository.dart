@@ -139,23 +139,11 @@ class ProductStockRepository {
       'notes': notes,
     });
 
-    // Fetch current stock and update
-    final current = await _supabase
-        .from('products')
-        .select('stock_quantity')
-        .eq('id', productId)
-        .single();
-
-    final currentStock = current['stock_quantity'] as int? ?? 0;
-    final newStock = currentStock + quantity;
-
-    await _supabase
-        .from('products')
-        .update({
-          'stock_quantity': newStock < 0 ? 0 : newStock,
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', productId);
+    // Atomic stock update via RPC (prevents race conditions)
+    await _supabase.rpc('increment_product_stock', params: {
+      'p_product_id': productId,
+      'p_quantity': quantity,
+    });
   }
 
   /// Fetch stock movements for a specific product.
