@@ -52,6 +52,10 @@ class AiActionExecutor {
         return _getSalesSummary(args);
       case 'create_discount':
         return _createDiscount(args);
+      case 'get_operational_costs':
+        return _getOperationalCosts(args);
+      case 'update_operational_cost':
+        return _updateOperationalCost(args);
       case 'save_memory':
         return _saveMemory(args);
       case 'check_business_health':
@@ -480,6 +484,90 @@ class AiActionExecutor {
       'success': true,
       'message': 'Diskon "$name" (${type == "percentage" ? "$value%" : "Rp $value"}) berhasil dibuat',
     };
+  }
+
+  // ── Operational Costs ──────────────────────────────────────
+
+  Future<Map<String, dynamic>> _getOperationalCosts(Map<String, dynamic> args) async {
+    try {
+      final response = await _client
+          .from('operational_costs')
+          .select('id, category, name, amount, notes')
+          .eq('outlet_id', _outletId)
+          .eq('is_active', true)
+          .order('category')
+          .order('name');
+
+      final items = List<Map<String, dynamic>>.from(response);
+      double totalOperational = 0;
+      double totalLabor = 0;
+      double bonusPercent = 0;
+      final costs = <Map<String, dynamic>>[];
+
+      for (final item in items) {
+        final cat = item['category']?.toString() ?? '';
+        final amount = (item['amount'] as num?)?.toDouble() ?? 0;
+        if (cat == 'bonus') {
+          bonusPercent = amount;
+        } else {
+          if (cat == 'operational') totalOperational += amount;
+          if (cat == 'labor') totalLabor += amount;
+          costs.add({
+            'name': item['name'],
+            'category': cat == 'operational' ? 'Operasional' : 'Tenaga Kerja',
+            'amount': amount,
+          });
+        }
+      }
+
+      return {
+        'success': true,
+        'total_monthly': totalOperational + totalLabor,
+        'operational': totalOperational,
+        'labor': totalLabor,
+        'bonus_percent': bonusPercent,
+        'costs': costs,
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Gagal memuat biaya operasional: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> _updateOperationalCost(Map<String, dynamic> args) async {
+    final costName = args['cost_name'] as String;
+    final amount = (args['amount'] as num).toDouble();
+
+    try {
+      final costs = await _client
+          .from('operational_costs')
+          .select('id, name, category, amount')
+          .eq('outlet_id', _outletId)
+          .eq('is_active', true)
+          .ilike('name', '%$costName%')
+          .limit(1);
+
+      if ((costs as List).isEmpty) {
+        return {'success': false, 'error': 'Biaya "$costName" tidak ditemukan'};
+      }
+
+      final cost = costs[0];
+      final oldAmount = (cost['amount'] as num?)?.toDouble() ?? 0;
+
+      await _client.from('operational_costs').update({
+        'amount': amount,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', cost['id'] as String);
+
+      final isBonus = cost['category'] == 'bonus';
+      return {
+        'success': true,
+        'message': isBonus
+            ? 'Bonus karyawan diupdate: ${oldAmount.toStringAsFixed(0)}% → ${amount.toStringAsFixed(0)}%'
+            : 'Biaya "${cost['name']}" diupdate: Rp ${oldAmount.toStringAsFixed(0)} → Rp ${amount.toStringAsFixed(0)}',
+      };
+    } catch (e) {
+      return {'success': false, 'error': 'Gagal update biaya: $e'};
+    }
   }
 
   // ── AI Memory (OTAK) ──────────────────────────────────────

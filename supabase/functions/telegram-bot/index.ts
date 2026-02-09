@@ -278,6 +278,46 @@ async function buildBusinessContext(
     sections.push("TOP PRODUK: Gagal memuat data.");
   }
 
+  // 5. Operational costs summary
+  try {
+    const { data: opCosts } = await supabase
+      .from("operational_costs")
+      .select("category, name, amount")
+      .eq("outlet_id", OUTLET_ID)
+      .eq("is_active", true);
+
+    const items = opCosts || [];
+    let totalOp = 0;
+    let totalLabor = 0;
+    let bonusPct = 0;
+    const costDetails: string[] = [];
+
+    for (const item of items) {
+      const cat = (item as any).category;
+      const amount = Number((item as any).amount);
+      if (cat === "bonus") {
+        bonusPct = amount;
+      } else {
+        if (cat === "operational") totalOp += amount;
+        if (cat === "labor") totalLabor += amount;
+        costDetails.push(`  - ${(item as any).name}: ${formatRupiah(amount)}`);
+      }
+    }
+
+    const totalMonthly = totalOp + totalLabor;
+    if (totalMonthly > 0 || bonusPct > 0) {
+      let costSection = `BIAYA OPERASIONAL BULANAN:\n`;
+      costSection += `- Total: ${formatRupiah(totalMonthly)}/bulan\n`;
+      costSection += `- Operasional: ${formatRupiah(totalOp)}\n`;
+      costSection += `- Tenaga Kerja: ${formatRupiah(totalLabor)}\n`;
+      if (bonusPct > 0) costSection += `- Bonus karyawan: ${bonusPct}% dari laba bersih\n`;
+      if (costDetails.length > 0) costSection += `Rincian:\n${costDetails.join("\n")}`;
+      sections.push(costSection);
+    }
+  } catch (_) {
+    // Operational costs not available - skip
+  }
+
   return sections.join("\n\n");
 }
 
@@ -306,11 +346,17 @@ ${businessContext}
 
 KEMAMPUAN:
 - Laporan penjualan (harian, mingguan, bulanan)
-- Status stok dan peringatan stok menipis
+- Status stok bahan baku & produk jadi, peringatan stok menipis
 - Produk terlaris dan performa produk
 - Info shift kasir
 - Saran bisnis (harga, promo, restock)
 - Analisis tren penjualan
+- Biaya operasional bulanan (sewa, listrik, gas, air, internet, gaji)
+- HPP report (biaya bahan + overhead operasional per porsi)
+- Bonus karyawan (% dari laba bersih)
+- Resep produk & kalkulasi HPP per menu
+- Split payment, online food (GoFood/GrabFood/ShopeeFood)
+- Kitchen Display System (KDS) & self-order via QR
 
 User saat ini: ${userName}
 
@@ -325,18 +371,20 @@ function handleStartCommand(firstName: string): string {
 Saya bisa membantu kamu memantau dan mengelola bisnis cafe/restoran kamu langsung dari Telegram.
 
 *Yang bisa saya bantu:*
-- Cek penjualan hari ini
-- Laporan penjualan mingguan/bulanan
-- Status stok bahan baku
-- Produk terlaris
-- Info shift kasir
-- Saran bisnis & analisis
+- Cek penjualan & laporan (harian/mingguan/bulanan)
+- Status stok bahan baku & produk jadi
+- Produk terlaris & performa menu
+- Info shift kasir aktif
+- Biaya operasional & HPP
+- Bonus karyawan & laba bersih
+- Saran bisnis & analisis tren
 
 *Contoh pertanyaan:*
 - "Berapa penjualan hari ini?"
 - "Produk apa yang paling laris?"
 - "Ada stok yang menipis?"
-- "Gimana performa minggu ini?"
+- "Berapa biaya operasional bulan ini?"
+- "Gimana HPP per porsi?"
 - "Kasih saran untuk naikkan penjualan"
 
 Langsung ketik pertanyaan kamu ya!`;
@@ -352,6 +400,7 @@ function handleHelpCommand(): string {
 /stock - Status stok bahan baku
 /top - Produk terlaris hari ini
 /shift - Info shift aktif
+/opcost - Biaya operasional bulanan
 /reset - Reset percakapan
 
 *Tips:*
@@ -499,6 +548,61 @@ async function handleShiftCommand(
 - Jumlah order: *${shift.total_orders}*`;
 }
 
+async function handleOpCostCommand(
+  supabase: ReturnType<typeof createClient>
+): Promise<string> {
+  const { data: opCosts } = await supabase
+    .from("operational_costs")
+    .select("category, name, amount")
+    .eq("outlet_id", OUTLET_ID)
+    .eq("is_active", true)
+    .order("category")
+    .order("name");
+
+  const items = opCosts || [];
+  let totalOp = 0;
+  let totalLabor = 0;
+  let bonusPct = 0;
+
+  const opItems: string[] = [];
+  const laborItems: string[] = [];
+
+  for (const item of items) {
+    const cat = (item as any).category;
+    const amount = Number((item as any).amount);
+    const name = (item as any).name;
+    if (cat === "bonus") {
+      bonusPct = amount;
+    } else if (cat === "operational") {
+      totalOp += amount;
+      opItems.push(`- ${name}: *${formatRupiah(amount)}*`);
+    } else if (cat === "labor") {
+      totalLabor += amount;
+      laborItems.push(`- ${name}: *${formatRupiah(amount)}*`);
+    }
+  }
+
+  const total = totalOp + totalLabor;
+  let msg = `*Biaya Operasional Bulanan*\n\n`;
+  msg += `Total: *${formatRupiah(total)}*/bulan\n\n`;
+
+  if (opItems.length > 0) {
+    msg += `*Operasional:* ${formatRupiah(totalOp)}\n`;
+    msg += opItems.join("\n") + "\n\n";
+  }
+
+  if (laborItems.length > 0) {
+    msg += `*Tenaga Kerja:* ${formatRupiah(totalLabor)}\n`;
+    msg += laborItems.join("\n") + "\n\n";
+  }
+
+  if (bonusPct > 0) {
+    msg += `*Bonus Karyawan:* ${bonusPct}% dari laba bersih`;
+  }
+
+  return msg;
+}
+
 // --------------- DeepSeek AI Call ---------------
 async function callDeepSeek(
   messages: Array<{ role: string; content: string }>
@@ -606,6 +710,13 @@ serve(async (req: Request) => {
     if (text === "/shift") {
       await sendChatAction(chatId);
       const msg = await handleShiftCommand(supabase);
+      await sendMessage(chatId, msg);
+      return new Response("OK", { status: 200 });
+    }
+
+    if (text === "/opcost") {
+      await sendChatAction(chatId);
+      const msg = await handleOpCostCommand(supabase);
       await sendMessage(chatId, msg);
       return new Response("OK", { status: 200 });
     }

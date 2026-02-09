@@ -38,6 +38,7 @@ class AiContextBuilder {
       _getActiveInsightCount(outletId),
       _predictionService.assessBusinessMood(),
       _predictionService.generatePredictions(),
+      _getOperationalCosts(outletId),
     ]);
 
     // Build memory context from OTAK
@@ -46,6 +47,7 @@ class AiContextBuilder {
     // Cast prediction results
     final mood = results[6] as BusinessMoodData;
     final prediction = results[7] as BusinessPrediction;
+    final opCosts = results[8] as Map<String, dynamic>;
 
     return {
       'outlet': results[0],
@@ -75,6 +77,8 @@ class AiContextBuilder {
         'forecast': prediction.forecastText,
         'day_type': prediction.dayType,
       },
+      // Operational costs & bonus
+      'operational_costs': opCosts,
     };
   }
 
@@ -226,6 +230,56 @@ class AiContextBuilder {
       return await _insightRepo.getInsightCount(outletId);
     } catch (_) {
       return 0;
+    }
+  }
+
+  /// Get operational costs + bonus percentage for HPP context
+  Future<Map<String, dynamic>> _getOperationalCosts(String outletId) async {
+    try {
+      final response = await _client
+          .from('operational_costs')
+          .select('category, name, amount')
+          .eq('outlet_id', outletId)
+          .eq('is_active', true);
+
+      final items = List<Map<String, dynamic>>.from(response);
+
+      double totalOperational = 0;
+      double totalLabor = 0;
+      double bonusPercent = 0;
+      final details = <Map<String, dynamic>>[];
+
+      for (final item in items) {
+        final cat = item['category']?.toString() ?? '';
+        final amount = (item['amount'] as num?)?.toDouble() ?? 0;
+        if (cat == 'bonus') {
+          bonusPercent = amount;
+        } else {
+          if (cat == 'operational') totalOperational += amount;
+          if (cat == 'labor') totalLabor += amount;
+          details.add({
+            'name': item['name'],
+            'category': cat,
+            'amount': amount,
+          });
+        }
+      }
+
+      return {
+        'total_monthly': totalOperational + totalLabor,
+        'operational': totalOperational,
+        'labor': totalLabor,
+        'bonus_percent': bonusPercent,
+        'items': details,
+      };
+    } catch (_) {
+      return {
+        'total_monthly': 0,
+        'operational': 0,
+        'labor': 0,
+        'bonus_percent': 0,
+        'items': [],
+      };
     }
   }
 }

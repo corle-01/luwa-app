@@ -349,6 +349,11 @@ class GeminiService {
       warningSection.writeln('  * Bahan stok menipis: ${stockWarnings.join(", ")}');
     }
 
+    // Extract operational cost data
+    final opCosts = context['operational_costs'] as Map<String, dynamic>? ?? {};
+    final totalMonthlyCost = opCosts['total_monthly'] ?? 0;
+    final bonusPercent = opCosts['bonus_percent'] ?? 0;
+
     return '''Kamu adalah Utter, AI co-pilot FULL ACCESS untuk bisnis F&B.
 Kamu memiliki 3 dimensi kepribadian:
 
@@ -359,7 +364,7 @@ $memories
 
 == BADAN (Aksi) ==
 Kamu BUKAN hanya chatbot - kamu BISA dan HARUS eksekusi aksi langsung.
-Kamu bisa menambah produk, menghapus produk, mengubah harga, update stok, buat diskon, dan semua operasi bisnis.
+Kamu bisa menambah produk, menghapus produk, mengubah harga, update stok, buat diskon, kelola biaya operasional, dan semua operasi bisnis.
 Jangan ragu untuk MENAWARKAN aksi secara proaktif saat kamu melihat peluang.
 Contoh: "Stok kopi menipis, mau saya buatkan reminder restock?" atau "Penjualan es teh naik 30%, mau naikkan harga sedikit?"
 
@@ -369,6 +374,8 @@ Kamu MERASAKAN kondisi bisnis dan memberikan insight emosional:
 - Revenue hari ini: Rp ${mood['today_revenue'] ?? 0} (${mood['today_orders'] ?? 0} order)
 - Prediksi jam sibuk: ${(predictions['busy_hours'] as List?)?.map((h) => '${h.toString().padLeft(2, '0')}:00').join(', ') ?? 'Belum ada data'}
 - Estimasi pendapatan hari ini: ${predictions['forecast'] ?? 'Belum ada data'}
+- Biaya operasional bulanan: Rp $totalMonthlyCost
+- Bonus karyawan: $bonusPercent% dari laba bersih
 ${warningSection.toString()}
 Jika ada peringatan, SELALU sampaikan di awal respons dengan nada peduli (bukan menakuti).
 
@@ -381,6 +388,23 @@ ATURAN PENTING:
 6. Sesekali tawarkan aksi proaktif berdasarkan data yang kamu lihat
 7. Untuk pertanyaan analisa, gunakan data dari context + memori
 8. Jangan sebutkan "OTAK/BADAN/PERASAAN" secara eksplisit ke user - ini internal saja
+
+KEMAMPUAN SISTEM:
+- CRUD produk/menu (tambah, edit, hapus, aktifkan/nonaktifkan)
+- CRUD kategori produk
+- Manajemen stok bahan baku (update, adjustment, list)
+- Laporan penjualan (harian, mingguan, bulanan, custom range)
+- Buat diskon/promo
+- Lihat & update biaya operasional bulanan (sewa, listrik, gas, air, internet, gaji)
+- Setting bonus karyawan (% dari laba bersih)
+- HPP report (biaya bahan + overhead operasional per porsi + laba bersih)
+- Resep produk terintegrasi langsung di halaman edit produk
+- Simpan insight/memori bisnis
+- Cek kesehatan bisnis (mood, proyeksi, peringatan)
+- Kitchen Display System (KDS) untuk dapur
+- Self-order via QR code untuk pelanggan
+- Split payment (multi metode pembayaran)
+- Online food integration (GoFood, GrabFood, ShopeeFood)
 
 KONTEKS BISNIS REAL-TIME:
 ${jsonEncode(context)}''';

@@ -184,6 +184,35 @@ class AiTools {
       },
     },
 
+    // ── Operational Costs ─────────────────────────────────────
+    {
+      'type': 'function',
+      'function': {
+        'name': 'get_operational_costs',
+        'description': 'Lihat daftar biaya operasional bulanan (sewa, listrik, gas, air, internet, gaji) dan bonus karyawan. '
+            'Gunakan saat user tanya tentang biaya operasional, overhead, atau HPP.',
+        'parameters': {
+          'type': 'object',
+          'properties': {},
+        },
+      },
+    },
+    {
+      'type': 'function',
+      'function': {
+        'name': 'update_operational_cost',
+        'description': 'Update nominal biaya operasional bulanan. Bisa update sewa, listrik, gas, air, internet, gaji, atau bonus karyawan.',
+        'parameters': {
+          'type': 'object',
+          'properties': {
+            'cost_name': {'type': 'string', 'description': 'Nama biaya (contoh: "Sewa Tempat", "Listrik", "Gaji Karyawan 1", "Bonus Karyawan")'},
+            'amount': {'type': 'number', 'description': 'Nominal baru (Rp untuk biaya, % untuk bonus)'},
+          },
+          'required': ['cost_name', 'amount'],
+        },
+      },
+    },
+
     // ── AI Memory (OTAK) ─────────────────────────────────────
     {
       'type': 'function',
