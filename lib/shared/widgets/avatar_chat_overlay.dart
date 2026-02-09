@@ -461,8 +461,33 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
 
   void _speakText(String text) {
     if (VoiceCommandService.isTtsSupported) {
-      _voiceService.speak(text);
+      _voiceService.speak(_cleanForTts(text));
     }
+  }
+
+  /// Strip markdown formatting so TTS reads clean text.
+  String _cleanForTts(String text) {
+    var clean = text;
+    // Remove bold/italic markers
+    clean = clean.replaceAll(RegExp(r'\*{1,3}'), '');
+    clean = clean.replaceAll(RegExp(r'_{1,3}'), '');
+    // Remove markdown headers
+    clean = clean.replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
+    // Remove bullet/list markers
+    clean = clean.replaceAll(RegExp(r'^[\-\*]\s+', multiLine: true), '');
+    clean = clean.replaceAll(RegExp(r'^\d+\.\s+', multiLine: true), '');
+    // Remove code blocks and inline code
+    clean = clean.replaceAll(RegExp(r'```[\s\S]*?```'), '');
+    clean = clean.replaceAll(RegExp(r'`([^`]+)`'), r'$1');
+    // Remove links [text](url) → text
+    clean = clean.replaceAll(RegExp(r'\[([^\]]+)\]\([^)]+\)'), r'$1');
+    // Remove emojis (common unicode ranges)
+    clean = clean.replaceAll(RegExp(r'[\u{1F300}-\u{1F9FF}]', unicode: true), '');
+    clean = clean.replaceAll(RegExp(r'[\u{2600}-\u{27BF}]', unicode: true), '');
+    // Collapse whitespace
+    clean = clean.replaceAll(RegExp(r'\n{2,}'), '. ');
+    clean = clean.replaceAll(RegExp(r'\s{2,}'), ' ');
+    return clean.trim();
   }
 
   Widget _buildInputField(BuildContext context) {
