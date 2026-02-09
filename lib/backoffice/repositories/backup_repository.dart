@@ -27,7 +27,7 @@ class BackupRepository {
     'taxes',
     'discounts',
     'tables',
-    'staff_profiles',
+    'profiles',
     'orders',
     'order_items',
   ];
@@ -42,7 +42,7 @@ class BackupRepository {
     'taxes': 'Pajak',
     'discounts': 'Diskon',
     'tables': 'Meja',
-    'staff_profiles': 'Staff',
+    'profiles': 'Staff',
     'orders': 'Pesanan',
     'order_items': 'Item Pesanan',
   };
@@ -107,8 +107,8 @@ class BackupRepository {
         .eq('outlet_id', outletId);
 
     // Staff profiles
-    data['staff_profiles'] = await _supabase
-        .from('staff_profiles')
+    data['profiles'] = await _supabase
+        .from('profiles')
         .select()
         .eq('outlet_id', outletId);
 
@@ -243,10 +243,10 @@ class BackupRepository {
 
     // Staff profiles
     final staff = await _supabase
-        .from('staff_profiles')
+        .from('profiles')
         .select('id')
         .eq('outlet_id', outletId);
-    counts['staff_profiles'] = (staff as List).length;
+    counts['profiles'] = (staff as List).length;
 
     // Orders
     final orders = await _supabase

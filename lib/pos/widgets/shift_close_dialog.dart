@@ -17,6 +17,21 @@ class _ShiftCloseDialogState extends ConsumerState<ShiftCloseDialog> {
   final _notesController = TextEditingController();
   bool _loading = false;
   ShiftSummary? _summary;
+  Future<ShiftSummary>? _summaryFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch summary once on init, not on every rebuild
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final shift = ref.read(posShiftNotifierProvider).value;
+      if (shift != null) {
+        setState(() {
+          _summaryFuture = ref.read(posShiftRepositoryProvider).getShiftSummary(shift.id);
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -45,7 +60,7 @@ class _ShiftCloseDialogState extends ConsumerState<ShiftCloseDialog> {
             const Text('Tutup Shift', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             FutureBuilder<ShiftSummary>(
-              future: ref.read(posShiftRepositoryProvider).getShiftSummary(shiftId),
+              future: _summaryFuture,
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                 _summary = snapshot.data!;
@@ -71,7 +86,7 @@ class _ShiftCloseDialogState extends ConsumerState<ShiftCloseDialog> {
               onChanged: (_) => setState(() {}),
             ),
             // Realtime discrepancy
-            if (_summary != null && _closingCash > 0) ...[
+            if (_summary != null && _cashController.text.isNotEmpty) ...[
               const SizedBox(height: 12),
               Builder(builder: (_) {
                 final discrepancy = _closingCash - _summary!.expectedCash;

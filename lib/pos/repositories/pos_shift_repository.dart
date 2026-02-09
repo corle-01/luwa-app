@@ -86,14 +86,32 @@ class PosShiftRepository {
 
       if (status == 'completed') {
         totalSales += amount;
-        if (payment == 'cash') {
+        if (payment == 'split') {
+          // For split payments, break down cash vs non-cash from payment_details
+          final details = order['payment_details'] as List?;
+          if (details != null) {
+            for (final entry in details) {
+              final method = entry['method'] as String? ?? '';
+              final entryAmount = (entry['amount'] as num?)?.toDouble() ?? 0;
+              if (method == 'cash') {
+                totalCash += entryAmount;
+              } else {
+                totalNonCash += entryAmount;
+              }
+            }
+          } else {
+            totalNonCash += amount;
+          }
+        } else if (payment == 'cash') {
           totalCash += amount;
         } else {
           totalNonCash += amount;
         }
       }
       ordersByStatus[status] = (ordersByStatus[status] ?? 0) + 1;
-      salesByPayment[payment] = (salesByPayment[payment] ?? 0) + amount;
+      if (status == 'completed') {
+        salesByPayment[payment] = (salesByPayment[payment] ?? 0) + amount;
+      }
     }
 
     final shift = await _supabase.from('shifts').select().eq('id', shiftId).single();
