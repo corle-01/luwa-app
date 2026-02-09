@@ -209,11 +209,18 @@
     // Handle self-order redirect: if URL has table parameter, redirect to office self-order
     var params = new URLSearchParams(window.location.search);
     if (params.has('table')) {
-      window.location.href = 'office/#/self-order?table=' + encodeURIComponent(params.get('table'));
+      window.location.replace('office/#/self-order?table=' + encodeURIComponent(params.get('table')));
     }
-    // Also handle hash-based self-order route
+    // Also handle hash-based self-order route (legacy QR codes)
     if (window.location.hash && window.location.hash.indexOf('self-order') !== -1) {
-      window.location.href = 'office/' + window.location.hash;
+      // Extract table param from hash: #/self-order?table=xxx
+      var hashParts = window.location.hash.split('?');
+      var hashParams = new URLSearchParams(hashParts[1] || '');
+      var tableId = hashParams.get('table') || '';
+      var target = tableId
+        ? 'office/#/self-order?table=' + encodeURIComponent(tableId)
+        : 'office/#/self-order';
+      window.location.replace(target);
     }
   </script>
 </body>

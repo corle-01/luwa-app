@@ -8,7 +8,7 @@ import '../providers/table_provider.dart';
 import '../repositories/table_repository.dart';
 
 const _selfOrderBaseUrl =
-    'https://ardhianawing.github.io/utterapp/#/self-order';
+    'https://ardhianawing.github.io/utterapp/office/#/self-order';
 
 class TableManagementPage extends ConsumerWidget {
   const TableManagementPage({super.key});
