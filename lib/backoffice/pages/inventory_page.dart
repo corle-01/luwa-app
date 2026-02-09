@@ -408,6 +408,7 @@ class _IngredientsTable extends StatelessWidget {
           columns: const [
             DataColumn(label: Text('Nama')),
             DataColumn(label: Text('Unit')),
+            DataColumn(label: Text('Harga/Unit'), numeric: true),
             DataColumn(label: Text('Stok'), numeric: true),
             DataColumn(label: Text('Min'), numeric: true),
             DataColumn(label: Text('Status')),
@@ -439,6 +440,18 @@ class _IngredientsTable extends StatelessWidget {
                 ),
                 // Unit
                 DataCell(Text(ingredient.unit)),
+                // Harga/Unit
+                DataCell(
+                  Text(
+                    FormatUtils.currency(ingredient.costPerUnit),
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w500,
+                      color: ingredient.costPerUnit > 0
+                          ? AppTheme.textPrimary
+                          : AppTheme.textTertiary,
+                    ),
+                  ),
+                ),
                 // Stok
                 DataCell(
                   Text(
@@ -473,7 +486,7 @@ class _IngredientsTable extends StatelessWidget {
                 DataCell(
                   IconButton(
                     icon: const Icon(Icons.tune, size: 20),
-                    tooltip: 'Sesuaikan Stok',
+                    tooltip: 'Sesuaikan Stok & Harga',
                     onPressed: () => _showAdjustmentDialog(
                       context,
                       ref,
@@ -520,7 +533,7 @@ class _IngredientsTable extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${ingredient.unit}${ingredient.supplierName != null ? ' \u2022 ${ingredient.supplierName}' : ''}',
+                    '${ingredient.unit} \u2022 ${FormatUtils.currency(ingredient.costPerUnit)}/${ingredient.unit}${ingredient.supplierName != null ? ' \u2022 ${ingredient.supplierName}' : ''}',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppTheme.textTertiary,
@@ -860,6 +873,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController();
   final _notesController = TextEditingController();
+  final _costController = TextEditingController();
   String _selectedType = 'purchase';
   bool _saving = false;
 
@@ -870,9 +884,18 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _costController.text = widget.ingredient.costPerUnit > 0
+        ? widget.ingredient.costPerUnit.toStringAsFixed(0)
+        : '';
+  }
+
+  @override
   void dispose() {
     _quantityController.dispose();
     _notesController.dispose();
+    _costController.dispose();
     super.dispose();
   }
 
@@ -922,26 +945,71 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
                   color: AppTheme.backgroundColor,
                   borderRadius: BorderRadius.circular(AppTheme.radiusM),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    Text(
-                      'Stok Saat Ini:',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppTheme.textSecondary,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'Stok Saat Ini:',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${FormatUtils.number(widget.ingredient.currentStock, decimals: widget.ingredient.currentStock == widget.ingredient.currentStock.roundToDouble() ? 0 : 2)} ${widget.ingredient.unit}',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${FormatUtils.number(widget.ingredient.currentStock, decimals: widget.ingredient.currentStock == widget.ingredient.currentStock.roundToDouble() ? 0 : 2)} ${widget.ingredient.unit}',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          'Harga/Unit:',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          FormatUtils.currency(widget.ingredient.costPerUnit),
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: widget.ingredient.costPerUnit > 0
+                                ? AppTheme.textPrimary
+                                : AppTheme.warningColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 16),
+
+              // Cost per unit input
+              TextFormField(
+                controller: _costController,
+                decoration: InputDecoration(
+                  labelText: 'Harga per ${widget.ingredient.unit}',
+                  prefixText: 'Rp ',
+                  prefixIcon: const Icon(Icons.attach_money),
+                  hintText: 'Harga beli per unit',
+                  helperText: 'Ubah harga akan otomatis update HPP produk terkait',
+                  helperStyle: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
 
@@ -1111,6 +1179,15 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
       final notes = _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim();
+
+      // Update cost_per_unit if changed
+      final newCost = double.tryParse(_costController.text.trim().replaceAll('.', ''));
+      if (newCost != null && newCost != widget.ingredient.costPerUnit) {
+        await repo.updateIngredient(
+          widget.ingredient.id,
+          costPerUnit: newCost,
+        );
+      }
 
       await repo.adjustStock(
         ingredientId: widget.ingredient.id,
