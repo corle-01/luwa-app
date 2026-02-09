@@ -670,19 +670,19 @@ class _CreatePurchaseDialogState extends State<_CreatePurchaseDialog> {
                               _SupplierSearchField(
                                 suppliers: _suppliers,
                                 selectedId: _selectedSupplierId,
-                                manualName: _manualSupplierController.text,
+                                controller: _manualSupplierController,
                                 onSelected: (supplier) {
                                   setState(() {
                                     _selectedSupplierId = supplier.id;
                                     _manualSupplier = false;
-                                    _manualSupplierController.clear();
+                                    // Don't clear — field already shows supplier.name
                                   });
                                 },
                                 onManualEntry: (name) {
                                   setState(() {
                                     _selectedSupplierId = null;
                                     _manualSupplier = true;
-                                    _manualSupplierController.text = name;
+                                    // Controller already has the text
                                   });
                                 },
                               ),
@@ -1091,12 +1091,10 @@ class _CreatePurchaseDialogState extends State<_CreatePurchaseDialog> {
       }
     }
 
-    // Resolve supplier name
+    // Resolve supplier name — always read controller text as fallback
     String supplierName = '';
     String? supplierId;
-    if (_manualSupplier) {
-      supplierName = _manualSupplierController.text.trim();
-    } else if (_selectedSupplierId != null) {
+    if (_selectedSupplierId != null) {
       supplierId = _selectedSupplierId;
       try {
         final supplier = _suppliers.firstWhere(
@@ -1106,6 +1104,10 @@ class _CreatePurchaseDialogState extends State<_CreatePurchaseDialog> {
       } catch (_) {
         // supplier not found in list
       }
+    }
+    // Fallback: use whatever text is in the supplier field
+    if (supplierName.isEmpty) {
+      supplierName = _manualSupplierController.text.trim();
     }
 
     setState(() => _saving = true);
@@ -1980,14 +1982,14 @@ class _ErrorState extends StatelessWidget {
 class _SupplierSearchField extends StatefulWidget {
   final List<SupplierModel> suppliers;
   final String? selectedId;
-  final String? manualName;
+  final TextEditingController controller;
   final void Function(SupplierModel) onSelected;
   final void Function(String name) onManualEntry;
 
   const _SupplierSearchField({
     required this.suppliers,
     this.selectedId,
-    this.manualName,
+    required this.controller,
     required this.onSelected,
     required this.onManualEntry,
   });
@@ -1997,11 +1999,12 @@ class _SupplierSearchField extends StatefulWidget {
 }
 
 class _SupplierSearchFieldState extends State<_SupplierSearchField> {
-  late final TextEditingController _controller;
   final FocusNode _focusNode = FocusNode();
   List<SupplierModel> _filtered = [];
   bool _showSuggestions = false;
   bool _hasSelection = false;
+
+  TextEditingController get _controller => widget.controller;
 
   @override
   void initState() {
@@ -2012,15 +2015,9 @@ class _SupplierSearchFieldState extends State<_SupplierSearchField> {
       final match =
           widget.suppliers.where((s) => s.id == widget.selectedId).toList();
       if (match.isNotEmpty) {
-        _controller = TextEditingController(text: match.first.name);
+        _controller.text = match.first.name;
         _hasSelection = true;
-      } else {
-        _controller = TextEditingController();
       }
-    } else if (widget.manualName != null && widget.manualName!.isNotEmpty) {
-      _controller = TextEditingController(text: widget.manualName);
-    } else {
-      _controller = TextEditingController();
     }
 
     _focusNode.addListener(() {
@@ -2043,7 +2040,6 @@ class _SupplierSearchFieldState extends State<_SupplierSearchField> {
 
   @override
   void dispose() {
-    _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }

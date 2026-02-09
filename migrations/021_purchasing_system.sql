@@ -42,37 +42,38 @@ CREATE POLICY "anon_insert_purchase_items" ON purchase_items FOR INSERT TO anon 
 CREATE POLICY "anon_update_purchase_items" ON purchase_items FOR UPDATE TO anon USING (true);
 CREATE POLICY "anon_delete_purchase_items" ON purchase_items FOR DELETE TO anon USING (true);
 
-CREATE OR REPLACE FUNCTION auto_stock_in_on_purchase()
+-- Auto stock-in per purchase item (fires per item row, not per purchase)
+CREATE OR REPLACE FUNCTION auto_stock_in_on_purchase_item()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO stock_movements (ingredient_id, outlet_id, quantity, type, notes)
-  SELECT
-    pi.ingredient_id,
-    NEW.outlet_id,
-    pi.quantity,
-    'purchase',
-    'Pembelian: ' || pi.item_name || ' (' || LEFT(NEW.id::text, 8) || ')'
-  FROM purchase_items pi
-  WHERE pi.purchase_id = NEW.id
-    AND pi.ingredient_id IS NOT NULL;
+  IF NEW.ingredient_id IS NOT NULL THEN
+    -- Create stock movement with correct column name
+    INSERT INTO stock_movements (ingredient_id, outlet_id, movement_type, quantity, notes)
+    SELECT
+      NEW.ingredient_id,
+      p.outlet_id,
+      'purchase',
+      NEW.quantity,
+      'Pembelian: ' || NEW.item_name || ' (' || LEFT(NEW.purchase_id::text, 8) || ')'
+    FROM purchases p
+    WHERE p.id = NEW.purchase_id;
 
-  UPDATE ingredients i
-  SET current_stock = i.current_stock + pi.quantity,
-      updated_at = NOW()
-  FROM purchase_items pi
-  WHERE pi.purchase_id = NEW.id
-    AND pi.ingredient_id = i.id
-    AND pi.ingredient_id IS NOT NULL;
+    -- Update ingredient stock
+    UPDATE ingredients
+    SET current_stock = current_stock + NEW.quantity,
+        updated_at = NOW()
+    WHERE id = NEW.ingredient_id;
+  END IF;
 
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_auto_stock_in_purchase ON purchases;
-CREATE TRIGGER trg_auto_stock_in_purchase
-  AFTER INSERT ON purchases
+DROP TRIGGER IF EXISTS trg_auto_stock_in_purchase_item ON purchase_items;
+CREATE TRIGGER trg_auto_stock_in_purchase_item
+  AFTER INSERT ON purchase_items
   FOR EACH ROW
-  EXECUTE FUNCTION auto_stock_in_on_purchase();
+  EXECUTE FUNCTION auto_stock_in_on_purchase_item();
 
 CREATE INDEX IF NOT EXISTS idx_purchases_outlet_id ON purchases(outlet_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_purchase_date ON purchases(purchase_date);
