@@ -67,12 +67,23 @@ extension type _SpeechSynthesisUtterance._(JSObject _) implements JSObject {
   external set rate(JSNumber value);
   external set pitch(JSNumber value);
   external set volume(JSNumber value);
+  external set voice(_SpeechSynthesisVoice? value);
+  external set onend(JSFunction? value);
+}
+
+/// SpeechSynthesisVoice
+extension type _SpeechSynthesisVoice._(JSObject _) implements JSObject {
+  external String get lang;
+  external String get name;
+  external bool get localService;
 }
 
 /// SpeechSynthesis
 extension type _SpeechSynthesis._(JSObject _) implements JSObject {
   external void speak(_SpeechSynthesisUtterance utterance);
   external void cancel();
+  external JSArray<_SpeechSynthesisVoice> getVoices();
+  external set onvoiceschanged(JSFunction? value);
 }
 
 // JS global access helpers (for existence checks only)
@@ -252,8 +263,48 @@ class VoiceCommandService {
     }
   }
 
+  _SpeechSynthesisVoice? _cachedIdVoice;
+  bool _voiceSearchDone = false;
+
+  /// Find the best Indonesian voice available.
+  _SpeechSynthesisVoice? _findIndonesianVoice() {
+    if (_voiceSearchDone) return _cachedIdVoice;
+
+    try {
+      final synthesis = _speechSynthesis;
+      if (synthesis == null) return null;
+
+      final voices = synthesis.getVoices().toDart;
+      if (voices.isEmpty) return null;
+
+      _voiceSearchDone = true;
+
+      // Priority: id-ID exact match > id prefix > ms-MY (Malay, closest)
+      for (final v in voices) {
+        if (v.lang == 'id-ID') {
+          _cachedIdVoice = v;
+          return v;
+        }
+      }
+      for (final v in voices) {
+        if (v.lang.startsWith('id')) {
+          _cachedIdVoice = v;
+          return v;
+        }
+      }
+      for (final v in voices) {
+        if (v.lang.startsWith('ms')) {
+          _cachedIdVoice = v;
+          return v;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Speak text using TTS (Text-to-Speech).
-  void speak(String text) {
+  /// [onDone] is called when speech finishes or is cancelled.
+  void speak(String text, {void Function()? onDone}) {
     if (!isTtsSupported || text.isEmpty) return;
 
     try {
@@ -262,15 +313,45 @@ class VoiceCommandService {
       // Cancel any ongoing speech
       synthesis.cancel();
 
-      // Create utterance using factory constructor
+      // Create utterance
       final utterance = _SpeechSynthesisUtterance(text.toJS);
       utterance.lang = 'id-ID'.toJS;
       utterance.rate = 1.0.toJS;
       utterance.pitch = 1.0.toJS;
       utterance.volume = 1.0.toJS;
 
-      // Speak
+      // Set Indonesian voice explicitly if available
+      final idVoice = _findIndonesianVoice();
+      if (idVoice != null) {
+        utterance.voice = idVoice;
+      }
+
+      // Callback when done
+      if (onDone != null) {
+        utterance.onend = ((JSObject _) {
+          onDone();
+        }).toJS;
+      }
+
       synthesis.speak(utterance);
+    } catch (_) {
+      onDone?.call();
+    }
+  }
+
+  /// Pre-load voices (call early, e.g. on app init).
+  /// Some browsers load voices async, this ensures they're ready.
+  void preloadVoices() {
+    if (!isTtsSupported) return;
+    try {
+      final synthesis = _speechSynthesis!;
+      // Try immediate
+      _findIndonesianVoice();
+      // Also listen for async voice loading
+      synthesis.onvoiceschanged = ((JSObject _) {
+        _voiceSearchDone = false;
+        _findIndonesianVoice();
+      }).toJS;
     } catch (_) {}
   }
 

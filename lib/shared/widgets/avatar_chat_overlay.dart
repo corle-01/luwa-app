@@ -48,6 +48,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
   // Voice command
   final VoiceCommandService _voiceService = VoiceCommandService();
   bool _isVoiceListening = false;
+  bool _isSpeaking = false;
   StreamSubscription<String>? _voiceResultSub;
   StreamSubscription<VoiceStatus>? _voiceStatusSub;
 
@@ -74,6 +75,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
     _slideController.forward();
 
     // Initialize voice
+    _voiceService.preloadVoices();
     if (VoiceCommandService.isSupported) {
       _voiceService.initialize();
       _voiceResultSub = _voiceService.onResult.listen((text) {
@@ -307,6 +309,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
                 return _AvatarMessageBubble(
                   message: messages[index],
                   onSpeak: _speakText,
+                  isSpeaking: _isSpeaking,
                 );
               },
             ),
@@ -460,9 +463,22 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
   }
 
   void _speakText(String text) {
-    if (VoiceCommandService.isTtsSupported) {
-      _voiceService.speak(_cleanForTts(text));
+    if (!VoiceCommandService.isTtsSupported) return;
+
+    if (_isSpeaking) {
+      // Stop if already speaking
+      _voiceService.stopSpeaking();
+      if (mounted) setState(() => _isSpeaking = false);
+      return;
     }
+
+    setState(() => _isSpeaking = true);
+    _voiceService.speak(
+      _cleanForTts(text),
+      onDone: () {
+        if (mounted) setState(() => _isSpeaking = false);
+      },
+    );
   }
 
   /// Strip markdown formatting so TTS reads clean text.
@@ -629,8 +645,13 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
 class _AvatarMessageBubble extends StatelessWidget {
   final AiMessage message;
   final void Function(String text)? onSpeak;
+  final bool isSpeaking;
 
-  const _AvatarMessageBubble({required this.message, this.onSpeak});
+  const _AvatarMessageBubble({
+    required this.message,
+    this.onSpeak,
+    this.isSpeaking = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -707,16 +728,22 @@ class _AvatarMessageBubble extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.volume_up_rounded,
+                                isSpeaking
+                                    ? Icons.stop_rounded
+                                    : Icons.volume_up_rounded,
                                 size: 13,
-                                color: AppTheme.textTertiary,
+                                color: isSpeaking
+                                    ? AppTheme.errorColor
+                                    : AppTheme.textTertiary,
                               ),
                               const SizedBox(width: 3),
                               Text(
-                                'Dengar',
+                                isSpeaking ? 'Stop' : 'Dengar',
                                 style: GoogleFonts.inter(
                                   fontSize: 10,
-                                  color: AppTheme.textTertiary,
+                                  color: isSpeaking
+                                      ? AppTheme.errorColor
+                                      : AppTheme.textTertiary,
                                 ),
                               ),
                             ],
