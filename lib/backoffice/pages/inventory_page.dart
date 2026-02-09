@@ -153,43 +153,54 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: AppTheme.backgroundColor,
-      child: Row(
-        children: [
-          Expanded(
-            child: _SummaryCard(
-              icon: Icons.inventory_2_outlined,
-              iconColor: AppTheme.primaryColor,
-              label: 'Total Bahan',
-              value: totalIngredients.toString(),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 500;
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 16,
+            vertical: compact ? 8 : 12,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _SummaryCard(
-              icon: Icons.warning_amber_rounded,
-              iconColor: lowStockCount > 0
-                  ? AppTheme.errorColor
-                  : AppTheme.successColor,
-              label: 'Stok Rendah',
-              value: lowStockCount.toString(),
-              badgeColor:
-                  lowStockCount > 0 ? AppTheme.errorColor : null,
-            ),
+          color: AppTheme.backgroundColor,
+          child: Row(
+            children: [
+              Expanded(
+                child: _SummaryCard(
+                  icon: Icons.inventory_2_outlined,
+                  iconColor: AppTheme.primaryColor,
+                  label: 'Total Bahan',
+                  value: totalIngredients.toString(),
+                  compact: compact,
+                ),
+              ),
+              SizedBox(width: compact ? 6 : 12),
+              Expanded(
+                child: _SummaryCard(
+                  icon: Icons.warning_amber_rounded,
+                  iconColor: lowStockCount > 0
+                      ? AppTheme.errorColor
+                      : AppTheme.successColor,
+                  label: 'Stok Rendah',
+                  value: lowStockCount.toString(),
+                  badgeColor:
+                      lowStockCount > 0 ? AppTheme.errorColor : null,
+                  compact: compact,
+                ),
+              ),
+              SizedBox(width: compact ? 6 : 12),
+              Expanded(
+                child: _SummaryCard(
+                  icon: Icons.account_balance_wallet_outlined,
+                  iconColor: AppTheme.accentColor,
+                  label: 'Nilai Stok',
+                  value: FormatUtils.currency(totalStockValue),
+                  compact: compact,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _SummaryCard(
-              icon: Icons.account_balance_wallet_outlined,
-              iconColor: AppTheme.accentColor,
-              label: 'Nilai Stok',
-              value: FormatUtils.currency(totalStockValue),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -200,6 +211,7 @@ class _SummaryCard extends StatelessWidget {
   final String label;
   final String value;
   final Color? badgeColor;
+  final bool compact;
 
   const _SummaryCard({
     required this.icon,
@@ -207,10 +219,64 @@ class _SummaryCard extends StatelessWidget {
     required this.label,
     required this.value,
     this.badgeColor,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          boxShadow: AppTheme.shadowSM,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: iconColor, size: 20),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    value,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (badgeColor != null) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                color: AppTheme.textTertiary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -298,6 +364,20 @@ class _IngredientsTable extends StatelessWidget {
         iconColor: AppTheme.textTertiary,
         title: 'Belum ada bahan',
         subtitle: 'Tambah bahan baku untuk mulai mengelola inventori',
+      );
+    }
+
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    if (isMobile) {
+      return ListView.separated(
+        padding: const EdgeInsets.all(12),
+        itemCount: ingredients.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final ingredient = ingredients[index];
+          return _buildMobileCard(context, ingredient);
+        },
       );
     }
 
@@ -404,6 +484,75 @@ class _IngredientsTable extends StatelessWidget {
               ],
             );
           }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileCard(BuildContext context, IngredientModel ingredient) {
+    final stockDecimals = ingredient.currentStock ==
+            ingredient.currentStock.roundToDouble()
+        ? 0
+        : 2;
+    return GestureDetector(
+      onTap: () => _showAdjustmentDialog(context, ref, ingredient),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          boxShadow: AppTheme.shadowSM,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    ingredient.name,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${ingredient.unit}${ingredient.supplierName != null ? ' \u2022 ${ingredient.supplierName}' : ''}',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppTheme.textTertiary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${FormatUtils.number(ingredient.currentStock, decimals: stockDecimals)} ${ingredient.unit}',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: ingredient.isOutOfStock
+                        ? AppTheme.errorColor
+                        : ingredient.isLowStock
+                            ? AppTheme.warningColor
+                            : AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _StatusBadge(ingredient: ingredient),
+              ],
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.tune, size: 20, color: AppTheme.textTertiary),
+          ],
         ),
       ),
     );

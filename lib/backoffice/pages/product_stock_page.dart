@@ -97,43 +97,54 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: AppTheme.backgroundColor,
-      child: Row(
-        children: [
-          Expanded(
-            child: _SummaryCard(
-              icon: Icons.inventory_2_outlined,
-              iconColor: AppTheme.primaryColor,
-              label: 'Dilacak',
-              value: totalTracked.toString(),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 500;
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 16,
+            vertical: compact ? 8 : 12,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _SummaryCard(
-              icon: Icons.warning_amber_rounded,
-              iconColor: lowStockCount > 0
-                  ? AppTheme.errorColor
-                  : AppTheme.successColor,
-              label: 'Stok Rendah',
-              value: lowStockCount.toString(),
-              badgeColor:
-                  lowStockCount > 0 ? AppTheme.errorColor : null,
-            ),
+          color: AppTheme.backgroundColor,
+          child: Row(
+            children: [
+              Expanded(
+                child: _SummaryCard(
+                  icon: Icons.inventory_2_outlined,
+                  iconColor: AppTheme.primaryColor,
+                  label: 'Dilacak',
+                  value: totalTracked.toString(),
+                  compact: compact,
+                ),
+              ),
+              SizedBox(width: compact ? 6 : 12),
+              Expanded(
+                child: _SummaryCard(
+                  icon: Icons.warning_amber_rounded,
+                  iconColor: lowStockCount > 0
+                      ? AppTheme.errorColor
+                      : AppTheme.successColor,
+                  label: 'Stok Rendah',
+                  value: lowStockCount.toString(),
+                  badgeColor:
+                      lowStockCount > 0 ? AppTheme.errorColor : null,
+                  compact: compact,
+                ),
+              ),
+              SizedBox(width: compact ? 6 : 12),
+              Expanded(
+                child: _SummaryCard(
+                  icon: Icons.account_balance_wallet_outlined,
+                  iconColor: AppTheme.accentColor,
+                  label: 'Nilai Stok',
+                  value: FormatUtils.currency(totalStockValue),
+                  compact: compact,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _SummaryCard(
-              icon: Icons.account_balance_wallet_outlined,
-              iconColor: AppTheme.accentColor,
-              label: 'Nilai Stok',
-              value: FormatUtils.currency(totalStockValue),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -144,6 +155,7 @@ class _SummaryCard extends StatelessWidget {
   final String label;
   final String value;
   final Color? badgeColor;
+  final bool compact;
 
   const _SummaryCard({
     required this.icon,
@@ -151,10 +163,64 @@ class _SummaryCard extends StatelessWidget {
     required this.label,
     required this.value,
     this.badgeColor,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          boxShadow: AppTheme.shadowSM,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: iconColor, size: 20),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    value,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (badgeColor != null) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                color: AppTheme.textTertiary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -242,6 +308,20 @@ class _ProductStockTable extends StatelessWidget {
         iconColor: AppTheme.textTertiary,
         title: 'Belum ada produk',
         subtitle: 'Produk yang dilacak stoknya akan muncul di sini',
+      );
+    }
+
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    if (isMobile) {
+      return ListView.separated(
+        padding: const EdgeInsets.all(12),
+        itemCount: products.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final product = products[index];
+          return _buildMobileCard(context, product);
+        },
       );
     }
 
@@ -381,6 +461,124 @@ class _ProductStockTable extends StatelessWidget {
             );
           }).toList(),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMobileCard(BuildContext context, ProductStockModel product) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        boxShadow: AppTheme.shadowSM,
+      ),
+      child: Column(
+        children: [
+          // Row 1: name + stock quantity
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (product.categoryName != null)
+                      Text(
+                        product.categoryName!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    product.trackStock
+                        ? '${product.stockQuantity} pcs'
+                        : '-',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: !product.trackStock
+                          ? AppTheme.textTertiary
+                          : product.isOutOfStock
+                              ? AppTheme.errorColor
+                              : product.isLowStock
+                                  ? AppTheme.warningColor
+                                  : AppTheme.textPrimary,
+                    ),
+                  ),
+                  if (product.trackStock)
+                    Text(
+                      'Min: ${product.minStock}',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppTheme.textTertiary,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Row 2: track toggle + status + actions
+          Row(
+            children: [
+              SizedBox(
+                height: 28,
+                child: Switch(
+                  value: product.trackStock,
+                  onChanged: (val) async {
+                    final repo = ProductStockRepository();
+                    await repo.toggleTrackStock(product.id, val);
+                    ref.invalidate(productStockListProvider);
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _StatusBadge(product: product),
+              const Spacer(),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  icon: const Icon(Icons.add_circle_outline, size: 20),
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Stok Masuk / Keluar',
+                  onPressed: product.trackStock
+                      ? () => _showStockMovementDialog(context, ref, product)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  icon: const Icon(Icons.history, size: 20),
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Riwayat',
+                  onPressed: () => _showMovementHistory(context, ref, product),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
