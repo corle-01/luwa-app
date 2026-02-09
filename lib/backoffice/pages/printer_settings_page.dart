@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../shared/themes/app_theme.dart';
 import '../../core/services/printer_service.dart';
+import '../../core/services/kitchen_print_service.dart';
 import '../../core/services/escpos_generator.dart';
 import '../../core/services/web_usb_printer.dart';
 import '../../core/services/web_bluetooth_printer.dart';
@@ -22,6 +26,7 @@ class PrinterSettingsPage extends StatefulWidget {
 class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   final PrinterService _service = PrinterService();
   bool _isLoading = false;
+  KitchenPrintConfig _kitchenConfig = const KitchenPrintConfig();
 
   @override
   void initState() {
@@ -30,6 +35,28 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
     if (_service.printers.isEmpty) {
       _service.addPrinter(PrinterConfig.browserDefault());
     }
+    _loadKitchenConfig();
+  }
+
+  Future<void> _loadKitchenConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString('kitchen_print_config');
+      if (jsonStr != null) {
+        setState(() {
+          _kitchenConfig = KitchenPrintConfig.fromJson(
+              jsonDecode(jsonStr) as Map<String, dynamic>);
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveKitchenConfig(KitchenPrintConfig config) async {
+    setState(() => _kitchenConfig = config);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('kitchen_print_config', jsonEncode(config.toJson()));
+    } catch (_) {}
   }
 
   // ─── Actions ──────────────────────────────────────────────────
@@ -838,6 +865,10 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
                       _buildDefaultPrinterCard(defaultPrinter),
                       const SizedBox(height: 24),
 
+                      // Kitchen printer config
+                      _buildKitchenPrinterCard(),
+                      const SizedBox(height: 24),
+
                       // Info banner
                       _buildInfoBanner(),
                       const SizedBox(height: 24),
@@ -886,6 +917,158 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  // ─── Kitchen Printer Config ──────────────────────────────────
+
+  Widget _buildKitchenPrinterCard() {
+    final printers = _service.printers;
+    final selectedPrinter = _kitchenConfig.kitchenPrinterId != null
+        ? printers.where((p) => p.id == _kitchenConfig.kitchenPrinterId).firstOrNull
+        : null;
+    final displayName = selectedPrinter?.name ?? 'Printer Default';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _kitchenConfig.autoprint
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.4)
+              : AppTheme.borderColor,
+          width: _kitchenConfig.autoprint ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.restaurant_rounded,
+                  color: Color(0xFFF59E0B),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Printer Dapur (KDS)',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Auto-cetak tiket pesanan ke dapur',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _kitchenConfig.autoprint,
+                activeColor: const Color(0xFFF59E0B),
+                onChanged: (val) {
+                  _saveKitchenConfig(
+                    _kitchenConfig.copyWith(autoprint: val),
+                  );
+                },
+              ),
+            ],
+          ),
+          if (_kitchenConfig.autoprint) ...[
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Printer untuk tiket dapur:',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String?>(
+              value: _kitchenConfig.kitchenPrinterId,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                prefixIcon: const Icon(Icons.print_rounded, size: 18),
+              ),
+              items: [
+                DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text(
+                    'Printer Default ($displayName)',
+                    style: GoogleFonts.inter(fontSize: 13),
+                  ),
+                ),
+                ...printers.map((p) => DropdownMenuItem<String?>(
+                      value: p.id,
+                      child: Text(
+                        '${p.name} (${printerTypeLabel(p.type)}, ${p.paperWidth}mm)',
+                        style: GoogleFonts.inter(fontSize: 13),
+                      ),
+                    )),
+              ],
+              onChanged: (val) {
+                _saveKitchenConfig(
+                  KitchenPrintConfig(
+                    autoprint: _kitchenConfig.autoprint,
+                    kitchenPrinterId: val,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 14, color: AppTheme.textTertiary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Tiket dapur akan otomatis tercetak setiap ada pesanan baru dari POS.',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppTheme.textTertiary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 

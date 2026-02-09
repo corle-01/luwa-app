@@ -378,7 +378,34 @@ class ReportRepository {
     // 2. Get COGS from HPP data
     final hppSummary = await getHppReport(outletId, from, to);
 
-    // 3. Build revenue breakdown lists
+    // 3. Get purchase expenses from purchases table
+    double purchaseKasKasir = 0;
+    double purchaseUangLuar = 0;
+    int purchaseCount = 0;
+    try {
+      final purchasesResponse = await _supabase
+          .from('purchases')
+          .select('total_amount, payment_source')
+          .eq('outlet_id', outletId)
+          .gte('purchase_date', from.toIso8601String().substring(0, 10))
+          .lte('purchase_date', to.toIso8601String().substring(0, 10));
+
+      final purchaseRows = purchasesResponse as List;
+      purchaseCount = purchaseRows.length;
+      for (final row in purchaseRows) {
+        final amount = (row['total_amount'] as num?)?.toDouble() ?? 0;
+        final source = row['payment_source'] as String? ?? 'kas_kasir';
+        if (source == 'kas_kasir') {
+          purchaseKasKasir += amount;
+        } else {
+          purchaseUangLuar += amount;
+        }
+      }
+    } catch (_) {
+      // purchases table might not exist yet
+    }
+
+    // 4. Build revenue breakdown lists
     final revenueByPayment = paymentMap.entries
         .map((e) => RevenueBreakdownItem(label: e.key, amount: e.value))
         .toList()
@@ -399,6 +426,9 @@ class ReportRepository {
       totalServiceCharge: totalServiceCharge,
       totalCogs: hppSummary.totalCost,
       operatingExpenses: [], // Placeholder - user can add manually in UI
+      purchaseKasKasir: purchaseKasKasir,
+      purchaseUangLuar: purchaseUangLuar,
+      purchaseCount: purchaseCount,
     );
   }
 
@@ -609,8 +639,14 @@ class PnlReport {
   double get totalExpenses =>
       operatingExpenses.fold(0.0, (s, e) => s + e.amount);
 
+  // Purchase Expenses (from DB)
+  final double purchaseKasKasir;
+  final double purchaseUangLuar;
+  final int purchaseCount;
+  double get totalPurchases => purchaseKasKasir + purchaseUangLuar;
+
   // Net Profit
-  double get netProfit => grossProfit - totalExpenses;
+  double get netProfit => grossProfit - totalExpenses - totalPurchases;
   double get netMarginPercent =>
       totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
@@ -624,6 +660,9 @@ class PnlReport {
     required this.totalServiceCharge,
     required this.totalCogs,
     required this.operatingExpenses,
+    this.purchaseKasKasir = 0,
+    this.purchaseUangLuar = 0,
+    this.purchaseCount = 0,
   });
 
   factory PnlReport.empty() => PnlReport(

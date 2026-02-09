@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/models/order.dart';
+import '../../core/services/kitchen_print_service.dart';
 import '../models/kds_order.dart';
 import '../providers/kds_provider.dart';
 import '../repositories/kds_repository.dart';
@@ -723,6 +725,7 @@ class _KdsOrderCard extends ConsumerWidget {
             orderId: order.id,
             allReady: allReady,
             kitchenStatus: order.kitchenStatus,
+            order: order,
           ),
         ],
       ),
@@ -1137,11 +1140,13 @@ class _CardActions extends ConsumerStatefulWidget {
   final String orderId;
   final bool allReady;
   final String kitchenStatus;
+  final KdsOrder order;
 
   const _CardActions({
     required this.orderId,
     required this.allReady,
     required this.kitchenStatus,
+    required this.order,
   });
 
   @override
@@ -1159,6 +1164,47 @@ class _CardActionsState extends ConsumerState<_CardActions> {
       ref.invalidate(kdsOrdersProvider);
     } catch (e) {
       debugPrint('KDS action error: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _reprintTicket() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      final kitchenService = ref.read(kitchenPrintServiceProvider);
+      // Convert KdsOrderItems to OrderItems for the print service
+      final orderItems = widget.order.items.map((item) => OrderItem(
+        id: item.id,
+        orderId: item.orderId,
+        productId: '',
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: 0,
+        totalPrice: 0,
+        notes: item.notes,
+        modifiers: item.modifiers,
+      )).toList();
+
+      final success = await kitchenService.printKitchenTicket(
+        orderNumber: widget.order.orderNumber ?? widget.order.id.substring(0, 8),
+        orderType: widget.order.orderType,
+        dateTime: widget.order.createdAt,
+        items: orderItems,
+        tableName: widget.order.tableNumber?.toString(),
+        notes: widget.order.notes,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(success ? 'Tiket dapur dicetak' : 'Gagal mencetak tiket'),
+          backgroundColor: success ? _KdsColors.statusReady : _KdsColors.timerRed,
+          duration: const Duration(seconds: 2),
+        ));
+      }
+    } catch (e) {
+      debugPrint('KDS reprint error: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1191,6 +1237,16 @@ class _CardActionsState extends ConsumerState<_CardActions> {
                   onTap: () => _runAction(
                     () => repo.recallOrder(widget.orderId),
                   ),
+                ),
+
+                const SizedBox(width: 4),
+
+                // Reprint kitchen ticket
+                _ActionIconButton(
+                  icon: Icons.print_rounded,
+                  tooltip: 'Cetak Ulang',
+                  color: _KdsColors.textMuted,
+                  onTap: _reprintTicket,
                 ),
 
                 const Spacer(),

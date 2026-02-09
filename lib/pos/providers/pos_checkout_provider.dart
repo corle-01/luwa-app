@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/models/order.dart';
 import '../../core/providers/outlet_provider.dart';
 import '../../core/services/connectivity_service.dart';
+import '../../core/services/kitchen_print_service.dart';
 import '../../core/services/offline_queue_service.dart';
 import '../repositories/pos_order_repository.dart';
 
@@ -123,6 +124,20 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
       List<OrderItem> orderItems = [];
       try {
         orderItems = await repo.getOrderItems(order.id);
+      } catch (_) {}
+
+      // Kitchen auto-print — fire and forget
+      try {
+        final kitchenService = _ref.read(kitchenPrintServiceProvider);
+        kitchenService.autoPrintIfEnabled(
+          orderNumber: order.orderNumber,
+          orderType: cart.orderType,
+          dateTime: order.createdAt,
+          items: orderItems,
+          tableName: cart.tableNumber,
+          cashierName: order.cashierName,
+          notes: cart.notes,
+        );
       } catch (_) {}
 
       _ref.read(posCartProvider.notifier).clear();

@@ -156,7 +156,8 @@ class _PnlReportPageState extends ConsumerState<PnlReportPage> {
     final grossProfit = report.totalRevenue - report.totalCogs;
     final grossMargin =
         report.totalRevenue > 0 ? (grossProfit / report.totalRevenue) * 100 : 0.0;
-    final netProfit = grossProfit - _totalManualExpenses;
+    final totalExpenses = _totalManualExpenses + report.totalPurchases;
+    final netProfit = grossProfit - totalExpenses;
     final netMargin =
         report.totalRevenue > 0 ? (netProfit / report.totalRevenue) * 100 : 0.0;
 
@@ -175,14 +176,20 @@ class _PnlReportPageState extends ConsumerState<PnlReportPage> {
         // COGS section
         _buildCogsSection(report, grossProfit, grossMargin),
         const SizedBox(height: 24),
+        // Purchase expenses section (from DB)
+        if (report.totalPurchases > 0)
+          ...[
+            _buildPurchaseExpensesSection(report),
+            const SizedBox(height: 24),
+          ],
         // Operating expenses section
         _buildExpensesSection(),
         const SizedBox(height: 24),
         // Net profit section
-        _buildNetProfitSection(grossProfit, netProfit, netMargin),
+        _buildNetProfitSection(grossProfit, netProfit, netMargin, report.totalPurchases),
         const SizedBox(height: 24),
         // Visual breakdown chart
-        _buildBreakdownChart(report, grossProfit, netProfit),
+        _buildBreakdownChart(report, grossProfit, netProfit, totalExpenses),
       ],
     );
   }
@@ -457,6 +464,46 @@ class _PnlReportPageState extends ConsumerState<PnlReportPage> {
     );
   }
 
+  // ── Purchase Expenses Section ─────────────────────────────────
+
+  Widget _buildPurchaseExpensesSection(PnlReport report) {
+    return _sectionCard(
+      title: 'Pembelian / Belanja',
+      titleColor: const Color(0xFF7C3AED),
+      icon: Icons.shopping_bag_rounded,
+      children: [
+        _lineItem('Total Pembelian', report.totalPurchases,
+            isBold: true, color: const Color(0xFF7C3AED)),
+        const SizedBox(height: 8),
+        _lineItem('  Dari Kas Kasir', report.purchaseKasKasir,
+            color: AppTheme.textPrimary),
+        _lineItem('  Dari Uang Luar', report.purchaseUangLuar,
+            color: AppTheme.textPrimary),
+        const Divider(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '${report.purchaseCount} transaksi',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF7C3AED),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   // ── Operating Expenses Section ────────────────────────────────
 
   Widget _buildExpensesSection() {
@@ -697,7 +744,7 @@ class _PnlReportPageState extends ConsumerState<PnlReportPage> {
   // ── Net Profit Section ────────────────────────────────────────
 
   Widget _buildNetProfitSection(
-      double grossProfit, double netProfit, double netMargin) {
+      double grossProfit, double netProfit, double netMargin, double totalPurchases) {
     final isProfit = netProfit >= 0;
     final color = isProfit ? AppTheme.successColor : AppTheme.errorColor;
 
@@ -725,6 +772,11 @@ class _PnlReportPageState extends ConsumerState<PnlReportPage> {
                   ? AppTheme.successColor
                   : AppTheme.errorColor),
           const SizedBox(height: 8),
+          if (totalPurchases > 0) ...[
+            _summaryRow('Total Pembelian', -totalPurchases,
+                color: const Color(0xFF7C3AED)),
+            const SizedBox(height: 8),
+          ],
           _summaryRow('Total Biaya Operasional', -_totalManualExpenses,
               color: AppTheme.warningColor),
           const Divider(height: 24),
@@ -784,11 +836,11 @@ class _PnlReportPageState extends ConsumerState<PnlReportPage> {
   // ── Breakdown Chart ───────────────────────────────────────────
 
   Widget _buildBreakdownChart(
-      PnlReport report, double grossProfit, double netProfit) {
+      PnlReport report, double grossProfit, double netProfit, double totalExpenses) {
     if (report.totalRevenue == 0) return const SizedBox.shrink();
 
     final cogs = report.totalCogs;
-    final expenses = _totalManualExpenses;
+    final expenses = totalExpenses;
     final profit = netProfit > 0 ? netProfit : 0.0;
     final loss = netProfit < 0 ? netProfit.abs() : 0.0;
 

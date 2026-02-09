@@ -325,6 +325,230 @@ class EscPosReceiptPrinter {
   }
 }
 
+// ═════════════════════════════════════════════════════════════════════════
+// Kitchen ticket printer — larger text, no prices, focus on items & mods.
+// ═════════════════════════════════════════════════════════════════════════
+
+/// Generates a kitchen order ticket (KOT) in ESC/POS format.
+///
+/// Kitchen tickets differ from customer receipts:
+/// - No prices displayed
+/// - Larger font for item names
+/// - Prominent order number and type
+/// - Modifier/notes emphasis
+/// - Table number highly visible
+class EscPosKitchenTicket {
+  final EscPosGenerator _gen;
+
+  EscPosKitchenTicket({int paperWidth = 80})
+      : _gen = EscPosGenerator(paperWidth: paperWidth);
+
+  /// Generate a kitchen order ticket as raw ESC/POS bytes.
+  Uint8List generateTicket({
+    required String orderNumber,
+    required String orderType,
+    required DateTime dateTime,
+    required List<KitchenTicketItem> items,
+    String? tableName,
+    String? cashierName,
+    String? notes,
+  }) {
+    _gen.clear();
+    _gen.initialize();
+
+    // ── Header — big & bold ────────────────────────────────────
+    _gen.alignCenter();
+    _gen.doubleSize(true);
+    _gen.bold(true);
+    _gen.textLine('ORDER DAPUR');
+    _gen.doubleSize(false);
+    _gen.bold(false);
+    _gen.separator('=');
+
+    // ── Order number — very prominent ──────────────────────────
+    _gen.alignCenter();
+    _gen.doubleSize(true);
+    _gen.bold(true);
+    _gen.textLine('#$orderNumber');
+    _gen.doubleSize(false);
+    _gen.bold(false);
+
+    // ── Order type + table ─────────────────────────────────────
+    _gen.alignLeft();
+    _gen.bold(true);
+    _gen.row('Tipe:', _orderTypeLabel(orderType));
+    _gen.bold(false);
+    if (tableName != null && tableName.isNotEmpty) {
+      _gen.doubleHeight(true);
+      _gen.bold(true);
+      _gen.row('Meja:', tableName);
+      _gen.bold(false);
+      _gen.doubleHeight(false);
+    }
+    _gen.row('Jam:', _formatTime(dateTime));
+    if (cashierName != null && cashierName.isNotEmpty) {
+      _gen.row('Kasir:', cashierName);
+    }
+    _gen.separator('=');
+
+    // ── Items — large, clear ───────────────────────────────────
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
+
+      // Quantity + item name in double height
+      _gen.doubleHeight(true);
+      _gen.bold(true);
+      _gen.textLine('${item.qty}x ${item.name}');
+      _gen.bold(false);
+      _gen.doubleHeight(false);
+
+      // Modifiers
+      if (item.modifiers != null && item.modifiers!.isNotEmpty) {
+        for (final mod in item.modifiers!) {
+          _gen.textLine('  + $mod');
+        }
+      }
+
+      // Item notes
+      if (item.notes != null && item.notes!.isNotEmpty) {
+        _gen.bold(true);
+        _gen.textLine('  *** ${item.notes} ***');
+        _gen.bold(false);
+      }
+
+      if (i < items.length - 1) {
+        _gen.separator('-');
+      }
+    }
+    _gen.separator('=');
+
+    // ── Order notes ────────────────────────────────────────────
+    if (notes != null && notes.isNotEmpty) {
+      _gen.bold(true);
+      _gen.textLine('CATATAN:');
+      _gen.bold(false);
+      _gen.textLine(notes);
+      _gen.separator();
+    }
+
+    // ── Footer ─────────────────────────────────────────────────
+    _gen.alignCenter();
+    _gen.textLine('Total: ${items.fold(0, (s, i) => s + i.qty)} item');
+    _gen.lineFeed(3);
+    _gen.partialCut();
+
+    return _gen.getBytes();
+  }
+
+  /// Build HTML kitchen ticket for browser printing.
+  String generateHtmlTicket({
+    required String orderNumber,
+    required String orderType,
+    required DateTime dateTime,
+    required List<KitchenTicketItem> items,
+    int paperWidth = 80,
+    String? tableName,
+    String? cashierName,
+    String? notes,
+  }) {
+    final sep = '-' * (paperWidth == 80 ? 48 : 32);
+    final dblSep = '=' * (paperWidth == 80 ? 48 : 32);
+    final totalItems = items.fold(0, (s, i) => s + i.qty);
+
+    final itemsHtml = StringBuffer();
+    for (var i = 0; i < items.length; i++) {
+      final item = items[i];
+      itemsHtml.write('<div class="item-name">${item.qty}x ${_esc(item.name)}</div>');
+      if (item.modifiers != null) {
+        for (final mod in item.modifiers!) {
+          itemsHtml.write('<div class="mod">+ ${_esc(mod)}</div>');
+        }
+      }
+      if (item.notes != null && item.notes!.isNotEmpty) {
+        itemsHtml.write('<div class="item-note">*** ${_esc(item.notes!)} ***</div>');
+      }
+      if (i < items.length - 1) {
+        itemsHtml.write('<div class="sep">$sep</div>');
+      }
+    }
+
+    return '''
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Kitchen Ticket #$orderNumber</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; font-size: 14px; display: flex; justify-content: center; }
+  .ticket { width: ${paperWidth}mm; max-width: ${paperWidth}mm; padding: 8px 12px; }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .big { font-size: 22px; font-weight: bold; }
+  .order-num { font-size: 28px; font-weight: bold; text-align: center; margin: 4px 0; }
+  .sep { color: #666; font-size: 12px; overflow: hidden; white-space: nowrap; margin: 4px 0; }
+  .row { display: flex; justify-content: space-between; font-size: 14px; }
+  .row.bold { font-weight: bold; }
+  .table-row { font-size: 20px; font-weight: bold; display: flex; justify-content: space-between; }
+  .item-name { font-size: 18px; font-weight: bold; margin-top: 6px; }
+  .mod { font-size: 13px; padding-left: 12px; }
+  .item-note { font-size: 14px; font-weight: bold; padding-left: 12px; color: #333; }
+  .notes-section { margin-top: 4px; }
+  @media print { body { padding: 0; margin: 0; } .ticket { padding: 0 4px; } }
+</style>
+</head><body>
+<div class="ticket">
+  <div class="center big">ORDER DAPUR</div>
+  <div class="sep">$dblSep</div>
+  <div class="order-num">#$orderNumber</div>
+  <div class="row bold"><span>Tipe:</span><span>${_esc(_orderTypeLabel(orderType))}</span></div>
+  ${tableName != null && tableName.isNotEmpty ? '<div class="table-row"><span>Meja:</span><span>${_esc(tableName)}</span></div>' : ''}
+  <div class="row"><span>Jam:</span><span>${_formatTime(dateTime)}</span></div>
+  ${cashierName != null ? '<div class="row"><span>Kasir:</span><span>${_esc(cashierName)}</span></div>' : ''}
+  <div class="sep">$dblSep</div>
+  $itemsHtml
+  <div class="sep">$dblSep</div>
+  ${notes != null && notes.isNotEmpty ? '<div class="notes-section"><div class="bold">CATATAN:</div><div>${_esc(notes)}</div></div><div class="sep">$sep</div>' : ''}
+  <div class="center">Total: $totalItems item</div>
+</div>
+<script>window.onload = function() { window.print(); }</script>
+</body></html>
+''';
+  }
+
+  String _orderTypeLabel(String type) {
+    switch (type) {
+      case 'dine_in': return 'Dine In';
+      case 'takeaway': return 'Take Away';
+      case 'delivery': return 'Delivery';
+      default: return type;
+    }
+  }
+
+  String _formatTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:'
+        '${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _esc(String text) => text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+}
+
+/// Data class for a single kitchen ticket item.
+class KitchenTicketItem {
+  final String name;
+  final int qty;
+  final List<String>? modifiers;
+  final String? notes;
+
+  const KitchenTicketItem({
+    required this.name,
+    required this.qty,
+    this.modifiers,
+    this.notes,
+  });
+}
+
 /// Data class for a single receipt line item.
 class ReceiptItem {
   final String name;
