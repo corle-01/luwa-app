@@ -434,6 +434,15 @@ class _ProductStockTable extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 20),
+                        tooltip: 'Edit Min Stok & Harga Modal',
+                        onPressed: () => _showEditProductStockDialog(
+                          context,
+                          ref,
+                          product,
+                        ),
+                      ),
+                      IconButton(
                         icon: const Icon(Icons.add_circle_outline,
                             size: 20),
                         tooltip: 'Stok Masuk / Keluar',
@@ -557,6 +566,17 @@ class _ProductStockTable extends StatelessWidget {
                 width: 32,
                 height: 32,
                 child: IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Edit',
+                  onPressed: () => _showEditProductStockDialog(context, ref, product),
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
                   icon: const Icon(Icons.add_circle_outline, size: 20),
                   padding: EdgeInsets.zero,
                   tooltip: 'Stok Masuk / Keluar',
@@ -579,6 +599,22 @@ class _ProductStockTable extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditProductStockDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ProductStockModel product,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => _EditProductStockDialog(
+        product: product,
+        onSaved: () {
+          ref.invalidate(productStockListProvider);
+        },
       ),
     );
   }
@@ -1375,6 +1411,339 @@ class _MovementHistoryDialog extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Edit Product Stock Dialog (min_stock + cost_price)
+// ---------------------------------------------------------------------------
+
+class _EditProductStockDialog extends StatefulWidget {
+  final ProductStockModel product;
+  final VoidCallback onSaved;
+
+  const _EditProductStockDialog({
+    required this.product,
+    required this.onSaved,
+  });
+
+  @override
+  State<_EditProductStockDialog> createState() =>
+      _EditProductStockDialogState();
+}
+
+class _EditProductStockDialogState extends State<_EditProductStockDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _minStockController;
+  late final TextEditingController _costPriceController;
+  bool _saving = false;
+  bool _hasRecipe = false;
+  bool _loadingRecipe = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _minStockController =
+        TextEditingController(text: widget.product.minStock.toString());
+    _costPriceController = TextEditingController(
+        text: widget.product.costPrice > 0
+            ? widget.product.costPrice.toStringAsFixed(0)
+            : '');
+    _checkRecipe();
+  }
+
+  Future<void> _checkRecipe() async {
+    final repo = ProductStockRepository();
+    final has = await repo.hasRecipe(widget.product.id);
+    if (mounted) {
+      setState(() {
+        _hasRecipe = has;
+        _loadingRecipe = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _minStockController.dispose();
+    _costPriceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final margin = widget.product.sellingPrice - widget.product.costPrice;
+    final marginPct = widget.product.sellingPrice > 0
+        ? (margin / widget.product.sellingPrice * 100)
+        : 0.0;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          const Icon(Icons.edit_outlined, size: 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Edit Produk',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  widget.product.name,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppTheme.textTertiary,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 420,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Current info
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.backgroundColor,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Harga Jual',
+                            style: GoogleFonts.inter(
+                                fontSize: 12, color: AppTheme.textTertiary)),
+                        Text(
+                          FormatUtils.currency(widget.product.sellingPrice),
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('HPP (Harga Modal)',
+                            style: GoogleFonts.inter(
+                                fontSize: 12, color: AppTheme.textTertiary)),
+                        Text(
+                          FormatUtils.currency(widget.product.costPrice),
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Margin',
+                            style: GoogleFonts.inter(
+                                fontSize: 12, color: AppTheme.textTertiary)),
+                        Text(
+                          '${FormatUtils.currency(margin)} (${marginPct.toStringAsFixed(1)}%)',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: marginPct >= 30
+                                ? AppTheme.successColor
+                                : marginPct >= 15
+                                    ? AppTheme.warningColor
+                                    : AppTheme.errorColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Stok Saat Ini',
+                            style: GoogleFonts.inter(
+                                fontSize: 12, color: AppTheme.textTertiary)),
+                        Text(
+                          '${widget.product.stockQuantity} pcs',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // HPP source indicator
+              if (!_loadingRecipe)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _hasRecipe
+                        ? AppTheme.successColor.withValues(alpha: 0.1)
+                        : AppTheme.warningColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _hasRecipe ? Icons.auto_fix_high : Icons.edit_note,
+                        size: 16,
+                        color: _hasRecipe
+                            ? AppTheme.successColor
+                            : AppTheme.warningColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _hasRecipe
+                              ? 'HPP otomatis dari resep (tidak bisa edit manual)'
+                              : 'HPP manual — produk ini belum punya resep',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: _hasRecipe
+                                ? AppTheme.successColor
+                                : AppTheme.warningColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 16),
+
+              // Min stock input
+              TextFormField(
+                controller: _minStockController,
+                decoration: const InputDecoration(
+                  labelText: 'Minimum Stok (pcs)',
+                  prefixIcon: Icon(Icons.warning_amber_rounded),
+                  helperText: 'Alert jika stok di bawah jumlah ini',
+                ),
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Wajib diisi';
+                  final parsed = int.tryParse(v.trim());
+                  if (parsed == null || parsed < 0) {
+                    return 'Masukkan angka valid';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Cost price input (disabled if has recipe)
+              TextFormField(
+                controller: _costPriceController,
+                enabled: !_hasRecipe,
+                decoration: InputDecoration(
+                  labelText: 'Harga Modal (Rp)',
+                  prefixIcon: const Icon(Icons.payments_outlined),
+                  helperText: _hasRecipe
+                      ? 'Dihitung otomatis dari resep bahan baku'
+                      : 'Harga beli per pcs dari supplier',
+                ),
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (_hasRecipe) return null;
+                  if (v != null && v.trim().isNotEmpty) {
+                    final parsed = double.tryParse(v.trim());
+                    if (parsed == null || parsed < 0) {
+                      return 'Masukkan angka valid';
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Simpan'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _saving = true);
+
+    try {
+      final repo = ProductStockRepository();
+      final minStock = int.parse(_minStockController.text.trim());
+      await repo.updateMinStock(widget.product.id, minStock);
+
+      // Only update cost_price if product has no recipe (manual HPP)
+      if (!_hasRecipe) {
+        final costText = _costPriceController.text.trim();
+        final costPrice =
+            costText.isEmpty ? 0.0 : double.parse(costText);
+        await repo.updateCostPrice(widget.product.id, costPrice);
+      }
+
+      widget.onSaved();
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${widget.product.name} berhasil diupdate'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _saving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
   }
 }
 

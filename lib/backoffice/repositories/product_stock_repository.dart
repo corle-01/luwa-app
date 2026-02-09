@@ -203,4 +203,25 @@ class ProductStockRepository {
         })
         .eq('id', productId);
   }
+
+  /// Update cost_price for a product (manual, for non-recipe products).
+  Future<void> updateCostPrice(String productId, double costPrice) async {
+    await _supabase
+        .from('products')
+        .update({
+          'cost_price': costPrice,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', productId);
+  }
+
+  /// Check if a product has recipes (HPP auto-calculated).
+  Future<bool> hasRecipe(String productId) async {
+    final res = await _supabase
+        .from('recipes')
+        .select('id')
+        .eq('product_id', productId)
+        .limit(1);
+    return (res as List).isNotEmpty;
+  }
 }
