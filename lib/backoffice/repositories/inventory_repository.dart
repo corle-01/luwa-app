@@ -4,6 +4,7 @@ class IngredientModel {
   final String id;
   final String name;
   final String unit;
+  final String category;
   final double currentStock;
   final double minStock;
   final double maxStock;
@@ -17,6 +18,7 @@ class IngredientModel {
     required this.id,
     required this.name,
     required this.unit,
+    this.category = 'makanan',
     this.currentStock = 0,
     this.minStock = 0,
     this.maxStock = 0,
@@ -32,6 +34,7 @@ class IngredientModel {
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
       unit: json['unit'] as String? ?? 'pcs',
+      category: json['category'] as String? ?? 'makanan',
       currentStock: _toDouble(json['current_stock']),
       minStock: _toDouble(json['min_stock']),
       maxStock: _toDouble(json['max_stock']),
@@ -207,5 +210,37 @@ class InventoryRepository {
     if (costPerUnit != null) updates['cost_per_unit'] = costPerUnit;
 
     await _supabase.from('ingredients').update(updates).eq('id', id);
+  }
+
+  Future<void> addIngredient({
+    required String outletId,
+    required String name,
+    required String unit,
+    String category = 'makanan',
+    double costPerUnit = 0,
+    double minStock = 0,
+    String? supplierId,
+  }) async {
+    await _supabase.from('ingredients').insert({
+      'outlet_id': outletId,
+      'name': name,
+      'unit': unit,
+      'category': category,
+      'cost_per_unit': costPerUnit,
+      'min_stock': minStock,
+      'current_stock': 0,
+      'supplier_id': supplierId,
+      'is_active': true,
+    });
+  }
+
+  Future<void> deleteIngredient(String id) async {
+    await _supabase
+        .from('ingredients')
+        .update({
+          'is_active': false,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', id);
   }
 }

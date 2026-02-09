@@ -12,17 +12,35 @@ import 'product_stock_page.dart';
 class InventoryPage extends ConsumerWidget {
   const InventoryPage({super.key});
 
+  void _showAddIngredientDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (_) => _AddIngredientDialog(
+        outletId: ref.read(currentOutletIdProvider),
+        onSaved: () {
+          ref.invalidate(ingredientsProvider);
+          ref.invalidate(stockMovementsProvider);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ingredientsAsync = ref.watch(ingredientsProvider);
     final movementsAsync = ref.watch(stockMovementsProvider);
 
     return DefaultTabController(
-      length: 4,
+      length: 7,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Inventori & Stok'),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              tooltip: 'Tambah Bahan',
+              onPressed: () => _showAddIngredientDialog(context, ref),
+            ),
             IconButton(
               icon: const Icon(Icons.refresh),
               tooltip: 'Refresh',
@@ -46,7 +64,10 @@ class InventoryPage extends ConsumerWidget {
               fontWeight: FontWeight.w500,
             ),
             tabs: const [
-              Tab(text: 'Semua Bahan'),
+              Tab(text: 'Semua'),
+              Tab(text: 'Makanan'),
+              Tab(text: 'Minuman'),
+              Tab(text: 'Snack'),
               Tab(text: 'Stok Rendah'),
               Tab(text: 'Riwayat'),
               Tab(text: 'Produk Jadi'),
@@ -55,6 +76,9 @@ class InventoryPage extends ConsumerWidget {
         ),
         body: ingredientsAsync.when(
           data: (ingredients) {
+            final makanan = ingredients.where((i) => i.category == 'makanan').toList();
+            final minuman = ingredients.where((i) => i.category == 'minuman').toList();
+            final snack = ingredients.where((i) => i.category == 'snack').toList();
             final lowStockItems = ingredients
                 .where((i) => i.isLowStock || i.isOutOfStock)
                 .toList();
@@ -77,11 +101,20 @@ class InventoryPage extends ConsumerWidget {
                   child: TabBarView(
                     children: [
                       // Tab 1: Semua Bahan
-                      _IngredientsTable(
-                        ingredients: ingredients,
-                        ref: ref,
-                      ),
-                      // Tab 2: Stok Rendah
+                      _IngredientsTable(ingredients: ingredients, ref: ref),
+                      // Tab 2: Makanan
+                      makanan.isEmpty
+                          ? _EmptyState(icon: Icons.restaurant, iconColor: const Color(0xFFE67E22), title: 'Belum ada bahan makanan', subtitle: 'Tambah bahan dengan kategori Makanan')
+                          : _IngredientsTable(ingredients: makanan, ref: ref),
+                      // Tab 3: Minuman
+                      minuman.isEmpty
+                          ? _EmptyState(icon: Icons.local_cafe, iconColor: const Color(0xFF3498DB), title: 'Belum ada bahan minuman', subtitle: 'Tambah bahan dengan kategori Minuman')
+                          : _IngredientsTable(ingredients: minuman, ref: ref),
+                      // Tab 4: Snack
+                      snack.isEmpty
+                          ? _EmptyState(icon: Icons.cookie, iconColor: const Color(0xFF9B59B6), title: 'Belum ada bahan snack', subtitle: 'Tambah bahan dengan kategori Snack')
+                          : _IngredientsTable(ingredients: snack, ref: ref),
+                      // Tab 5: Stok Rendah
                       lowStockItems.isEmpty
                           ? _EmptyState(
                               icon: Icons.check_circle_outline,
@@ -94,7 +127,7 @@ class InventoryPage extends ConsumerWidget {
                               ingredients: lowStockItems,
                               ref: ref,
                             ),
-                      // Tab 3: Riwayat
+                      // Tab 6: Riwayat
                       movementsAsync.when(
                         data: (movements) {
                           if (movements.isEmpty) {
@@ -117,7 +150,7 @@ class InventoryPage extends ConsumerWidget {
                               ref.invalidate(stockMovementsProvider),
                         ),
                       ),
-                      // Tab 4: Produk Jadi (embedded)
+                      // Tab 7: Produk Jadi (embedded)
                       const ProductStockContent(),
                     ],
                   ),
@@ -423,9 +456,19 @@ class _IngredientsTable extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        ingredient.name,
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              ingredient.name,
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          _CategoryBadge(category: ingredient.category),
+                        ],
                       ),
                       if (ingredient.supplierName != null)
                         Text(
@@ -625,6 +668,50 @@ class _StatusBadge extends StatelessWidget {
         label,
         style: GoogleFonts.inter(
           fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryBadge extends StatelessWidget {
+  final String category;
+  const _CategoryBadge({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final String label;
+    final Color color;
+    switch (category) {
+      case 'makanan':
+        label = 'Makanan';
+        color = const Color(0xFFE67E22);
+        break;
+      case 'minuman':
+        label = 'Minuman';
+        color = const Color(0xFF3498DB);
+        break;
+      case 'snack':
+        label = 'Snack';
+        color = const Color(0xFF9B59B6);
+        break;
+      default:
+        label = category;
+        color = AppTheme.textSecondary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 9,
           fontWeight: FontWeight.w600,
           color: color,
         ),
@@ -1219,6 +1306,261 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
           ),
         );
       }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Add Ingredient Dialog
+// ---------------------------------------------------------------------------
+
+class _AddIngredientDialog extends StatefulWidget {
+  final String outletId;
+  final VoidCallback onSaved;
+
+  const _AddIngredientDialog({
+    required this.outletId,
+    required this.onSaved,
+  });
+
+  @override
+  State<_AddIngredientDialog> createState() => _AddIngredientDialogState();
+}
+
+class _AddIngredientDialogState extends State<_AddIngredientDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _costController = TextEditingController();
+  final _minStockController = TextEditingController();
+  String _unit = 'kg';
+  String _category = 'makanan';
+  bool _saving = false;
+
+  static const _units = [
+    'kg', 'g', 'liter', 'ml', 'pcs', 'pack', 'box', 'btl', 'sachet', 'cup',
+  ];
+
+  static const _categories = [
+    ('makanan', 'Makanan'),
+    ('minuman', 'Minuman'),
+    ('snack', 'Snack'),
+  ];
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _costController.dispose();
+    _minStockController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          const Icon(Icons.add_circle_outline, size: 22),
+          const SizedBox(width: 8),
+          Text(
+            'Tambah Bahan Baku',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 420,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nama Bahan *',
+                  prefixIcon: Icon(Icons.inventory_2_outlined),
+                  hintText: 'Contoh: Kopi Arabica, Susu Segar',
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Nama wajib diisi';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              // Category selector
+              Row(
+                children: _categories.map((c) {
+                  final isSelected = _category == c.$1;
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: c.$1 != _categories.last.$1 ? 8 : 0),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        onTap: () => setState(() => _category = c.$1),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? _categoryColor(c.$1).withValues(alpha: 0.1)
+                                : AppTheme.backgroundColor,
+                            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                            border: Border.all(
+                              color: isSelected ? _categoryColor(c.$1) : AppTheme.borderColor,
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                _categoryIcon(c.$1),
+                                size: 20,
+                                color: isSelected ? _categoryColor(c.$1) : AppTheme.textTertiary,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                c.$2,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                  color: isSelected ? _categoryColor(c.$1) : AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: DropdownButtonFormField<String>(
+                      value: _unit,
+                      decoration: const InputDecoration(
+                        labelText: 'Satuan *',
+                        prefixIcon: Icon(Icons.straighten),
+                      ),
+                      items: _units.map((u) => DropdownMenuItem(
+                        value: u,
+                        child: Text(u),
+                      )).toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _unit = v);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 4,
+                    child: TextFormField(
+                      controller: _costController,
+                      decoration: const InputDecoration(
+                        labelText: 'Harga/Unit',
+                        prefixText: 'Rp ',
+                        prefixIcon: Icon(Icons.attach_money),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _minStockController,
+                decoration: const InputDecoration(
+                  labelText: 'Minimum Stok',
+                  prefixIcon: Icon(Icons.warning_amber_rounded),
+                  hintText: 'Alert jika stok di bawah ini',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('Simpan'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+
+    try {
+      final repo = InventoryRepository();
+      final cost = double.tryParse(_costController.text.trim().replaceAll('.', '')) ?? 0;
+      final minStock = double.tryParse(_minStockController.text.trim()) ?? 0;
+
+      await repo.addIngredient(
+        outletId: widget.outletId,
+        name: _nameController.text.trim(),
+        unit: _unit,
+        category: _category,
+        costPerUnit: cost,
+        minStock: minStock,
+      );
+
+      widget.onSaved();
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Bahan "${_nameController.text.trim()}" berhasil ditambahkan'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _saving = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menambahkan: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
+  static Color _categoryColor(String cat) {
+    switch (cat) {
+      case 'makanan': return const Color(0xFFE67E22);
+      case 'minuman': return const Color(0xFF3498DB);
+      case 'snack': return const Color(0xFF9B59B6);
+      default: return AppTheme.textSecondary;
+    }
+  }
+
+  static IconData _categoryIcon(String cat) {
+    switch (cat) {
+      case 'makanan': return Icons.restaurant;
+      case 'minuman': return Icons.local_cafe;
+      case 'snack': return Icons.cookie;
+      default: return Icons.inventory_2;
     }
   }
 }
