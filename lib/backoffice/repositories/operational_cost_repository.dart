@@ -59,7 +59,7 @@ class OperationalCostRepository {
     final costs = await getCosts(outletId);
     return costs
         .where((c) => c.category != 'bonus')
-        .fold(0.0, (sum, c) => sum + c.amount);
+        .fold<double>(0.0, (sum, c) => sum + c.amount);
   }
 
   /// Get costs grouped by category — excludes bonus row
