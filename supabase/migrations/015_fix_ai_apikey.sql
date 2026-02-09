@@ -35,8 +35,9 @@ BEGIN
     NULL;
   END;
 
-  -- API key hardcoded (ALTER DATABASE SET blocked by Supabase)
-  v_api_key := 'sk-13f5fc4e39f948839fd138cbe32c7182';
+  -- API key from vault/config (DO NOT hardcode)
+  -- Note: This RPC is deprecated; AI calls now go directly from Flutter client
+  v_api_key := current_setting('app.deepseek_api_key', true);
 
   -- Build system prompt with business context
   v_system_prompt := 'Kamu adalah Utter, AI co-pilot untuk bisnis F&B (kafe/restoran). ' ||

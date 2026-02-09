@@ -6,12 +6,12 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
-// --------------- Config ---------------
-const TELEGRAM_BOT_TOKEN = "8558011276:AAGlIba2U6RBeQyz89zYBdteMF-7UqkgLG4";
+// --------------- Config (from environment variables) ---------------
+const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
-const DEEPSEEK_API_KEY = "sk-13f5fc4e39f948839fd138cbe32c7182";
+const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY") || "";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
-const OUTLET_ID = "a0000000-0000-0000-0000-000000000001";
+const OUTLET_ID = Deno.env.get("OUTLET_ID") || "a0000000-0000-0000-0000-000000000001";
 const MAX_HISTORY = 10;
 
 // --------------- Conversation Memory (in-memory per chat_id) ---------------
@@ -553,14 +553,11 @@ serve(async (req: Request) => {
     const firstName = update.message.from.first_name || "User";
     const username = update.message.from.username || firstName;
 
-    // Initialize Supabase client
-    const supabaseUrl =
-      Deno.env.get("SUPABASE_URL") ||
-      "https://eavsygnrluburvrobvoj.supabase.co";
+    // Initialize Supabase client (from environment variables)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseKey =
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
-      Deno.env.get("SUPABASE_ANON_KEY") ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhdnN5Z25ybHVidXJ2cm9idm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNzM3MzAsImV4cCI6MjA4NTk0OTczMH0.L9K1RkRPZkDudYLRl-FhxMFuDibU_2Rj622Svx87Hc8";
+      Deno.env.get("SUPABASE_ANON_KEY") || "";
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 

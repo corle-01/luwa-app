@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../config/app_config.dart';
 import 'ai_tools.dart';
 import 'ai_context_builder.dart';
 
@@ -31,7 +32,7 @@ class GeminiFunctionCall {
 ///
 /// Class name kept as GeminiService for drop-in compatibility.
 class GeminiService {
-  static const _apiKey = 'sk-13f5fc4e39f948839fd138cbe32c7182';
+  static String get _apiKey => AppConfig.deepseekApiKey;
   static const _model = 'deepseek-chat';
   static const _baseUrl = 'https://api.deepseek.com';
 

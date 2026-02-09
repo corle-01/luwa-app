@@ -28,21 +28,42 @@ jobs:
 
       # Build POS app
       - name: Build POS
-        run: flutter build web --release --target lib/main_pos.dart --base-href "/utterapp/pos/"
+        run: |
+          flutter build web --release \
+            --target lib/main_pos.dart \
+            --base-href "/utterapp/pos/" \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
+            --dart-define=ENVIRONMENT=production
 
       - name: Move POS build
         run: mv build/web build/pos
 
       # Build Office app
       - name: Build Office
-        run: flutter build web --release --target lib/main_office.dart --base-href "/utterapp/office/"
+        run: |
+          flutter build web --release \
+            --target lib/main_office.dart \
+            --base-href "/utterapp/office/" \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
+            --dart-define=ENVIRONMENT=production
 
       - name: Move Office build
         run: mv build/web build/office
 
       # Build Kitchen app
       - name: Build Kitchen
-        run: flutter build web --release --target lib/main_kitchen.dart --base-href "/utterapp/kitchen/"
+        run: |
+          flutter build web --release \
+            --target lib/main_kitchen.dart \
+            --base-href "/utterapp/kitchen/" \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
+            --dart-define=ENVIRONMENT=production
 
       - name: Move Kitchen build
         run: mv build/web build/kitchen

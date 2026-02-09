@@ -2,6 +2,9 @@ const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
+// Load from environment variables or .env file
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
 const migrations = [
   '001_core_tables.sql',
   '002_ai_tables.sql',
@@ -10,28 +13,25 @@ const migrations = [
 ];
 
 async function run() {
+  const host = process.env.DB_HOST;
+  const password = process.env.DB_PASSWORD;
+
+  if (!host || !password) {
+    console.error('Missing DB_HOST or DB_PASSWORD environment variables.');
+    console.error('Set them in .env file or export them before running.');
+    return;
+  }
+
   // Try multiple connection methods
   const configs = [
     {
-      name: 'IPv6 direct',
-      config: {
-        host: '2406:da12:b78:de0d:32bc:33b9:839e:b91f',
-        port: 5432,
-        database: 'postgres',
-        user: 'postgres',
-        password: 'diandra221022!',
-        ssl: { rejectUnauthorized: false },
-        connectionTimeoutMillis: 15000
-      }
-    },
-    {
       name: 'Hostname port 5432',
       config: {
-        host: 'db.eavsygnrluburvrobvoj.supabase.co',
-        port: 5432,
-        database: 'postgres',
-        user: 'postgres',
-        password: 'diandra221022!',
+        host,
+        port: parseInt(process.env.DB_PORT || '5432'),
+        database: process.env.DB_NAME || 'postgres',
+        user: process.env.DB_USER || 'postgres',
+        password,
         ssl: { rejectUnauthorized: false },
         connectionTimeoutMillis: 15000
       }
@@ -39,11 +39,11 @@ async function run() {
     {
       name: 'Hostname port 6543 (pooler)',
       config: {
-        host: 'db.eavsygnrluburvrobvoj.supabase.co',
+        host,
         port: 6543,
-        database: 'postgres',
-        user: 'postgres',
-        password: 'diandra221022!',
+        database: process.env.DB_NAME || 'postgres',
+        user: process.env.DB_USER || 'postgres',
+        password,
         ssl: { rejectUnauthorized: false },
         connectionTimeoutMillis: 15000
       }

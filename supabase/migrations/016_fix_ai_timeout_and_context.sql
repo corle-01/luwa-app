@@ -24,7 +24,9 @@ BEGIN
   -- Try to set HTTP timeout (may or may not work on Supabase)
   PERFORM set_config('http.timeout_milliseconds', '120000', true);
 
-  v_api_key := 'sk-13f5fc4e39f948839fd138cbe32c7182';
+  -- API key from vault/config (DO NOT hardcode)
+  -- Note: This RPC is deprecated; AI calls now go directly from Flutter client
+  v_api_key := current_setting('app.deepseek_api_key', true);
 
   v_system_prompt := 'Kamu adalah Utter, AI co-pilot untuk bisnis F&B (kafe/restoran). ' ||
     'Kamu membantu pemilik bisnis dengan analisa penjualan, manajemen stok, dan saran bisnis. ' ||

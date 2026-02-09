@@ -116,7 +116,7 @@ SUPABASE_ANON_KEY=your-anon-key-here
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 
 # DeepSeek AI Configuration
-DEEPSEEK_API_KEY=sk-13f5fc4e39f948839fd138cbe32c7182
+DEEPSEEK_API_KEY=your-deepseek-api-key-here
 
 # App Configuration
 APP_NAME=Utter App

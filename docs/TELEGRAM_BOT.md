@@ -72,43 +72,44 @@ User (Telegram) <-- Telegram Bot API <-- sendMessage response
 ### Deploy via Supabase CLI
 
 ```bash
-# Set access token
-export SUPABASE_ACCESS_TOKEN="sbp_4dcbcc0d02cecece31aed06d2183f89b0cd9bbc3"
+# Set access token (from .env)
+export SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN"
+
+# Set edge function secrets first
+supabase secrets set \
+  TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN" \
+  DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" \
+  SUPABASE_URL="$SUPABASE_URL" \
+  SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+  --project-ref "$SUPABASE_PROJECT_REF"
 
 # Deploy (from project root)
-supabase functions deploy telegram-bot --project-ref eavsygnrluburvrobvoj --no-verify-jwt
+supabase functions deploy telegram-bot --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt
 ```
 
 ### Re-set Webhook (if needed)
 
 ```bash
-curl -X POST "https://api.telegram.org/bot8558011276:AAGlIba2U6RBeQyz89zYBdteMF-7UqkgLG4/setWebhook?url=https://eavsygnrluburvrobvoj.supabase.co/functions/v1/telegram-bot"
+curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook?url=https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/telegram-bot"
 ```
 
 ### Check Webhook Status
 
 ```bash
-curl "https://api.telegram.org/bot8558011276:AAGlIba2U6RBeQyz89zYBdteMF-7UqkgLG4/getWebhookInfo"
+curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getWebhookInfo"
 ```
 
 ### View Logs
 
-Check the Supabase Dashboard:
-https://supabase.com/dashboard/project/eavsygnrluburvrobvoj/functions
+Check the Supabase Dashboard → Functions → telegram-bot
 
 ## Configuration
 
-All configuration is hardcoded in the edge function for simplicity:
+All secrets are loaded from environment variables (set via `supabase secrets set`):
 
 - `TELEGRAM_BOT_TOKEN` - Telegram bot token
 - `DEEPSEEK_API_KEY` - DeepSeek API key
-- `OUTLET_ID` - Hardcoded outlet ID
+- `SUPABASE_URL` - Supabase project URL
+- `SUPABASE_ANON_KEY` - Supabase anon key
+- `OUTLET_ID` - Outlet ID (optional, defaults to first outlet)
 - `MAX_HISTORY` - Max conversation pairs kept in memory (default: 10)
-
-To use environment variables instead, set them via:
-
-```bash
-supabase secrets set TELEGRAM_BOT_TOKEN="..." DEEPSEEK_API_KEY="..." --project-ref eavsygnrluburvrobvoj
-```
-
-Then update `index.ts` to use `Deno.env.get(...)` instead of hardcoded values.
