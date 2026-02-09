@@ -10,8 +10,10 @@ import 'package:web/web.dart' as web;
 // JS Interop types for Web Speech API
 // ─────────────────────────────────────────────────────────
 
-/// SpeechRecognition API (standard + webkit prefix)
+/// SpeechRecognition API (standard)
+@JS('SpeechRecognition')
 extension type _SpeechRecognition._(JSObject _) implements JSObject {
+  external factory _SpeechRecognition();
   external set continuous(JSBoolean value);
   external set interimResults(JSBoolean value);
   external set lang(JSString value);
@@ -22,6 +24,12 @@ extension type _SpeechRecognition._(JSObject _) implements JSObject {
   external void start();
   external void stop();
   external void abort();
+}
+
+/// SpeechRecognition API (webkit prefix for Chrome)
+@JS('webkitSpeechRecognition')
+extension type _WebkitSpeechRecognition._(JSObject _) implements JSObject {
+  external factory _WebkitSpeechRecognition();
 }
 
 /// SpeechRecognitionEvent
@@ -52,7 +60,9 @@ extension type _SpeechRecognitionErrorEvent._(JSObject _) implements JSObject {
 }
 
 /// SpeechSynthesisUtterance
+@JS('SpeechSynthesisUtterance')
 extension type _SpeechSynthesisUtterance._(JSObject _) implements JSObject {
+  external factory _SpeechSynthesisUtterance(JSString text);
   external set lang(JSString value);
   external set rate(JSNumber value);
   external set pitch(JSNumber value);
@@ -65,7 +75,7 @@ extension type _SpeechSynthesis._(JSObject _) implements JSObject {
   external void cancel();
 }
 
-// JS global access helpers
+// JS global access helpers (for existence checks only)
 @JS('SpeechRecognition')
 external JSFunction? get _speechRecognitionCtor;
 
@@ -74,9 +84,6 @@ external JSFunction? get _webkitSpeechRecognitionCtor;
 
 @JS('speechSynthesis')
 external _SpeechSynthesis? get _speechSynthesis;
-
-@JS('SpeechSynthesisUtterance')
-external JSFunction get _speechSynthesisUtteranceCtor;
 
 // ─────────────────────────────────────────────────────────
 // Voice Command Service
@@ -126,20 +133,28 @@ class VoiceCommandService {
     if (_recognition != null) return;
 
     try {
-      JSFunction? ctor;
+      _SpeechRecognition? rec;
+
+      // Try standard SpeechRecognition first
       try {
-        ctor = _speechRecognitionCtor;
+        if (_speechRecognitionCtor != null) {
+          rec = _SpeechRecognition();
+        }
       } catch (_) {}
-      if (ctor == null) {
+
+      // Fall back to webkit prefix (Chrome)
+      if (rec == null) {
         try {
-          ctor = _webkitSpeechRecognitionCtor;
+          if (_webkitSpeechRecognitionCtor != null) {
+            final webkit = _WebkitSpeechRecognition();
+            // Both have the same JS API, wrap as _SpeechRecognition
+            rec = _SpeechRecognition._(webkit);
+          }
         } catch (_) {}
       }
 
-      if (ctor == null) return;
-
-      _recognition =
-          ctor.callAsConstructor<_SpeechRecognition>();
+      if (rec == null) return;
+      _recognition = rec;
 
       // Configure
       _recognition!.continuous = false.toJS;
@@ -247,9 +262,8 @@ class VoiceCommandService {
       // Cancel any ongoing speech
       synthesis.cancel();
 
-      // Create utterance
-      final utterance = _speechSynthesisUtteranceCtor
-          .callAsConstructor<_SpeechSynthesisUtterance>(text.toJS);
+      // Create utterance using factory constructor
+      final utterance = _SpeechSynthesisUtterance(text.toJS);
       utterance.lang = 'id-ID'.toJS;
       utterance.rate = 1.0.toJS;
       utterance.pitch = 1.0.toJS;
