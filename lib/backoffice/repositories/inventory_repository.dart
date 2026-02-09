@@ -91,7 +91,7 @@ class StockMovement {
   factory StockMovement.fromJson(Map<String, dynamic> json) {
     return StockMovement(
       id: json['id'] as String,
-      type: json['type'] as String? ?? 'adjustment',
+      type: json['movement_type'] as String? ?? json['type'] as String? ?? 'adjustment',
       quantity: IngredientModel._toDouble(json['quantity']),
       notes: json['notes'] as String?,
       ingredientName: json['ingredients'] != null
@@ -167,7 +167,7 @@ class InventoryRepository {
     await _supabase.from('stock_movements').insert({
       'outlet_id': outletId,
       'ingredient_id': ingredientId,
-      'type': type,
+      'movement_type': type,
       'quantity': quantity,
       'notes': notes,
     });
