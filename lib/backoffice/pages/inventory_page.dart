@@ -9,6 +9,8 @@ import '../providers/product_stock_provider.dart';
 import '../repositories/inventory_repository.dart';
 import 'product_stock_page.dart';
 
+final _inventorySearchProvider = StateProvider<String>((ref) => '');
+
 class InventoryPage extends ConsumerWidget {
   const InventoryPage({super.key});
 
@@ -29,6 +31,7 @@ class InventoryPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ingredientsAsync = ref.watch(ingredientsProvider);
     final movementsAsync = ref.watch(stockMovementsProvider);
+    final searchQuery = ref.watch(_inventorySearchProvider).toLowerCase();
 
     return DefaultTabController(
       length: 7,
@@ -75,24 +78,64 @@ class InventoryPage extends ConsumerWidget {
           ),
         ),
         body: ingredientsAsync.when(
-          data: (ingredients) {
+          data: (allIngredients) {
+            // Apply search filter
+            final ingredients = searchQuery.isEmpty
+                ? allIngredients
+                : allIngredients.where((i) =>
+                    i.name.toLowerCase().contains(searchQuery) ||
+                    i.category.toLowerCase().contains(searchQuery) ||
+                    (i.supplierName?.toLowerCase().contains(searchQuery) ?? false)
+                  ).toList();
+
             final makanan = ingredients.where((i) => i.category == 'makanan').toList();
             final minuman = ingredients.where((i) => i.category == 'minuman').toList();
             final snack = ingredients.where((i) => i.category == 'snack').toList();
             final lowStockItems = ingredients
                 .where((i) => i.isLowStock || i.isOutOfStock)
                 .toList();
-            final totalStockValue = ingredients.fold<double>(
+            final totalStockValue = allIngredients.fold<double>(
               0,
               (sum, i) => sum + i.stockValue,
             );
 
             return Column(
               children: [
+                // Search bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Cari bahan...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () => ref.read(_inventorySearchProvider.notifier).state = '',
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppTheme.borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: AppTheme.borderColor),
+                      ),
+                      filled: true,
+                      fillColor: AppTheme.surfaceColor,
+                    ),
+                    style: GoogleFonts.inter(fontSize: 14),
+                    onChanged: (v) => ref.read(_inventorySearchProvider.notifier).state = v,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 // Summary cards
                 _SummaryRow(
-                  totalIngredients: ingredients.length,
-                  lowStockCount: lowStockItems.length,
+                  totalIngredients: allIngredients.length,
+                  lowStockCount: allIngredients.where((i) => i.isLowStock || i.isOutOfStock).length,
                   totalStockValue: totalStockValue,
                 ),
                 const Divider(height: 1),
@@ -971,6 +1014,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
   final _costController = TextEditingController();
   String _selectedType = 'purchase';
   late String _category;
+  late String _inputUnit; // unit chosen for input (can differ from base)
   bool _saving = false;
 
   static const _types = [
@@ -985,13 +1029,69 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
     ('snack', 'Snack'),
   ];
 
+  // ── Unit conversion system ──
+  // Mass family (base = g)
+  static const _massUnits = {
+    'kg': 1000.0,
+    'g': 1.0,
+    'mg': 0.001,
+  };
+  // Volume family (base = ml)
+  static const _volumeUnits = {
+    'liter': 1000.0,
+    'l': 1000.0,
+    'ml': 1.0,
+  };
+
+  /// Get compatible units for an ingredient's base unit.
+  List<String> _getCompatibleUnits(String baseUnit) {
+    final lower = baseUnit.toLowerCase();
+    if (_massUnits.containsKey(lower)) return ['kg', 'g'];
+    if (_volumeUnits.containsKey(lower)) return ['liter', 'ml'];
+    // Count units — no conversion possible
+    return [baseUnit];
+  }
+
+  /// Convert [value] from [fromUnit] → [toUnit]. Returns null if incompatible.
+  double? _convertUnit(double value, String fromUnit, String toUnit) {
+    final from = fromUnit.toLowerCase();
+    final to = toUnit.toLowerCase();
+    if (from == to) return value;
+
+    // Mass
+    if (_massUnits.containsKey(from) && _massUnits.containsKey(to)) {
+      return value * _massUnits[from]! / _massUnits[to]!;
+    }
+    // Volume
+    if (_volumeUnits.containsKey(from) && _volumeUnits.containsKey(to)) {
+      return value * _volumeUnits[from]! / _volumeUnits[to]!;
+    }
+    return null; // incompatible
+  }
+
+  /// Preview text: "3.5 kg = 3500 g"
+  String? get _conversionPreview {
+    final qtyText = _quantityController.text.trim();
+    if (qtyText.isEmpty) return null;
+    final qty = double.tryParse(qtyText);
+    if (qty == null || qty == 0) return null;
+    final baseUnit = widget.ingredient.unit;
+    if (_inputUnit.toLowerCase() == baseUnit.toLowerCase()) return null;
+    final converted = _convertUnit(qty, _inputUnit, baseUnit);
+    if (converted == null) return null;
+    final decimals = converted == converted.roundToDouble() ? 0 : 2;
+    return '$qtyText $_inputUnit = ${FormatUtils.number(converted, decimals: decimals)} $baseUnit';
+  }
+
   @override
   void initState() {
     super.initState();
     _category = widget.ingredient.category;
+    _inputUnit = widget.ingredient.unit;
     _costController.text = widget.ingredient.costPerUnit > 0
         ? widget.ingredient.costPerUnit.toStringAsFixed(0)
         : '';
+    _quantityController.addListener(() => setState(() {}));
   }
 
   @override
@@ -1004,6 +1104,10 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final compatibleUnits = _getCompatibleUnits(widget.ingredient.unit);
+    final hasMultipleUnits = compatibleUnits.length > 1;
+    final preview = _conversionPreview;
+
     return AlertDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: Row(
@@ -1248,34 +1352,91 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Quantity input
-              TextFormField(
-                controller: _quantityController,
-                decoration: InputDecoration(
-                  labelText:
-                      'Jumlah (${widget.ingredient.unit})',
-                  prefixIcon: const Icon(Icons.numbers),
-                  hintText: _selectedType == 'waste'
-                      ? 'Masukkan jumlah waste'
-                      : 'Kosongkan jika tidak ubah stok',
-                  helperText: _selectedType == 'waste'
-                      ? 'Stok akan dikurangi'
-                      : _selectedType == 'purchase'
-                          ? 'Stok akan ditambah'
-                          : 'Positif = masuk, negatif = keluar',
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  if (v != null && v.trim().isNotEmpty) {
-                    final parsed = double.tryParse(v.trim());
-                    if (parsed == null || parsed == 0) {
-                      return 'Masukkan angka yang valid';
-                    }
-                  }
-                  return null;
-                },
+              // Quantity input + unit selector
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _quantityController,
+                      decoration: InputDecoration(
+                        labelText: 'Jumlah',
+                        prefixIcon: const Icon(Icons.numbers),
+                        hintText: _selectedType == 'waste'
+                            ? 'Jumlah waste'
+                            : 'Kosongkan jika tidak ubah',
+                        helperText: _selectedType == 'waste'
+                            ? 'Stok akan dikurangi'
+                            : _selectedType == 'purchase'
+                                ? 'Stok akan ditambah'
+                                : 'Positif = masuk, negatif = keluar',
+                      ),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      validator: (v) {
+                        if (v != null && v.trim().isNotEmpty) {
+                          final parsed = double.tryParse(v.trim());
+                          if (parsed == null || parsed == 0) {
+                            return 'Masukkan angka yang valid';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  if (hasMultipleUnits) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        value: compatibleUnits.contains(_inputUnit) ? _inputUnit : compatibleUnits.first,
+                        decoration: const InputDecoration(
+                          labelText: 'Satuan',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        ),
+                        items: compatibleUnits.map((u) => DropdownMenuItem(
+                          value: u,
+                          child: Text(u, style: GoogleFonts.inter(fontSize: 14)),
+                        )).toList(),
+                        onChanged: (v) {
+                          if (v != null) setState(() => _inputUnit = v);
+                        },
+                      ),
+                    ),
+                  ],
+                ],
               ),
+
+              // Conversion preview
+              if (preview != null) ...[
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_horiz, size: 16, color: AppTheme.primaryColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          preview,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
 
               // Notes input
@@ -1323,7 +1484,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
     try {
       final repo = InventoryRepository();
       final qtyText = _quantityController.text.trim();
-      final rawQuantity = qtyText.isNotEmpty ? double.tryParse(qtyText) : null;
+      final rawInput = qtyText.isNotEmpty ? double.tryParse(qtyText) : null;
 
       final notes = _notesController.text.trim().isEmpty
           ? null
@@ -1342,17 +1503,21 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
       }
 
       // Only adjust stock if quantity was entered
-      if (rawQuantity != null && rawQuantity != 0) {
+      if (rawInput != null && rawInput != 0) {
+        // Convert input unit to ingredient's base unit
+        final baseUnit = widget.ingredient.unit;
+        final converted = _convertUnit(rawInput, _inputUnit, baseUnit) ?? rawInput;
+
         // For waste type, always make quantity negative
         // For purchase, always positive
         // For adjustment, keep as-is (user can enter negative)
         final double quantity;
         if (_selectedType == 'waste') {
-          quantity = -(rawQuantity.abs());
+          quantity = -(converted.abs());
         } else if (_selectedType == 'purchase') {
-          quantity = rawQuantity.abs();
+          quantity = converted.abs();
         } else {
-          quantity = rawQuantity;
+          quantity = converted;
         }
 
         await repo.adjustStock(

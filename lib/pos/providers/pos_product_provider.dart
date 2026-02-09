@@ -30,7 +30,16 @@ final posProductsProvider = FutureProvider<List<Product>>((ref) async {
     try {
       final stockMap = await ref.watch(posStockAvailabilityProvider.future);
       for (final p in products) {
-        p.calculatedAvailableQty = stockMap[p.id] ?? 0;
+        if (stockMap.containsKey(p.id)) {
+          // Product has recipes → use recipe-based availability
+          p.calculatedAvailableQty = stockMap[p.id] ?? 0;
+        } else if (p.trackStock) {
+          // No recipes but track_stock enabled → use stock_quantity
+          p.calculatedAvailableQty = p.stockQuantity;
+        } else {
+          // No recipes, no stock tracking → always available
+          p.calculatedAvailableQty = null;
+        }
       }
     } catch (_) {
       // Stock calculation failed, show products without stock info

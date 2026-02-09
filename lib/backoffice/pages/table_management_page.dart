@@ -1,7 +1,9 @@
+import 'dart:js_interop';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:web/web.dart' as web;
 import '../../shared/themes/app_theme.dart';
 import '../../core/providers/outlet_provider.dart';
 import '../providers/table_provider.dart';
@@ -477,7 +479,35 @@ class _TableQrDialog extends StatelessWidget {
       '$_selfOrderBaseUrl?table=${table.id}';
 
   String get _qrImageUrl =>
-      'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${Uri.encodeComponent(_selfOrderUrl)}';
+      'https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${Uri.encodeComponent(_selfOrderUrl)}';
+
+  /// Download QR code image via browser
+  void _downloadQr(BuildContext context) {
+    try {
+      final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+      anchor.href = _qrImageUrl;
+      anchor.download = 'qr_meja_${table.tableNumber}.png';
+      anchor.target = '_blank';
+      anchor.style.display = 'none';
+      web.document.body!.appendChild(anchor);
+      anchor.click();
+      web.document.body!.removeChild(anchor);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('QR Code sedang didownload...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal download: $e'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -654,18 +684,11 @@ class _TableQrDialog extends StatelessWidget {
           ),
         ),
 
-        // Print button (placeholder)
+        // Download QR image
         FilledButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Fitur cetak akan segera hadir'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          },
-          icon: const Icon(Icons.print_rounded, size: 16),
-          label: const Text('Cetak'),
+          onPressed: () => _downloadQr(context),
+          icon: const Icon(Icons.download_rounded, size: 16),
+          label: const Text('Download'),
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),

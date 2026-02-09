@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import '../../shared/themes/app_theme.dart';
 import '../providers/pos_shift_provider.dart';
-import 'automation_toggle.dart';
 import 'shift_close_dialog.dart';
 
 class PosHeader extends ConsumerStatefulWidget {
@@ -211,8 +210,8 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
                 }
                 return const SizedBox.shrink();
               }).value ?? const SizedBox.shrink(),
-              if (!isMobile) const SizedBox(width: 8),
-              if (!isMobile) const AutomationToggle(),
+
+
             ],
           ),
         ],

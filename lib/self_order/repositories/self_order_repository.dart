@@ -112,8 +112,10 @@ class SelfOrderRepository {
               'quantity': item.quantity,
               'unit_price': item.unitPrice,
               'subtotal': item.totalPrice,
+              'total': item.totalPrice,
               'modifiers': item.modifiers,
               'notes': item.notes,
+              'status': 'pending',
               'kitchen_status': 'pending',
             })
         .toList();
