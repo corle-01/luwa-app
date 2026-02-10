@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/order.dart';
 import 'pos_checkout_provider.dart';
 
-// Use dart:js for Web Audio API instead of dart:html
-import 'dart:js' if (dart.library.io) '' as js;
+// Use dart:js for Web Audio API (web-only, checked with kIsWeb at runtime)
+import 'dart:js' as js;
 
 // Sound notification service using Web Audio API
 class OrderSoundService {
