@@ -123,24 +123,18 @@ class SelfOrderRepository {
 
     await _client.from('order_items').insert(itemsData);
 
-    // Step 3: For QRIS (prepaid), mark as completed since payment verified.
-    // For cash, keep as 'pending' so cashier can verify payment first.
-    // DB triggers (deduct_stock, update_shift) only fire when status = 'completed'.
-    if (paymentMethod == 'qris') {
-      await _client
-          .from('orders')
-          .update({
-            'status': 'completed',
-            'payment_status': 'paid',
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', orderId);
-    }
-    // For cash payment, order stays 'pending' — cashier accepts via POS
-
+    // Step 3: Keep ALL self-orders as 'pending' for cashier acknowledgment.
+    // Even QRIS (prepaid) orders need cashier to acknowledge order received
+    // so they can trigger kitchen ticket and track the order.
+    //
+    // Payment status already set correctly:
+    // - QRIS: payment_status = 'paid' (payment confirmed)
+    // - Cash: payment_status = 'unpaid' (pay at cashier)
+    //
+    // Cashier accepts order via POS → status becomes 'completed' → triggers fire
+    //
     // Note: Table status NOT set to 'occupied' for self-order.
     // Tables are just identifiers for delivery location, not occupancy tracking.
-    // Cashier can manually set table status if needed.
 
     return orderId;
   }

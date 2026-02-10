@@ -488,35 +488,45 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
   Widget build(BuildContext context) {
     // For PENDING orders: show Accept Order button
     if (widget.order.status == 'pending') {
+      final isPaid = widget.order.paymentStatus == 'paid';
+      final buttonLabel = isPaid ? 'Terima Pesanan' : 'Terima Pesanan & Bayar';
+      final indicatorText = isPaid
+          ? 'Pembayaran sudah dikonfirmasi (${widget.order.paymentMethod.toUpperCase()})'
+          : 'Menunggu pembayaran di kasir';
+      final indicatorColor = isPaid ? AppTheme.successColor : AppTheme.warningColor;
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Payment status indicator
-          if (widget.order.paymentStatus == 'unpaid')
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.warningColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.payment, size: 16, color: AppTheme.warningColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Menunggu pembayaran di kasir',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.warningColor,
-                        fontWeight: FontWeight.w600,
-                      ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: indicatorColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: indicatorColor.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isPaid ? Icons.check_circle : Icons.payment,
+                  size: 16,
+                  color: indicatorColor,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    indicatorText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: indicatorColor,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
           const SizedBox(height: 8),
           // Accept Order button
           SizedBox(
@@ -532,7 +542,7 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
                       ),
                     )
                   : const Icon(Icons.check_circle, size: 20),
-              label: Text(_processing ? 'Memproses...' : 'Terima Pesanan & Bayar'),
+              label: Text(_processing ? 'Memproses...' : buttonLabel),
               style: FilledButton.styleFrom(
                 backgroundColor: AppTheme.successColor,
                 disabledBackgroundColor: AppTheme.successColor.withValues(alpha: 0.5),
