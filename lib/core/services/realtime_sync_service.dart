@@ -15,6 +15,7 @@ import '../../backoffice/providers/customer_provider.dart';
 import '../../backoffice/providers/online_order_provider.dart';
 import '../../pos/providers/pos_product_provider.dart';
 import '../../pos/providers/pos_table_provider.dart';
+import '../../pos/providers/pos_checkout_provider.dart';
 import '../../kds/providers/kds_provider.dart';
 
 /// Subscribes to Supabase Realtime and auto-invalidates Riverpod providers
@@ -91,6 +92,7 @@ final realtimeSyncProvider = Provider<void>((ref) {
       ref.invalidate(kdsOrdersProvider);
       ref.invalidate(dashboardStatsProvider);
       ref.invalidate(recentOrdersProvider);
+      ref.invalidate(posTodayOrdersProvider);
     }),
   );
 

@@ -11,9 +11,11 @@ import '../widgets/product_search_bar.dart';
 import '../widgets/category_tab_bar.dart';
 import '../widgets/product_grid.dart';
 import '../widgets/cart_panel.dart';
+import '../widgets/pos_order_queue.dart';
 import '../repositories/pos_cashier_repository.dart';
 import '../providers/pos_shift_provider.dart';
 import '../providers/pos_cart_provider.dart';
+import '../providers/pos_queue_provider.dart';
 
 class PosMainPage extends ConsumerWidget {
   const PosMainPage({super.key});
@@ -78,7 +80,7 @@ class PosMainPage extends ConsumerWidget {
                       const VerticalDivider(width: 1, thickness: 1),
                       const Expanded(
                         flex: 4,
-                        child: CartPanel(),
+                        child: _RightPanelWithTabs(),
                       ),
                     ],
                   ),
@@ -429,6 +431,110 @@ class _MobilePosLayout extends ConsumerWidget {
                 ],
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Right panel with tabs: "Pesanan Baru" (CartPanel) and "Antrian" (Order Queue)
+class _RightPanelWithTabs extends ConsumerStatefulWidget {
+  const _RightPanelWithTabs();
+
+  @override
+  ConsumerState<_RightPanelWithTabs> createState() => _RightPanelWithTabsState();
+}
+
+class _RightPanelWithTabsState extends ConsumerState<_RightPanelWithTabs>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    // Initialize the order queue notifier to start watching for new orders
+    Future.microtask(() => ref.read(orderQueueNotifierProvider));
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pendingCount = ref.watch(posPendingOrderCountProvider);
+
+    return Column(
+      children: [
+        // Tab bar
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            border: Border(
+              bottom: BorderSide(color: AppTheme.dividerColor),
+            ),
+          ),
+          child: TabBar(
+            controller: _tabController,
+            labelColor: AppTheme.primaryColor,
+            unselectedLabelColor: AppTheme.textSecondary,
+            indicatorColor: AppTheme.primaryColor,
+            indicatorWeight: 3,
+            tabs: [
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.shopping_cart_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Pesanan Baru'),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.receipt_long, size: 18),
+                    const SizedBox(width: 8),
+                    const Text('Antrian'),
+                    if (pendingCount > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.warningColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$pendingCount',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Tab views
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: const [
+              CartPanel(),
+              PosOrderQueue(),
+            ],
           ),
         ),
       ],
