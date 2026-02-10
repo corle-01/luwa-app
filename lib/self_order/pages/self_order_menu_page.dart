@@ -1043,6 +1043,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
           'name': opt['group_name'] ?? '',
           'option': opt['name'] ?? '',
           'price': (opt['price'] as num?)?.toDouble() ?? 0,
+          if (opt['id'] != null) 'modifier_option_id': opt['id'],
         });
       }
     }

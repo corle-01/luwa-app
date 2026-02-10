@@ -96,6 +96,39 @@ class ProductModifierAssignment {
   }
 }
 
+class ModifierOptionIngredient {
+  final String id;
+  final String modifierOptionId;
+  final String ingredientId;
+  final String ingredientName;
+  final String ingredientUnit;
+  final double quantity;
+  final String unit;
+
+  ModifierOptionIngredient({
+    required this.id,
+    required this.modifierOptionId,
+    required this.ingredientId,
+    required this.ingredientName,
+    required this.ingredientUnit,
+    required this.quantity,
+    required this.unit,
+  });
+
+  factory ModifierOptionIngredient.fromJson(Map<String, dynamic> json) {
+    final ingredient = json['ingredients'] as Map<String, dynamic>? ?? {};
+    return ModifierOptionIngredient(
+      id: json['id'] as String,
+      modifierOptionId: json['modifier_option_id'] as String,
+      ingredientId: json['ingredient_id'] as String,
+      ingredientName: ingredient['name'] as String? ?? '',
+      ingredientUnit: ingredient['unit'] as String? ?? '',
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
+      unit: json['unit'] as String? ?? 'gram',
+    );
+  }
+}
+
 // ── Repository ──────────────────────────────────────────────────────────────
 
 class BOModifierRepository {
@@ -260,5 +293,83 @@ class BOModifierRepository {
         .delete()
         .eq('product_id', productId)
         .eq('modifier_group_id', groupId);
+  }
+
+  // ── Modifier Option Ingredients ──────────────────────────────────────────
+
+  /// Get all ingredient links for a modifier option.
+  Future<List<ModifierOptionIngredient>> getModifierOptionIngredients(
+    String optionId,
+  ) async {
+    final response = await _supabase
+        .from('modifier_option_ingredients')
+        .select('*, ingredients(name, unit)')
+        .eq('modifier_option_id', optionId)
+        .order('created_at', ascending: true);
+
+    return (response as List)
+        .map((json) =>
+            ModifierOptionIngredient.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Add an ingredient link to a modifier option.
+  Future<void> addModifierOptionIngredient({
+    required String optionId,
+    required String ingredientId,
+    required double quantity,
+    String unit = 'gram',
+  }) async {
+    await _supabase.from('modifier_option_ingredients').insert({
+      'modifier_option_id': optionId,
+      'ingredient_id': ingredientId,
+      'quantity': quantity,
+      'unit': unit,
+    });
+  }
+
+  /// Update quantity/unit for a modifier option ingredient link.
+  Future<void> updateModifierOptionIngredient(
+    String id, {
+    double? quantity,
+    String? unit,
+  }) async {
+    final data = <String, dynamic>{};
+    if (quantity != null) data['quantity'] = quantity;
+    if (unit != null) data['unit'] = unit;
+
+    if (data.isNotEmpty) {
+      await _supabase
+          .from('modifier_option_ingredients')
+          .update(data)
+          .eq('id', id);
+    }
+  }
+
+  /// Delete a modifier option ingredient link.
+  Future<void> deleteModifierOptionIngredient(String id) async {
+    await _supabase
+        .from('modifier_option_ingredients')
+        .delete()
+        .eq('id', id);
+  }
+
+  /// Get count of linked ingredients per modifier option (for display).
+  Future<Map<String, int>> getModifierOptionIngredientCounts(
+    List<String> optionIds,
+  ) async {
+    if (optionIds.isEmpty) return {};
+
+    final response = await _supabase
+        .from('modifier_option_ingredients')
+        .select('modifier_option_id')
+        .inFilter('modifier_option_id', optionIds);
+
+    final counts = <String, int>{};
+    for (final row in response as List) {
+      final optionId = row['modifier_option_id'] as String;
+      counts[optionId] = (counts[optionId] ?? 0) + 1;
+    }
+    return counts;
   }
 }

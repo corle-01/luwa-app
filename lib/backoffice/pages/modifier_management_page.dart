@@ -5,7 +5,9 @@ import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../../core/providers/outlet_provider.dart';
 import '../providers/modifier_provider.dart';
+import '../providers/recipe_provider.dart';
 import '../repositories/modifier_repository.dart';
+import '../repositories/recipe_repository.dart';
 
 class ModifierManagementPage extends ConsumerWidget {
   const ModifierManagementPage({super.key});
@@ -112,6 +114,8 @@ class ModifierManagementPage extends ConsumerWidget {
               _showOptionDialog(context, ref, group, option: option),
           onDeleteOption: (option) =>
               _confirmDeleteOption(context, ref, group, option),
+          onManageIngredients: (option) =>
+              _showOptionIngredientsDialog(context, ref, option),
         );
       },
     );
@@ -210,6 +214,22 @@ class ModifierManagementPage extends ConsumerWidget {
     );
   }
 
+  // ── Option Ingredients Dialog ──────────────────────────────────────────
+
+  void _showOptionIngredientsDialog(
+    BuildContext context,
+    WidgetRef ref,
+    BOModifierOption option,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => _ModifierOptionIngredientsDialog(
+        option: option,
+        outletId: ref.read(currentOutletIdProvider),
+      ),
+    );
+  }
+
   // ── Confirm Delete Option ───────────────────────────────────────────────
 
   void _confirmDeleteOption(
@@ -278,6 +298,7 @@ class _ModifierGroupCard extends StatelessWidget {
   final VoidCallback onAddOption;
   final ValueChanged<BOModifierOption> onEditOption;
   final ValueChanged<BOModifierOption> onDeleteOption;
+  final ValueChanged<BOModifierOption> onManageIngredients;
 
   const _ModifierGroupCard({
     required this.group,
@@ -286,6 +307,7 @@ class _ModifierGroupCard extends StatelessWidget {
     required this.onAddOption,
     required this.onEditOption,
     required this.onDeleteOption,
+    required this.onManageIngredients,
   });
 
   @override
@@ -484,7 +506,14 @@ class _ModifierGroupCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
 
-                    // Edit / delete option
+                    // Ingredients / Edit / delete option
+                    IconButton(
+                      icon: const Icon(Icons.science_outlined, size: 18),
+                      onPressed: () => onManageIngredients(option),
+                      tooltip: 'Kelola Bahan Baku',
+                      iconSize: 18,
+                      visualDensity: VisualDensity.compact,
+                    ),
                     IconButton(
                       icon: const Icon(Icons.edit_outlined, size: 18),
                       onPressed: () => onEditOption(option),
@@ -970,5 +999,431 @@ class _ModifierOptionFormDialogState
         );
       }
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Modifier option ingredients dialog (manage ingredient links per option)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _ModifierOptionIngredientsDialog extends ConsumerStatefulWidget {
+  final BOModifierOption option;
+  final String outletId;
+
+  const _ModifierOptionIngredientsDialog({
+    required this.option,
+    required this.outletId,
+  });
+
+  @override
+  ConsumerState<_ModifierOptionIngredientsDialog> createState() =>
+      _ModifierOptionIngredientsDialogState();
+}
+
+class _ModifierOptionIngredientsDialogState
+    extends ConsumerState<_ModifierOptionIngredientsDialog> {
+  List<ModifierOptionIngredient> _ingredients = [];
+  List<IngredientOption> _allIngredients = [];
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _loading = true);
+    try {
+      final repo = BOModifierRepository();
+      final recipeRepo = RecipeRepository();
+      final results = await Future.wait([
+        repo.getModifierOptionIngredients(widget.option.id),
+        recipeRepo.getIngredients(widget.outletId),
+      ]);
+      setState(() {
+        _ingredients = results[0] as List<ModifierOptionIngredient>;
+        _allIngredients = results[1] as List<IngredientOption>;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _addIngredient() async {
+    // Filter out already-linked ingredients
+    final linkedIds = _ingredients.map((i) => i.ingredientId).toSet();
+    final available =
+        _allIngredients.where((i) => !linkedIds.contains(i.id)).toList();
+
+    if (available.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semua bahan sudah ditambahkan')),
+      );
+      return;
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => _AddIngredientToOptionDialog(
+        availableIngredients: available,
+      ),
+    );
+
+    if (result == null) return;
+
+    setState(() => _saving = true);
+    try {
+      final repo = BOModifierRepository();
+      await repo.addModifierOptionIngredient(
+        optionId: widget.option.id,
+        ingredientId: result['ingredient_id'] as String,
+        quantity: result['quantity'] as double,
+        unit: result['unit'] as String,
+      );
+      await _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+    setState(() => _saving = false);
+  }
+
+  Future<void> _deleteIngredient(ModifierOptionIngredient item) async {
+    setState(() => _saving = true);
+    try {
+      final repo = BOModifierRepository();
+      await repo.deleteModifierOptionIngredient(item.id);
+      await _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menghapus: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+    setState(() => _saving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          const Icon(Icons.science_outlined, size: 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Bahan Baku — ${widget.option.name}',
+              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 500,
+        child: _loading
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Bahan baku yang akan di-deduct dari stok saat modifier ini dipilih:',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_ingredients.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Belum ada bahan baku.\nKlik "Tambah Bahan" untuk menambahkan.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: AppTheme.textTertiary,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 300),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _ingredients.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (_, index) {
+                          final item = _ingredients[index];
+                          return ListTile(
+                            dense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                            leading: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color:
+                                    AppTheme.primaryColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.inventory_2_outlined,
+                                size: 18,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                            title: Text(
+                              item.ingredientName,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${item.quantity} ${item.unit}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete_outline,
+                                  size: 18, color: AppTheme.errorColor),
+                              onPressed:
+                                  _saving ? null : () => _deleteIngredient(item),
+                              tooltip: 'Hapus',
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Tutup'),
+        ),
+        FilledButton.icon(
+          onPressed: _saving || _loading ? null : _addIngredient,
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('Tambah Bahan'),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Add ingredient to modifier option dialog
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _AddIngredientToOptionDialog extends StatefulWidget {
+  final List<IngredientOption> availableIngredients;
+
+  const _AddIngredientToOptionDialog({
+    required this.availableIngredients,
+  });
+
+  @override
+  State<_AddIngredientToOptionDialog> createState() =>
+      _AddIngredientToOptionDialogState();
+}
+
+class _AddIngredientToOptionDialogState
+    extends State<_AddIngredientToOptionDialog> {
+  final _formKey = GlobalKey<FormState>();
+  IngredientOption? _selectedIngredient;
+  final _qtyController = TextEditingController(text: '1');
+  String _unit = 'gram';
+  String _searchQuery = '';
+
+  static const _unitOptions = ['gram', 'kg', 'ml', 'liter', 'pcs', 'tbsp', 'tsp'];
+
+  @override
+  void dispose() {
+    _qtyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _searchQuery.isEmpty
+        ? widget.availableIngredients
+        : widget.availableIngredients
+            .where(
+                (i) => i.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+            .toList();
+
+    return AlertDialog(
+      title: const Text('Tambah Bahan Baku'),
+      content: SizedBox(
+        width: 420,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Ingredient search + selection
+              TextField(
+                decoration: const InputDecoration(
+                  hintText: 'Cari bahan baku...',
+                  prefixIcon: Icon(Icons.search, size: 20),
+                  isDense: true,
+                ),
+                onChanged: (v) => setState(() => _searchQuery = v),
+              ),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 180),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: filtered.length,
+                  itemBuilder: (_, index) {
+                    final ingredient = filtered[index];
+                    final isSelected =
+                        _selectedIngredient?.id == ingredient.id;
+                    return ListTile(
+                      dense: true,
+                      selected: isSelected,
+                      selectedTileColor:
+                          AppTheme.primaryColor.withValues(alpha: 0.08),
+                      title: Text(
+                        ingredient.name,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Satuan: ${ingredient.unit}',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppTheme.textTertiary,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(Icons.check_circle,
+                              color: AppTheme.primaryColor, size: 20)
+                          : null,
+                      onTap: () {
+                        setState(() {
+                          _selectedIngredient = ingredient;
+                          _unit = ingredient.unit.isNotEmpty
+                              ? ingredient.unit
+                              : 'gram';
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Quantity + Unit
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _qtyController,
+                      decoration: const InputDecoration(
+                        labelText: 'Jumlah',
+                        isDense: true,
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Wajib diisi';
+                        }
+                        final parsed = double.tryParse(v.trim());
+                        if (parsed == null || parsed <= 0) {
+                          return 'Angka > 0';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      value: _unitOptions.contains(_unit) ? _unit : 'gram',
+                      decoration: const InputDecoration(
+                        labelText: 'Satuan',
+                        isDense: true,
+                      ),
+                      items: _unitOptions
+                          .map((u) => DropdownMenuItem(
+                                value: u,
+                                child: Text(u),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _unit = v);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (_selectedIngredient == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Pilih bahan baku terlebih dahulu')),
+              );
+              return;
+            }
+            if (!_formKey.currentState!.validate()) return;
+
+            Navigator.pop(context, {
+              'ingredient_id': _selectedIngredient!.id,
+              'quantity': double.parse(_qtyController.text.trim()),
+              'unit': _unit,
+            });
+          },
+          child: const Text('Tambah'),
+        ),
+      ],
+    );
   }
 }

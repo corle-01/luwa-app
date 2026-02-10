@@ -46,11 +46,13 @@ class CartItem {
 class SelectedModifier {
   final String groupName;
   final String optionName;
+  final String? optionId;
   final double priceAdjustment;
 
   SelectedModifier({
     required this.groupName,
     required this.optionName,
+    this.optionId,
     this.priceAdjustment = 0,
   });
 }

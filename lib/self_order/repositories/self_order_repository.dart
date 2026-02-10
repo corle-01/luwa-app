@@ -234,7 +234,7 @@ class SelfOrderItem {
   /// Same product with different modifiers or notes = different cart line.
   String get cartKey {
     final modKey = modifiers
-            ?.map((m) => '${m['name']}:${m['option']}')
+            ?.map((m) => '${m['name']}:${m['option']}:${m['modifier_option_id'] ?? ''}')
             .join(',') ??
         '';
     return '$productId|$modKey|${notes ?? ''}';

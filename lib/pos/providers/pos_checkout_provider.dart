@@ -76,6 +76,7 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
           'group_name': m.groupName,
           'option_name': m.optionName,
           'price_adjustment': m.priceAdjustment,
+          if (m.optionId != null) 'modifier_option_id': m.optionId,
         }).toList(),
       }).toList();
 
@@ -220,6 +221,7 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
               'group_name': m.groupName,
               'option_name': m.optionName,
               'price_adjustment': m.priceAdjustment,
+              if (m.optionId != null) 'modifier_option_id': m.optionId,
             }).toList(),
           }).toList();
 

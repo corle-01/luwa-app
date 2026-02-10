@@ -21,3 +21,13 @@ final productModifierAssignmentsProvider =
     return repo.getProductModifiers(productId);
   },
 );
+
+/// Provider for modifier option ingredients.
+/// Pass an optionId to get its linked ingredients.
+final modifierOptionIngredientsProvider =
+    FutureProvider.family<List<ModifierOptionIngredient>, String>(
+  (ref, optionId) async {
+    final repo = ref.watch(boModifierRepositoryProvider);
+    return repo.getModifierOptionIngredients(optionId);
+  },
+);

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/outlet_provider.dart';
 import '../../backoffice/providers/product_provider.dart';
 import '../../backoffice/providers/recipe_provider.dart';
+import '../../backoffice/providers/modifier_provider.dart';
 import '../../backoffice/providers/inventory_provider.dart';
 import '../../backoffice/providers/product_stock_provider.dart';
 import '../../backoffice/providers/dashboard_provider.dart';
@@ -168,6 +169,16 @@ final realtimeSyncProvider = Provider<void>((ref) {
     callback: (_) => debounced('online_orders', () {
       ref.invalidate(onlineOrdersProvider);
       ref.invalidate(onlineOrderStatsProvider);
+    }),
+  );
+
+  // ── Modifier Option Ingredients ───────────────────────────
+  channel.onPostgresChanges(
+    event: PostgresChangeEvent.all,
+    schema: 'public',
+    table: 'modifier_option_ingredients',
+    callback: (_) => debounced('modifier_option_ingredients', () {
+      ref.invalidate(boModifierGroupsProvider);
     }),
   );
 

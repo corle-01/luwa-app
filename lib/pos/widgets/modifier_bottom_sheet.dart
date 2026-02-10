@@ -56,6 +56,7 @@ class _ModifierBottomSheetState extends ConsumerState<ModifierBottomSheet> {
           modifiers.add(SelectedModifier(
             groupName: group.name,
             optionName: option.name,
+            optionId: option.id,
             priceAdjustment: option.priceAdjustment,
           ));
         }
