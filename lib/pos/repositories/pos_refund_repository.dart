@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/date_utils.dart';
 
 class PosRefundRepository {
   final _supabase = Supabase.instance.client;
@@ -12,9 +13,9 @@ class PosRefundRepository {
     await _supabase.from('orders').update({
       'status': 'voided',
       'void_reason': reason,
-      'voided_at': DateTime.now().toIso8601String(),
+      'voided_at': DateTimeUtils.nowUtc(),
       'voided_by': voidedBy,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTimeUtils.nowUtc(),
     }).eq('id', orderId);
   }
 
@@ -28,7 +29,7 @@ class PosRefundRepository {
       'status': 'refunded',
       'refund_amount': refundAmount,
       'refund_reason': reason,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTimeUtils.nowUtc(),
     }).eq('id', orderId);
   }
 }

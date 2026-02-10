@@ -34,7 +34,7 @@ class Customer {
       totalSpent: (json['total_spent'] as num?)?.toDouble() ?? 0,
       visitCount: json['total_orders'] as int? ?? 0,
       lastVisit: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
-      createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
     );
   }
 }

@@ -245,7 +245,7 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
       'change_amount': changeAmount,
       'payment_details': paymentDetails,
       'notes': cart.notes,
-      'created_at': now.toIso8601String(),
+      'created_at': now.toUtc().toIso8601String(),
     };
 
     // Build item data list (without order_id — will be set during sync)

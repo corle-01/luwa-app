@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/date_utils.dart';
 
 /// Model untuk meja restoran
 class RestaurantTable {
@@ -54,7 +56,8 @@ class PosTableRepository {
           .eq('outlet_id', outletId)
           .order('sort_order', ascending: true);
       return (response as List).map((j) => RestaurantTable.fromJson(j)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PosTableRepository.getTables error: $e');
       return [];
     }
   }
@@ -62,7 +65,7 @@ class PosTableRepository {
   Future<void> updateTableStatus(String tableId, String status) async {
     await _supabase
         .from('tables')
-        .update({'status': status, 'updated_at': DateTime.now().toIso8601String()})
+        .update({'status': status, 'updated_at': DateTimeUtils.nowUtc()})
         .eq('id', tableId);
   }
 }

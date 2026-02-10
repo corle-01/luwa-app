@@ -10,7 +10,9 @@ import '../../backoffice/providers/product_stock_provider.dart';
 import '../../backoffice/providers/dashboard_provider.dart';
 import '../../backoffice/providers/purchase_provider.dart';
 import '../../backoffice/providers/operational_cost_provider.dart';
+import '../../backoffice/providers/customer_provider.dart';
 import '../../pos/providers/pos_product_provider.dart';
+import '../../pos/providers/pos_table_provider.dart';
 import '../../kds/providers/kds_provider.dart';
 
 /// Subscribes to Supabase Realtime and auto-invalidates Riverpod providers
@@ -133,6 +135,27 @@ final realtimeSyncProvider = Provider<void>((ref) {
       ref.invalidate(totalMonthlyCostProvider);
       ref.invalidate(costsByCategoryProvider);
       ref.invalidate(bonusPercentageProvider);
+    }),
+  );
+
+  // ── Customers ─────────────────────────────────────────────
+  channel.onPostgresChanges(
+    event: PostgresChangeEvent.all,
+    schema: 'public',
+    table: 'customers',
+    callback: (_) => debounced('customers', () {
+      ref.invalidate(customerListProvider);
+      ref.invalidate(dashboardStatsProvider);
+    }),
+  );
+
+  // ── Tables ────────────────────────────────────────────────
+  channel.onPostgresChanges(
+    event: PostgresChangeEvent.all,
+    schema: 'public',
+    table: 'tables',
+    callback: (_) => debounced('tables', () {
+      ref.invalidate(posTablesProvider);
     }),
   );
 

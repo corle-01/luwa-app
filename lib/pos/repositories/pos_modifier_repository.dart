@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ModifierGroup {
@@ -86,7 +87,8 @@ class PosModifierRepository {
       return (groupsResponse as List)
           .map((json) => ModifierGroup.fromJson(json as Map<String, dynamic>))
           .toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PosModifierRepository.getModifierGroups error: $e');
       return [];
     }
   }

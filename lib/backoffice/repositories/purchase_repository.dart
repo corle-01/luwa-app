@@ -162,7 +162,7 @@ class PurchaseRepository {
         .from('purchases')
         .update({
           'receipt_image_url': imageUrl,
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTimeUtils.nowUtc(),
         })
         .eq('id', purchaseId);
   }

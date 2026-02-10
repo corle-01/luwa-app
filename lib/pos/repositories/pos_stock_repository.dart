@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/stock_availability.dart';
 
@@ -50,7 +51,8 @@ class PosStockRepository {
     try {
       final recipes = await getAllRecipesWithStock(outletId);
       return calculateAvailability(recipes);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PosStockRepository.getStockAvailability error: $e');
       return {};
     }
   }

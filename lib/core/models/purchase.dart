@@ -48,9 +48,9 @@ class Purchase {
       receiptImageUrl: json['receipt_image_url'] as String?,
       totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0,
       notes: json['notes'] as String?,
-      purchaseDate: DateTime.parse(json['purchase_date'] as String),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
+      purchaseDate: DateTime.tryParse(json['purchase_date'] as String? ?? '') ?? DateTime.now(),
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at'] as String) : null,
       items: items ?? [],
     );
   }

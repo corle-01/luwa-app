@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/product.dart';
 
@@ -23,7 +24,8 @@ class PosProductRepository {
             .eq('is_available', true)
             .order('sort_order', ascending: true);
         return (response as List).map((json) => Product.fromJson(json)).toList();
-      } catch (_) {
+      } catch (e2) {
+        debugPrint('PosProductRepository.getProducts fallback error: $e2');
         return [];
       }
     }
@@ -40,7 +42,8 @@ class PosProductRepository {
           .order('sort_order', ascending: true)
           .order('name', ascending: true);
       return (response as List).map((json) => ProductCategory.fromJson(json)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PosProductRepository.getCategories error: $e');
       return [];
     }
   }

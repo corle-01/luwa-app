@@ -55,8 +55,10 @@ class Shift {
       totalCash: (json['total_cash'] as num?)?.toDouble(),
       totalNonCash: (json['total_non_cash'] as num?)?.toDouble(),
       notes: json['notes'] as String?,
-      openedAt: DateTime.parse(json['opened_at'] as String? ?? json['created_at'] as String),
-      closedAt: json['closed_at'] != null ? DateTime.parse(json['closed_at'] as String) : null,
+      openedAt: DateTime.tryParse(json['opened_at'] as String? ?? '') ??
+          DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
+      closedAt: json['closed_at'] != null ? DateTime.tryParse(json['closed_at'] as String) : null,
     );
   }
 

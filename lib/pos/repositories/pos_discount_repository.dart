@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/discount.dart';
 
@@ -12,7 +13,8 @@ class PosDiscountRepository {
           .eq('outlet_id', outletId)
           .eq('is_active', true);
       return (response as List).map((json) => Discount.fromJson(json)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PosDiscountRepository.getActiveDiscounts error: $e');
       return [];
     }
   }
@@ -25,7 +27,8 @@ class PosDiscountRepository {
           .eq('outlet_id', outletId)
           .eq('is_active', true);
       return (response as List).map((json) => Tax.fromJson(json)).toList();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PosDiscountRepository.getActiveTaxes error: $e');
       return [];
     }
   }
