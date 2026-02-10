@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'dart:html' as html if (dart.library.io) '';
 
 import '../../shared/themes/app_theme.dart';
 import '../../core/providers/outlet_provider.dart';
@@ -1187,6 +1189,21 @@ class _QrisPaymentDialog extends StatelessWidget {
     required this.onCancel,
   });
 
+  // Download QRIS image to device
+  void _downloadQrisImage() async {
+    try {
+      // For web: trigger download using anchor element
+      if (kIsWeb) {
+        // ignore: avoid_web_libraries_in_flutter
+        final anchor = html.AnchorElement(href: 'assets/images/qris_payment.jpeg')
+          ..setAttribute('download', 'QRIS_Payment_UtterCoffee.jpeg')
+          ..click();
+      }
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -1256,6 +1273,58 @@ class _QrisPaymentDialog extends StatelessWidget {
                   child: Image.asset(
                     'assets/images/qris_payment.jpeg',
                     fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Download QRIS button
+              OutlinedButton.icon(
+                onPressed: () {
+                  // Download QRIS image using web download API
+                  _downloadQrisImage();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.download_done_rounded,
+                              color: Colors.white, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'QRIS image downloaded!',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF059669),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.download_rounded, size: 20),
+                label: Text(
+                  'Download QR Code',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF2563EB),
+                  side: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
