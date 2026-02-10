@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/order.dart';
 import 'pos_checkout_provider.dart';
 
-// Conditional import for Web Audio API
-import 'dart:html' as html show AudioContext, OscillatorNode, GainNode
-    if (dart.library.io) '';
+// Use dart:js for Web Audio API instead of dart:html
+import 'dart:js' as js if (dart.library.io) '';
 
 // Sound notification service using Web Audio API
 class OrderSoundService {
@@ -14,29 +13,29 @@ class OrderSoundService {
     if (!kIsWeb) return;
 
     try {
-      // Web Audio API beep sound
-      final audioContext = html.AudioContext();
-      final oscillator = audioContext.createOscillator();
-      final gainNode = audioContext.createGain();
+      // Web Audio API beep sound using dart:js
+      final audioContext = js.JsObject(js.context['AudioContext'] ?? js.context['webkitAudioContext']);
+      final oscillator = audioContext.callMethod('createOscillator', []);
+      final gainNode = audioContext.callMethod('createGain', []);
 
-      oscillator.connectNode(gainNode);
-      gainNode.connectNode(audioContext.destination);
+      oscillator.callMethod('connect', [gainNode]);
+      gainNode.callMethod('connect', [audioContext['destination']]);
 
-      oscillator.frequency!.value = 800; // Hz
-      oscillator.type = 'sine';
-      gainNode.gain!.value = 0.3;
+      oscillator['frequency']['value'] = 800; // Hz
+      oscillator['type'] = 'sine';
+      gainNode['gain']['value'] = 0.3;
 
-      oscillator.start(0);
+      oscillator.callMethod('start', [0]);
 
       // Two beeps
       Future.delayed(const Duration(milliseconds: 200), () {
-        gainNode.gain!.value = 0;
+        gainNode['gain']['value'] = 0;
       });
       Future.delayed(const Duration(milliseconds: 400), () {
-        gainNode.gain!.value = 0.3;
+        gainNode['gain']['value'] = 0.3;
       });
       Future.delayed(const Duration(milliseconds: 600), () {
-        oscillator.stop(0);
+        oscillator.callMethod('stop', [0]);
       });
     } catch (e) {
       // Silent fail if Web Audio API not available
