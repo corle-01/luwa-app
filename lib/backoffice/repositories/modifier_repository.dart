@@ -69,7 +69,7 @@ class BOModifierOption {
       groupId: json['modifier_group_id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       priceAdjustment: (json['price_adjustment'] as num?)?.toDouble() ?? 0,
-      isAvailable: json['is_available'] as bool? ?? true,
+      isAvailable: json['is_active'] as bool? ?? json['is_available'] as bool? ?? true,
       isDefault: json['is_default'] as bool? ?? false,
       sortOrder: json['sort_order'] as int? ?? 0,
     );
@@ -221,7 +221,7 @@ class BOModifierRepository {
       'name': name,
       'price_adjustment': priceAdjustment,
       'is_default': isDefault,
-      'is_available': true,
+      'is_active': true,
       'sort_order': sortOrder,
     });
   }
@@ -239,7 +239,7 @@ class BOModifierRepository {
     if (name != null) data['name'] = name;
     if (priceAdjustment != null) data['price_adjustment'] = priceAdjustment;
     if (isDefault != null) data['is_default'] = isDefault;
-    if (isAvailable != null) data['is_available'] = isAvailable;
+    if (isAvailable != null) data['is_active'] = isAvailable;
     if (sortOrder != null) data['sort_order'] = sortOrder;
 
     if (data.isNotEmpty) {

@@ -56,7 +56,7 @@ class ModifierOption {
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
       priceAdjustment: (json['price_adjustment'] as num?)?.toDouble() ?? 0,
-      isAvailable: json['is_available'] as bool? ?? true,
+      isAvailable: json['is_active'] as bool? ?? json['is_available'] as bool? ?? true,
       sortOrder: json['sort_order'] as int? ?? 0,
     );
   }
