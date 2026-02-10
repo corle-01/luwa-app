@@ -90,7 +90,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                     children: [
                       // Image or Initial Container
                       Expanded(
-                        flex: 3,
+                        flex: 5,
                         child: widget.product.primaryImageUrl != null
                             ? CachedNetworkImage(
                                 imageUrl: widget.product.primaryImageUrl!,
@@ -110,14 +110,14 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                             : _buildPlaceholder(),
                       ),
 
-                      // Product Info
+                      // Product Info - Optimized for tablet (compact spacing)
                       Expanded(
                         flex: 2,
                         child: Padding(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               // Product Name
                               Text(
@@ -126,18 +126,17 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.textPrimary,
-                                  height: 1.3,
+                                  height: 1.2,
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 6),
 
                               // Price
                               Text(
                                 FormatUtils.currency(widget.product.sellingPrice),
                                 style: GoogleFonts.inter(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.primaryColor,
                                 ),
