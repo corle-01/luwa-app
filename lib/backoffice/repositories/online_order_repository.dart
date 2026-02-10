@@ -514,24 +514,25 @@ class OnlineOrderRepository {
   // Stats
   // ----------------------------------------------------------
 
-  /// Get aggregated online order statistics for a date range
+  /// Get aggregated online order statistics for a date range.
+  /// Revenue is calculated from the linked internal orders' `platform_final_amount`
+  /// (actual money received) rather than online_orders.total (listed price).
   Future<OnlineOrderStats> getOnlineOrderStats(
     String outletId,
     DateTime dateFrom,
     DateTime dateTo,
   ) async {
+    // Fetch online_orders with linked orders to get platform_final_amount
     final response = await _supabase
         .from('online_orders')
-        .select()
+        .select('*, orders(platform_final_amount)')
         .eq('outlet_id', outletId)
         .gte('created_at', DateTimeUtils.toUtcIso(dateFrom))
         .lte('created_at', DateTimeUtils.endOfDayUtc(dateTo));
 
-    final orders = (response as List)
-        .map((json) => OnlineOrder.fromJson(json))
-        .toList();
+    final rows = response as List;
 
-    if (orders.isEmpty) {
+    if (rows.isEmpty) {
       return OnlineOrderStats();
     }
 
@@ -541,27 +542,41 @@ class OnlineOrderRepository {
     final ordersByStatus = <String, int>{};
     double totalRevenue = 0;
 
-    for (final order in orders) {
+    for (final row in rows) {
+      final order = OnlineOrder.fromJson(row);
+
+      // Try to get platform_final_amount from linked internal order
+      double revenue = order.total;
+      final linkedOrder = row['orders'];
+      if (linkedOrder != null && linkedOrder is Map) {
+        final pfa = (linkedOrder['platform_final_amount'] as num?)?.toDouble();
+        if (pfa != null && pfa > 0) {
+          revenue = pfa;
+        }
+      }
+
       // By platform
       ordersByPlatform[order.platform] =
           (ordersByPlatform[order.platform] ?? 0) + 1;
       revenueByPlatform[order.platform] =
-          (revenueByPlatform[order.platform] ?? 0) + order.total;
+          (revenueByPlatform[order.platform] ?? 0) + revenue;
 
       // By status
       ordersByStatus[order.status] =
           (ordersByStatus[order.status] ?? 0) + 1;
 
-      totalRevenue += order.total;
+      totalRevenue += revenue;
     }
 
+    final totalOrders = rows.length;
+
     return OnlineOrderStats(
-      totalOrders: orders.length,
+      totalOrders: totalOrders,
       totalRevenue: totalRevenue,
       ordersByPlatform: ordersByPlatform,
       revenueByPlatform: revenueByPlatform,
       ordersByStatus: ordersByStatus,
-      avgOrderValue: orders.isNotEmpty ? totalRevenue / orders.length : 0,
+      avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
     );
   }
 

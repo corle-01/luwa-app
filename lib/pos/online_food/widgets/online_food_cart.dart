@@ -208,66 +208,19 @@ class OnlineFoodCart extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Total items + selling price
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${state.totalItems} item',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: _C.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      FormatUtils.currency(state.totalSellingPrice),
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: _C.textPrimary,
-                      ),
-                    ),
-                  ],
+                // Total items
+                Text(
+                  '${state.totalItems} item',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: _C.textSecondary,
+                  ),
                 ),
 
                 const SizedBox(height: 16),
 
                 // Final amount input
                 const AmountInputField(),
-
-                // Platform fee breakdown
-                if (state.finalAmount != null && state.finalAmount! > 0 && state.totalSellingPrice > 0) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Komisi Platform',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFF59E0B),
-                          ),
-                        ),
-                        Text(
-                          FormatUtils.currency(state.totalSellingPrice - state.finalAmount!),
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFF59E0B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
 
                 const SizedBox(height: 16),
 

@@ -112,7 +112,7 @@ class ReportRepository {
   ) async {
     final response = await _supabase
         .from('orders')
-        .select('total, payment_method, discount_amount, tax_amount, service_charge_amount')
+        .select('total, payment_method, discount_amount, tax_amount, service_charge_amount, platform_final_amount, order_source')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
         .gte('created_at', DateTimeUtils.toUtcIso(from))
@@ -130,17 +130,29 @@ class ReportRepository {
     double totalServiceCharge = 0;
     final Map<String, double> paymentBreakdown = {};
 
+    const onlineSources = {'gofood', 'grabfood', 'shopeefood'};
+
     for (final row in rows) {
       final total = (row['total'] as num?)?.toDouble() ?? 0;
       final method = row['payment_method'] as String? ?? 'cash';
+      final orderSource = row['order_source'] as String? ?? '';
+      final platformFinalAmount =
+          (row['platform_final_amount'] as num?)?.toDouble();
 
-      totalSales += total;
+      // For online orders, use platform_final_amount as revenue (actual received)
+      final revenue = (onlineSources.contains(orderSource) &&
+              platformFinalAmount != null &&
+              platformFinalAmount > 0)
+          ? platformFinalAmount
+          : total;
+
+      totalSales += revenue;
       totalDiscount += (row['discount_amount'] as num?)?.toDouble() ?? 0;
       totalTax += (row['tax_amount'] as num?)?.toDouble() ?? 0;
       totalServiceCharge +=
           (row['service_charge_amount'] as num?)?.toDouble() ?? 0;
 
-      paymentBreakdown[method] = (paymentBreakdown[method] ?? 0) + total;
+      paymentBreakdown[method] = (paymentBreakdown[method] ?? 0) + revenue;
     }
 
     final orderCount = rows.length;
@@ -363,7 +375,7 @@ class ReportRepository {
     final ordersResponse = await _supabase
         .from('orders')
         .select(
-            'total, payment_method, source, discount_amount, tax_amount, service_charge_amount')
+            'total, payment_method, source, order_source, discount_amount, tax_amount, service_charge_amount, platform_final_amount')
         .eq('outlet_id', outletId)
         .eq('status', 'completed')
         .gte('created_at', DateTimeUtils.toUtcIso(from))
@@ -378,19 +390,31 @@ class ReportRepository {
     final Map<String, double> paymentMap = {};
     final Map<String, double> sourceMap = {};
 
+    const onlineSources = {'gofood', 'grabfood', 'shopeefood'};
+
     for (final row in orders) {
       final total = (row['total'] as num?)?.toDouble() ?? 0;
       final method = row['payment_method'] as String? ?? 'cash';
       final source = row['source'] as String? ?? 'pos';
+      final orderSource = row['order_source'] as String? ?? '';
+      final platformFinalAmount =
+          (row['platform_final_amount'] as num?)?.toDouble();
 
-      totalRevenue += total;
+      // For online orders, use platform_final_amount as revenue (actual received)
+      final revenue = (onlineSources.contains(orderSource) &&
+              platformFinalAmount != null &&
+              platformFinalAmount > 0)
+          ? platformFinalAmount
+          : total;
+
+      totalRevenue += revenue;
       totalDiscount += (row['discount_amount'] as num?)?.toDouble() ?? 0;
       totalTax += (row['tax_amount'] as num?)?.toDouble() ?? 0;
       totalServiceCharge +=
           (row['service_charge_amount'] as num?)?.toDouble() ?? 0;
 
-      paymentMap[method] = (paymentMap[method] ?? 0) + total;
-      sourceMap[source] = (sourceMap[source] ?? 0) + total;
+      paymentMap[method] = (paymentMap[method] ?? 0) + revenue;
+      sourceMap[source] = (sourceMap[source] ?? 0) + revenue;
     }
 
     // 2. Get COGS from HPP data

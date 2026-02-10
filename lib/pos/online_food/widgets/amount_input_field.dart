@@ -82,7 +82,7 @@ class _AmountInputFieldState extends ConsumerState<AmountInputField> {
       children: [
         // Label
         Text(
-          'Final Amount dari Platform',
+          'Revenue Diterima',
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -159,7 +159,7 @@ class _AmountInputFieldState extends ConsumerState<AmountInputField> {
 
         // Hint text
         Text(
-          'Jumlah diterima dari platform',
+          'Jumlah yang masuk ke rekening',
           style: GoogleFonts.inter(
             fontSize: 11,
             color: _C.textTertiary,
