@@ -396,9 +396,11 @@ class OnlineOrderRepository {
         .insert({
           'outlet_id': onlineOrder.outletId,
           'order_number': orderNumber,
-          'order_type': 'delivery',
+          'order_type': 'online',
+          'order_source': onlineOrder.platform,
+          'platform_order_id': onlineOrder.platformOrderId,
           'status': 'pending',
-          'payment_method': 'online',
+          'payment_method': 'platform',
           'payment_status': 'paid', // Online orders are pre-paid
           'subtotal': onlineOrder.subtotal,
           'discount_amount': 0,

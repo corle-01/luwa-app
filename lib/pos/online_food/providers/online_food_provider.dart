@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/providers/outlet_provider.dart';
+import '../../../core/utils/date_utils.dart';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -266,14 +268,51 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
       final orderNumber =
           '${platform.orderPrefix}-${DateTime.now().millisecondsSinceEpoch}';
 
-      // Step 1: INSERT order as 'pending'
-      // DB triggers fire on UPDATE, not INSERT -- so we must insert first,
-      // then update to 'completed' to trigger stock deduction, shift update,
-      // and customer update.
       // Calculate totals from real selling prices
       final subtotal = state.totalSellingPrice;
       final amountPaid = state.finalAmount ?? 0;
+      final platformOrderId = state.platformOrderId.trim();
+      final notes = state.platformNotes.trim().isEmpty
+          ? null
+          : state.platformNotes.trim();
 
+      // Step 1: Create record in online_orders for Back Office tracking
+      final onlineItems = state.items
+          .map((item) => {
+                'name': item.variantName != null && item.variantName!.isNotEmpty
+                    ? '${item.productName} (${item.variantName})'
+                    : item.productName,
+                'product_id': item.productId,
+                'price': item.unitPrice,
+                'quantity': item.quantity,
+              })
+          .toList();
+
+      final onlineOrderRes = await _supabase
+          .from('online_orders')
+          .insert({
+            'outlet_id': outletId,
+            'platform': platform.sourceName,
+            'platform_order_id': platformOrderId,
+            'platform_order_number': orderNumber,
+            'status': 'accepted',
+            'subtotal': subtotal,
+            'total': subtotal,
+            'delivery_fee': 0,
+            'platform_fee': subtotal - amountPaid > 0 ? subtotal - amountPaid : 0,
+            'items': onlineItems,
+            'notes': notes,
+            'accepted_at': DateTimeUtils.nowUtc(),
+          })
+          .select('id')
+          .single();
+
+      final onlineOrderId = onlineOrderRes['id'] as String;
+
+      // Step 2: INSERT order as 'pending' in orders table
+      // DB triggers fire on UPDATE, not INSERT -- so we must insert first,
+      // then update to 'completed' to trigger stock deduction, shift update,
+      // and customer update.
       final orderResponse = await _supabase
           .from('orders')
           .insert({
@@ -281,10 +320,9 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
             'order_number': orderNumber,
             'order_type': 'online',
             'order_source': platform.sourceName,
-            'platform_order_id': state.platformOrderId.trim(),
+            'platform_order_id': platformOrderId,
             'platform_final_amount': state.finalAmount,
-            'platform_notes':
-                state.platformNotes.trim().isEmpty ? null : state.platformNotes.trim(),
+            'platform_notes': notes,
             'status': 'pending',
             'payment_method': 'platform',
             'payment_status': 'unpaid',
@@ -295,14 +333,25 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
             'total': subtotal,
             'amount_paid': amountPaid,
             'change_amount': 0,
-            'notes': state.platformNotes.trim().isEmpty ? null : state.platformNotes.trim(),
+            'notes': notes,
           })
           .select()
           .single();
 
       final orderId = orderResponse['id'] as String;
 
-      // Step 2: Insert order items with real selling prices
+      // Step 3: Link online_order to internal order
+      await _supabase
+          .from('online_orders')
+          .update({
+            'order_id': orderId,
+            'status': 'delivered',
+            'delivered_at': DateTimeUtils.nowUtc(),
+            'updated_at': DateTimeUtils.nowUtc(),
+          })
+          .eq('id', onlineOrderId);
+
+      // Step 4: Insert order items with real selling prices
       final orderItems = state.items
           .map((item) => {
                 'order_id': orderId,
@@ -319,16 +368,17 @@ class OnlineFoodNotifier extends StateNotifier<OnlineFoodState> {
 
       await _supabase.from('order_items').insert(orderItems);
 
-      // Step 3: UPDATE to 'completed' -- triggers fire on this transition
+      // Step 5: UPDATE to 'completed' -- triggers fire on this transition
       await _supabase.from('orders').update({
         'status': 'completed',
         'payment_status': 'paid',
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTimeUtils.nowUtc(),
       }).eq('id', orderId);
 
       // Success -- reset the form
       state = const OnlineFoodState(isSuccess: true);
     } catch (e) {
+      debugPrint('OnlineFoodNotifier.submitOrder error: $e');
       state = state.copyWith(
         isSubmitting: false,
         error: e.toString(),

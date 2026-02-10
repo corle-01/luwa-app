@@ -11,6 +11,7 @@ import '../../backoffice/providers/dashboard_provider.dart';
 import '../../backoffice/providers/purchase_provider.dart';
 import '../../backoffice/providers/operational_cost_provider.dart';
 import '../../backoffice/providers/customer_provider.dart';
+import '../../backoffice/providers/online_order_provider.dart';
 import '../../pos/providers/pos_product_provider.dart';
 import '../../pos/providers/pos_table_provider.dart';
 import '../../kds/providers/kds_provider.dart';
@@ -156,6 +157,17 @@ final realtimeSyncProvider = Provider<void>((ref) {
     table: 'tables',
     callback: (_) => debounced('tables', () {
       ref.invalidate(posTablesProvider);
+    }),
+  );
+
+  // ── Online Orders ──────────────────────────────────────────
+  channel.onPostgresChanges(
+    event: PostgresChangeEvent.all,
+    schema: 'public',
+    table: 'online_orders',
+    callback: (_) => debounced('online_orders', () {
+      ref.invalidate(onlineOrdersProvider);
+      ref.invalidate(onlineOrderStatsProvider);
     }),
   );
 
