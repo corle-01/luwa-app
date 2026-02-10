@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/models/order.dart';
 import '../../core/providers/outlet_provider.dart';
 import '../../core/services/connectivity_service.dart';
 import '../../core/services/kitchen_print_service.dart';
 import '../../core/services/offline_queue_service.dart';
+import '../../core/utils/date_utils.dart';
 import '../repositories/pos_order_repository.dart';
 
 import 'pos_cart_provider.dart';
@@ -121,6 +124,40 @@ class PosCheckoutNotifier extends StateNotifier<AsyncValue<CheckoutResult?>> {
         paymentDetails: paymentDetails,
         orderSource: orderSource,
       );
+
+      // If this is a platform order, also create a record in online_orders
+      // so it appears in the Back Office "Online" management page.
+      if (isPlatformOrder) {
+        try {
+          final onlineItems = cart.items.map((item) => {
+            'name': item.product.name,
+            'product_id': item.product.id,
+            'price': item.unitPrice,
+            'quantity': item.quantity,
+          }).toList();
+
+          await Supabase.instance.client.from('online_orders').insert({
+            'outlet_id': _outletId,
+            'order_id': order.id,
+            'platform': orderSource,
+            'platform_order_id': '${orderSource!.toUpperCase()}-${DateTime.now().millisecondsSinceEpoch}',
+            'platform_order_number': order.orderNumber,
+            'status': 'delivered',
+            'subtotal': cart.subtotal,
+            'total': cart.total,
+            'delivery_fee': 0,
+            'platform_fee': cart.total - (amountPaid ?? cart.total) > 0
+                ? cart.total - (amountPaid ?? cart.total)
+                : 0,
+            'items': onlineItems,
+            'notes': cart.notes,
+            'accepted_at': DateTimeUtils.nowUtc(),
+            'delivered_at': DateTimeUtils.nowUtc(),
+          });
+        } catch (e) {
+          debugPrint('Failed to create online_orders record: $e');
+        }
+      }
 
       if (cart.orderType == 'dine_in' && cart.tableId != null) {
         try {
