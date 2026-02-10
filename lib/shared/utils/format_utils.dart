@@ -26,26 +26,35 @@ class FormatUtils {
 
   /// Format date to display format
   /// Example: 2026-02-06 -> "06 Feb 2026"
+  /// Automatically converts UTC to local timezone (WIB for Jakarta)
   static String date(DateTime date, {String? format}) {
+    // Convert UTC to local timezone before formatting
+    final localDate = date.toLocal();
     final formatter =
         DateFormat(format ?? AppConstants.dateFormatDisplay, 'id_ID');
-    return formatter.format(date);
+    return formatter.format(localDate);
   }
 
   /// Format datetime to display format
   /// Example: 2026-02-06 14:30 -> "06 Feb 2026 14:30"
+  /// Automatically converts UTC to local timezone (WIB for Jakarta)
   static String dateTime(DateTime dateTime, {String? format}) {
+    // Convert UTC to local timezone before formatting
+    final localDateTime = dateTime.toLocal();
     final formatter =
         DateFormat(format ?? AppConstants.dateTimeFormatDisplay, 'id_ID');
-    return formatter.format(dateTime);
+    return formatter.format(localDateTime);
   }
 
   /// Format time to display format
   /// Example: 14:30:00 -> "14:30"
+  /// Automatically converts UTC to local timezone (WIB for Jakarta)
   static String time(DateTime time, {String? format}) {
+    // Convert UTC to local timezone before formatting
+    final localTime = time.toLocal();
     final formatter =
         DateFormat(format ?? AppConstants.timeFormatDisplay, 'id_ID');
-    return formatter.format(time);
+    return formatter.format(localTime);
   }
 
   /// Format date to API format
@@ -67,8 +76,10 @@ class FormatUtils {
   /// Format relative time
   /// Example: "2 jam yang lalu", "kemarin", "minggu lalu"
   static String relativeTime(DateTime dateTime) {
+    // Convert to local timezone for accurate difference calculation
     final now = DateTime.now();
-    final difference = now.difference(dateTime);
+    final localDateTime = dateTime.toLocal();
+    final difference = now.difference(localDateTime);
 
     if (difference.inSeconds < 60) {
       return 'Baru saja';
