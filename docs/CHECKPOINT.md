@@ -1,5 +1,5 @@
 # UTTER APP — CHECKPOINT vs MASTER BLUEPRINT v2.1
-> Last updated: 2026-02-09
+> Last updated: 2026-02-10
 
 ## LEGEND
 - [x] Selesai
@@ -703,6 +703,45 @@ Kitchen tickets now group items by station (Kitchen vs Bar) so server knows whic
 6. **Category UI**: SegmentedButton (Kitchen/Bar) in both create and edit category dialogs
 7. **Category list**: shows station badge (icon + label) under category name
 
+### Production Readiness Audit & Fix ✅ DONE (2026-02-10)
+Full code-level audit (5 parallel agents: POS core, Back Office, models+DB, KDS/self-order/AI, routing/config).
+Found issues across 15 files, all fixed in single commit `c004ad3`:
+
+**Migration 031 — `031_fix_audit_issues.sql`:**
+1. **Missing tables**: `purchases` + `purchase_items` CREATE TABLE (existed in DB but had no migration file)
+2. **Missing columns**: `categories.station` (kitchen/bar), `shifts.total_cash`, `shifts.total_non_cash`
+3. **RLS policies**: idempotent anon CRUD for purchases + purchase_items
+4. **Realtime publication**: purchases + purchase_items added to supabase_realtime
+5. **Compound indexes**: 6 new indexes for common query patterns (orders, products, ingredients, stock_movements)
+6. **Payment method standardization**: migrated legacy values (e_wallet→ewallet, gofood/grabfood→platform), clean CHECK constraint
+
+**Realtime Sync Service fix:**
+- Added subscriptions for `customers` and `tables` tables (were referenced but not subscribed)
+- Now listens to 11 tables total
+
+**Timezone fixes (4 files):**
+- `pos_refund_repository.dart`: DateTime.now() → DateTimeUtils.nowUtc()
+- `pos_table_repository.dart`: DateTime.now() → DateTimeUtils.nowUtc()
+- `pos_checkout_provider.dart`: now.toIso8601String() → now.toUtc().toIso8601String()
+- `purchase_repository.dart`: DateTime.now() → DateTimeUtils.nowUtc()
+
+**DateTime parsing safety (4 models):**
+- `order.dart`, `shift.dart`, `customer.dart`, `purchase.dart`: DateTime.parse → DateTime.tryParse with fallback (prevents crash on null/malformed dates)
+
+**Error logging (5 repositories):**
+- Added `debugPrint` to silent `catch (_)` blocks in: pos_product_repository, pos_stock_repository, pos_discount_repository, pos_modifier_repository, pos_table_repository
+
+**pubspec.yaml cleanup:**
+- Removed unused `provider: ^6.1.2` dependency
+- Added explicit `web: ^1.1.0` (was only transitive)
+
+**Remaining low-priority items (not blocking production):**
+- [ ] PIN verification is client-side only (no server-side check)
+- [ ] P&L manual expenses don't persist across sessions
+- [ ] Self-order URL hardcoded (should be configurable per outlet)
+- [ ] No unit tests (manual SQL simulation testing done)
+- [ ] Full offline mode not wired into checkout flow
+
 ---
 
 ## PROGRESS SUMMARY
@@ -722,3 +761,4 @@ Kitchen tickets now group items by station (Kitchen vs Bar) so server knows whic
 | EXTRA - Auto HPP | 100% | [!] Recipe→cost→margin automation with price cascade |
 | EXTRA - Operational Cost | 100% | [!] Monthly costs + bonus allocation for HPP |
 | EXTRA - Bugfixes | 100% | [!] Tax CRUD, inventory edit, TTS, POS stock, self-order submit, purchase trigger+supplier, migration 028 |
+| EXTRA - Prod Audit Fix | 100% | [!] Migration 031: missing tables, columns, indexes, timezone, datetime safety, error logging |
