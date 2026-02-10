@@ -4,7 +4,7 @@ import '../../core/models/order.dart';
 import 'pos_checkout_provider.dart';
 
 // Use dart:js for Web Audio API instead of dart:html
-import 'dart:js' as js if (dart.library.io) '';
+import 'dart:js' if (dart.library.io) '' as js;
 
 // Sound notification service using Web Audio API
 class OrderSoundService {
