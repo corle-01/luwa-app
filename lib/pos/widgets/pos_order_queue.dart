@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../../core/models/order.dart';
@@ -301,57 +302,8 @@ class _OrderCard extends ConsumerWidget {
               const Divider(height: 1),
               const SizedBox(height: 12),
 
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.restaurant_menu, size: 18),
-                      label: const Text('Tiket Dapur'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.accentColor,
-                        side: const BorderSide(color: AppTheme.accentColor),
-                      ),
-                      onPressed: () async {
-                        final items = await repo.getOrderItems(order.id);
-                        await kitchenPrintService.printKitchenTicket(
-                          orderNumber: order.orderNumber ?? '#${order.id.substring(0, 8)}',
-                          orderType: order.orderType,
-                          dateTime: order.createdAt,
-                          items: items,
-                          tableName: order.tableNumber?.toString(),
-                          cashierName: order.cashierName,
-                          notes: order.notes,
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Tiket dapur dicetak')),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.print, size: 18),
-                      label: const Text('Cetak Struk'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                      ),
-                      onPressed: () async {
-                        final items = await repo.getOrderItems(order.id);
-                        ReceiptPrinter.printReceipt(order, items);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Struk dicetak')),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
+              // Action buttons - different for pending vs completed orders
+              _ActionButtons(order: order, repo: repo, kitchenPrintService: kitchenPrintService),
             ],
           ),
         ),
@@ -470,6 +422,178 @@ class _StatusBadge extends StatelessWidget {
           color: color,
         ),
       ),
+    );
+  }
+}
+
+class _ActionButtons extends ConsumerStatefulWidget {
+  final Order order;
+  final dynamic repo;
+  final dynamic kitchenPrintService;
+
+  const _ActionButtons({
+    required this.order,
+    required this.repo,
+    required this.kitchenPrintService,
+  });
+
+  @override
+  ConsumerState<_ActionButtons> createState() => _ActionButtonsState();
+}
+
+class _ActionButtonsState extends ConsumerState<_ActionButtons> {
+  bool _processing = false;
+
+  Future<void> _acceptOrder() async {
+    if (_processing) return;
+    setState(() => _processing = true);
+
+    try {
+      // Update order status to completed (triggers stock deduction, etc.)
+      await Supabase.instance.client
+          .from('orders')
+          .update({
+            'status': 'completed',
+            'payment_status': 'paid',
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', widget.order.id);
+
+      // Refresh order list
+      ref.invalidate(posTodayOrdersProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Pesanan ${widget.order.orderNumber} diterima!'),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // For PENDING orders: show Accept Order button
+    if (widget.order.status == 'pending') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Payment status indicator
+          if (widget.order.paymentStatus == 'unpaid')
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.warningColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.payment, size: 16, color: AppTheme.warningColor),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Menunggu pembayaran di kasir',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.warningColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          // Accept Order button
+          SizedBox(
+            height: 44,
+            child: FilledButton.icon(
+              icon: _processing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle, size: 20),
+              label: Text(_processing ? 'Memproses...' : 'Terima Pesanan & Bayar'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.successColor,
+                disabledBackgroundColor: AppTheme.successColor.withValues(alpha: 0.5),
+              ),
+              onPressed: _processing ? null : _acceptOrder,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // For COMPLETED orders: show Kitchen Ticket + Print Receipt buttons
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.restaurant_menu, size: 18),
+            label: const Text('Tiket Dapur'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.accentColor,
+              side: const BorderSide(color: AppTheme.accentColor),
+            ),
+            onPressed: () async {
+              final items = await widget.repo.getOrderItems(widget.order.id);
+              await widget.kitchenPrintService.printKitchenTicket(
+                orderNumber: widget.order.orderNumber ?? '#${widget.order.id.substring(0, 8)}',
+                orderType: widget.order.orderType,
+                dateTime: widget.order.createdAt,
+                items: items,
+                tableName: widget.order.tableNumber?.toString(),
+                cashierName: widget.order.cashierName,
+                notes: widget.order.notes,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Tiket dapur dicetak')),
+                );
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: FilledButton.icon(
+            icon: const Icon(Icons.print, size: 18),
+            label: const Text('Cetak Struk'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+            ),
+            onPressed: () async {
+              final items = await widget.repo.getOrderItems(widget.order.id);
+              ReceiptPrinter.printReceipt(widget.order, items);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Struk dicetak')),
+                );
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 }

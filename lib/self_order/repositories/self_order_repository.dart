@@ -123,25 +123,24 @@ class SelfOrderRepository {
 
     await _client.from('order_items').insert(itemsData);
 
-    // Step 3: Update order to 'completed' — this fires DB triggers
-    // (deduct_stock, update_shift, update_customer)
-    await _client
-        .from('orders')
-        .update({
-          'status': 'completed',
-          'payment_status': paymentMethod == 'qris' ? 'paid' : 'unpaid',
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', orderId);
+    // Step 3: For QRIS (prepaid), mark as completed since payment verified.
+    // For cash, keep as 'pending' so cashier can verify payment first.
+    // DB triggers (deduct_stock, update_shift) only fire when status = 'completed'.
+    if (paymentMethod == 'qris') {
+      await _client
+          .from('orders')
+          .update({
+            'status': 'completed',
+            'payment_status': 'paid',
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', orderId);
+    }
+    // For cash payment, order stays 'pending' — cashier accepts via POS
 
-    // Step 4: Update table status to occupied
-    await _client
-        .from('tables')
-        .update({
-          'status': 'occupied',
-          'updated_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', tableId);
+    // Note: Table status NOT set to 'occupied' for self-order.
+    // Tables are just identifiers for delivery location, not occupancy tracking.
+    // Cashier can manually set table status if needed.
 
     return orderId;
   }
