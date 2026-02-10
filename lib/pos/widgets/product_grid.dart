@@ -60,28 +60,28 @@ class ProductGrid extends ConsumerWidget {
             final double aspectRatio;
             if (constraints.maxWidth > 1000) {
               crossAxisCount = 5;
-              aspectRatio = 0.72;
+              aspectRatio = 0.60; // More compact for large tablets
             } else if (constraints.maxWidth > 800) {
               crossAxisCount = 4;
-              aspectRatio = 0.72;
+              aspectRatio = 0.62; // More compact for tablets
             } else if (constraints.maxWidth > 500) {
               crossAxisCount = 3;
-              aspectRatio = 0.75;
+              aspectRatio = 0.68;
             } else if (constraints.maxWidth > 350) {
               crossAxisCount = 2;
-              aspectRatio = 0.78;
+              aspectRatio = 0.75;
             } else {
               crossAxisCount = 2;
               aspectRatio = 0.82;
             }
 
             return GridView.builder(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8), // Reduced from 12
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
                 childAspectRatio: aspectRatio,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+                crossAxisSpacing: 8, // Reduced from 10
+                mainAxisSpacing: 8, // Reduced from 10
               ),
               itemCount: products.length,
               itemBuilder: (context, index) {

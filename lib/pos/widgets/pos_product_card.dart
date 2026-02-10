@@ -117,7 +117,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                           padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               // Product Name
                               Text(
@@ -131,7 +131,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-
+                              const SizedBox(height: 4),
                               // Price
                               Text(
                                 FormatUtils.currency(widget.product.sellingPrice),
