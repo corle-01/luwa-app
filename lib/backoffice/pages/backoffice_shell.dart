@@ -6,6 +6,7 @@ import 'package:web/web.dart' as web;
 import '../../shared/themes/app_theme.dart';
 import '../../core/services/realtime_sync_service.dart';
 import '../ai/pages/ai_dashboard_page.dart';
+import '../devops/pages/devops_dashboard_page.dart';
 import 'settings_hub_page.dart';
 import 'dashboard_page.dart';
 import 'product_management_page.dart';
@@ -67,6 +68,7 @@ class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
     (icon: Icons.shopping_bag_rounded, label: 'Pembelian'),
     (icon: Icons.delivery_dining_rounded, label: 'Online'),
     (icon: Icons.settings_rounded, label: 'Pengaturan'),
+    (icon: Icons.engineering, label: 'DevOps'),
   ];
 
   // Bottom nav shows first 4 + "Lainnya" on mobile
@@ -82,6 +84,7 @@ class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
       case 5: return const PurchasePage();
       case 6: return const OnlineOrderPage();
       case 7: return const SettingsHubPage();
+      case 8: return const DevOpsDashboardPage();
       default: return const DashboardPage();
     }
   }

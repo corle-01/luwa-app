@@ -50,11 +50,15 @@ class GeminiService {
 
   final AiContextBuilder _contextBuilder;
   final http.Client _httpClient;
+  final String? customSystemInstruction;
+  final List<Map<String, dynamic>>? customTools;
 
   GeminiService({
     AiContextBuilder? contextBuilder,
     http.Client? httpClient,
     String outletId = 'a0000000-0000-0000-0000-000000000001',
+    this.customSystemInstruction,
+    this.customTools,
   })  : _contextBuilder = contextBuilder ?? AiContextBuilder(outletId: outletId),
         _httpClient = httpClient ?? http.Client();
 
@@ -147,10 +151,10 @@ class GeminiService {
     // Build messages list (OpenAI format)
     final messages = <Map<String, dynamic>>[];
 
-    // System message
+    // System message (use custom if provided, otherwise build from context)
     messages.add({
       'role': 'system',
-      'content': _buildSystemInstruction(context),
+      'content': customSystemInstruction ?? _buildSystemInstruction(context),
     });
 
     // Add history
@@ -169,8 +173,8 @@ class GeminiService {
       'content': message,
     });
 
-    // Tools are already in OpenAI format from AiTools
-    final tools = AiTools.toolDeclarations;
+    // Tools are already in OpenAI format (use custom if provided, otherwise use AiTools)
+    final tools = customTools ?? AiTools.toolDeclarations;
 
     // Function calling loop (max 5 rounds)
     int totalTokens = 0;
