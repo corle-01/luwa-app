@@ -446,17 +446,32 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
 
   Future<void> _acceptOrder() async {
     if (_processing) return;
+
+    // For UNPAID orders (cash), confirm payment collection first
+    if (widget.order.paymentStatus == 'unpaid') {
+      final confirmed = await _showPaymentConfirmation();
+      if (confirmed != true) return;
+    }
+
     setState(() => _processing = true);
 
     try {
+      // Prepare update data
+      final updates = {
+        'status': 'completed',
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      };
+
+      // Only update payment_status if it was unpaid (cash order with payment collected)
+      // For QRIS (already paid), payment_status stays 'paid'
+      if (widget.order.paymentStatus == 'unpaid') {
+        updates['payment_status'] = 'paid';
+      }
+
       // Update order status to completed (triggers stock deduction, etc.)
       await Supabase.instance.client
           .from('orders')
-          .update({
-            'status': 'completed',
-            'payment_status': 'paid',
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          })
+          .update(updates)
           .eq('id', widget.order.id);
 
       // Refresh order list
@@ -482,6 +497,126 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
     } finally {
       if (mounted) setState(() => _processing = false);
     }
+  }
+
+  /// Show confirmation dialog for cash payment collection
+  Future<bool?> _showPaymentConfirmation() async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.warningColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.payments_rounded,
+                color: AppTheme.warningColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Konfirmasi Pembayaran',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pesanan: ${widget.order.orderNumber}',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Total: ${FormatUtils.currency(widget.order.total)}',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.warningColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppTheme.warningColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    color: AppTheme.warningColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Pastikan uang sudah diterima dari customer sebelum menerima pesanan!',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppTheme.textPrimary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.successColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            icon: const Icon(Icons.check_circle_rounded, size: 18),
+            label: Text(
+              'Uang Sudah Diterima',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
