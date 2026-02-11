@@ -1015,7 +1015,8 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
   final _costController = TextEditingController();
   String _selectedType = 'purchase';
   late String _category;
-  late String _inputUnit; // unit chosen for input (can differ from base)
+  late String _inputUnit; // unit chosen for stock quantity input
+  late String _costUnit; // unit chosen for cost input
   bool _saving = false;
 
   static const _types = [
@@ -1055,16 +1056,40 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
     return '$qtyText $_inputUnit = ${FormatUtils.number(converted, decimals: decimals)} $baseUnit';
   }
 
+  /// Cost conversion preview: "Rp 50,000 per kg = Rp 50 per g"
+  String? get _costConversionPreview {
+    final costText = _costController.text.trim().replaceAll('.', '').replaceAll(',', '');
+    if (costText.isEmpty) return null;
+    final cost = double.tryParse(costText);
+    if (cost == null || cost == 0) return null;
+    final baseUnit = widget.ingredient.baseUnit;
+    if (_costUnit.toLowerCase() == baseUnit.toLowerCase()) return null;
+
+    // Convert 1 unit from cost unit to base unit to get conversion factor
+    final converted = UnitConverter.convert(
+      value: 1.0,
+      from: _costUnit,
+      to: baseUnit,
+    );
+    if (converted == null) return null;
+
+    final costPerBase = cost / converted;
+    return 'Rp ${FormatUtils.currency(cost).replaceAll('Rp ', '')} per $_costUnit = Rp ${FormatUtils.currency(costPerBase).replaceAll('Rp ', '')} per $baseUnit';
+  }
+
   @override
   void initState() {
     super.initState();
     _category = widget.ingredient.category;
     // Start with display unit, but allow compatible units for input
     _inputUnit = widget.ingredient.unit;
+    _costUnit = widget.ingredient.unit; // Start with display unit for cost too
     _costController.text = widget.ingredient.costPerUnit > 0
         ? widget.ingredient.costPerUnit.toStringAsFixed(0)
         : '';
+    // Add listeners for real-time preview updates
     _quantityController.addListener(() => setState(() {}));
+    _costController.addListener(() => setState(() {}));
   }
 
   @override
@@ -1080,6 +1105,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
     final compatibleUnits = _getCompatibleUnits(widget.ingredient.unit);
     final hasMultipleUnits = compatibleUnits.length > 1;
     final preview = _conversionPreview;
+    final costPreview = _costConversionPreview;
 
     return AlertDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -1233,22 +1259,80 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Cost per unit input
-              TextFormField(
-                controller: _costController,
-                decoration: InputDecoration(
-                  labelText: 'Harga per ${widget.ingredient.unit}',
-                  prefixText: 'Rp ',
-                  prefixIcon: const Icon(Icons.attach_money),
-                  hintText: 'Harga beli per unit',
-                  helperText: 'Ubah harga akan otomatis update HPP produk terkait',
-                  helperStyle: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: AppTheme.primaryColor,
+              // Cost per unit input with unit selector
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _costController,
+                      decoration: InputDecoration(
+                        labelText: 'Harga per Unit',
+                        prefixText: 'Rp ',
+                        prefixIcon: const Icon(Icons.attach_money),
+                        hintText: 'Harga beli',
+                        helperText: 'Ubah harga akan update HPP produk',
+                        helperStyle: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  if (hasMultipleUnits) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        value: compatibleUnits.contains(_costUnit) ? _costUnit : compatibleUnits.first,
+                        decoration: const InputDecoration(
+                          labelText: 'Per',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        ),
+                        items: compatibleUnits.map((u) => DropdownMenuItem(
+                          value: u,
+                          child: Text(u, style: GoogleFonts.inter(fontSize: 14)),
+                        )).toList(),
+                        onChanged: (v) {
+                          if (v != null) setState(() => _costUnit = v);
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+
+              // Cost conversion preview
+              if (costPreview != null) ...[
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.successColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.successColor.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calculate, size: 16, color: AppTheme.successColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          costPreview,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.successColor,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                keyboardType: TextInputType.number,
-              ),
+              ],
               const SizedBox(height: 16),
 
               // Type selector
@@ -1464,13 +1548,31 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
           : _notesController.text.trim();
 
       // Update cost_per_unit and/or category if changed
-      final newCost = double.tryParse(_costController.text.trim().replaceAll('.', '').replaceAll(',', ''));
-      final costChanged = newCost != null && newCost != widget.ingredient.costPerUnit;
+      final newCostInput = double.tryParse(_costController.text.trim().replaceAll('.', '').replaceAll(',', ''));
+      double? newCostInBase;
+
+      if (newCostInput != null) {
+        // Convert cost from _costUnit to base unit
+        // Example: Rp 50,000 per kg → Rp 50 per g
+        final converted = UnitConverter.convert(
+          value: 1.0, // 1 unit in cost unit
+          from: _costUnit,
+          to: widget.ingredient.baseUnit,
+        );
+        if (converted != null) {
+          // Cost per base unit = cost per cost unit / conversion factor
+          newCostInBase = newCostInput / converted;
+        } else {
+          newCostInBase = newCostInput;
+        }
+      }
+
+      final costChanged = newCostInBase != null && newCostInBase != widget.ingredient.costPerUnit;
       final categoryChanged = _category != widget.ingredient.category;
       if (costChanged || categoryChanged) {
         await repo.updateIngredient(
           widget.ingredient.id,
-          costPerUnit: costChanged ? newCost : null,
+          costPerUnit: costChanged ? newCostInBase : null,
           category: categoryChanged ? _category : null,
         );
       }
