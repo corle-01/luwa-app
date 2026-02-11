@@ -501,52 +501,26 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
 
   /// Show confirmation dialog for cash payment collection
   Future<bool?> _showPaymentConfirmation() async {
+    final orderNumber = widget.order.orderNumber;
+    final total = FormatUtils.currency(widget.order.total);
+
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.warningColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.payments_rounded,
-                color: AppTheme.warningColor,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Konfirmasi Pembayaran',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
+        title: const Text('Konfirmasi Pembayaran'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Pesanan: ${widget.order.orderNumber}',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
-              ),
-            ),
+            Text('Pesanan: $orderNumber'),
             const SizedBox(height: 8),
             Text(
-              'Total: ${FormatUtils.currency(widget.order.total)}',
-              style: GoogleFonts.inter(
+              'Total: $total',
+              style: const TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.bold,
                 color: AppTheme.primaryColor,
               ),
             ),
@@ -554,28 +528,18 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.warningColor.withValues(alpha: 0.1),
+                color: Colors.orange.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppTheme.warningColor.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(
-                    Icons.info_outline,
-                    color: AppTheme.warningColor,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
+                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Pastikan uang sudah diterima dari customer sebelum menerima pesanan!',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppTheme.textPrimary,
-                        height: 1.4,
-                      ),
+                      style: TextStyle(fontSize: 13),
                     ),
                   ),
                 ],
@@ -585,34 +549,17 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Batal',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
-              ),
-            ),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
           ),
           ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.successColor,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
             ),
             icon: const Icon(Icons.check_circle_rounded, size: 18),
-            label: Text(
-              'Uang Sudah Diterima',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            label: const Text('Uang Sudah Diterima'),
           ),
         ],
       ),
