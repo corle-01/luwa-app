@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
+import '../../shared/utils/unit_converter.dart';
 import '../../core/providers/outlet_provider.dart';
 import '../providers/inventory_provider.dart';
 import '../providers/product_stock_provider.dart';
@@ -1029,56 +1030,27 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
     ('snack', 'Snack'),
   ];
 
-  // ── Unit conversion system ──
-  // Mass family (base = g)
-  static const _massUnits = {
-    'kg': 1000.0,
-    'g': 1.0,
-    'mg': 0.001,
-  };
-  // Volume family (base = ml)
-  static const _volumeUnits = {
-    'liter': 1000.0,
-    'l': 1000.0,
-    'ml': 1.0,
-  };
-
-  /// Get compatible units for an ingredient's base unit.
-  List<String> _getCompatibleUnits(String baseUnit) {
-    final lower = baseUnit.toLowerCase();
-    if (_massUnits.containsKey(lower)) return ['kg', 'g'];
-    if (_volumeUnits.containsKey(lower)) return ['liter', 'ml'];
-    // Count units — no conversion possible
-    return [baseUnit];
+  /// Get compatible units for an ingredient's base unit using UnitConverter.
+  List<String> _getCompatibleUnits(String unit) {
+    return UnitConverter.getCompatibleUnits(unit);
   }
 
-  /// Convert [value] from [fromUnit] → [toUnit]. Returns null if incompatible.
-  double? _convertUnit(double value, String fromUnit, String toUnit) {
-    final from = fromUnit.toLowerCase();
-    final to = toUnit.toLowerCase();
-    if (from == to) return value;
-
-    // Mass
-    if (_massUnits.containsKey(from) && _massUnits.containsKey(to)) {
-      return value * _massUnits[from]! / _massUnits[to]!;
-    }
-    // Volume
-    if (_volumeUnits.containsKey(from) && _volumeUnits.containsKey(to)) {
-      return value * _volumeUnits[from]! / _volumeUnits[to]!;
-    }
-    return null; // incompatible
-  }
-
-  /// Preview text: "3.5 kg = 3500 g"
+  /// Preview text: "3.5 kg = 3500 g" using UnitConverter
   String? get _conversionPreview {
     final qtyText = _quantityController.text.trim();
     if (qtyText.isEmpty) return null;
     final qty = double.tryParse(qtyText);
     if (qty == null || qty == 0) return null;
-    final baseUnit = widget.ingredient.unit;
+    final baseUnit = widget.ingredient.baseUnit;
     if (_inputUnit.toLowerCase() == baseUnit.toLowerCase()) return null;
-    final converted = _convertUnit(qty, _inputUnit, baseUnit);
+
+    final converted = UnitConverter.convert(
+      value: qty,
+      from: _inputUnit,
+      to: baseUnit,
+    );
     if (converted == null) return null;
+
     final decimals = converted == converted.roundToDouble() ? 0 : 2;
     return '$qtyText $_inputUnit = ${FormatUtils.number(converted, decimals: decimals)} $baseUnit';
   }
@@ -1087,6 +1059,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
   void initState() {
     super.initState();
     _category = widget.ingredient.category;
+    // Start with display unit, but allow compatible units for input
     _inputUnit = widget.ingredient.unit;
     _costController.text = widget.ingredient.costPerUnit > 0
         ? widget.ingredient.costPerUnit.toStringAsFixed(0)
@@ -1167,7 +1140,7 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${FormatUtils.number(widget.ingredient.currentStock, decimals: widget.ingredient.currentStock == widget.ingredient.currentStock.roundToDouble() ? 0 : 2)} ${widget.ingredient.unit}',
+                          widget.ingredient.formattedStock,
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -1504,28 +1477,26 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
 
       // Only adjust stock if quantity was entered
       if (rawInput != null && rawInput != 0) {
-        // Convert input unit to ingredient's base unit
-        final baseUnit = widget.ingredient.unit;
-        final converted = _convertUnit(rawInput, _inputUnit, baseUnit) ?? rawInput;
-
         // For waste type, always make quantity negative
         // For purchase, always positive
         // For adjustment, keep as-is (user can enter negative)
         final double quantity;
         if (_selectedType == 'waste') {
-          quantity = -(converted.abs());
+          quantity = -(rawInput.abs());
         } else if (_selectedType == 'purchase') {
-          quantity = converted.abs();
+          quantity = rawInput.abs();
         } else {
-          quantity = converted;
+          quantity = rawInput;
         }
 
+        // Repository will handle unit conversion to base unit
         await repo.adjustStock(
           ingredientId: widget.ingredient.id,
           outletId: widget.outletId,
           quantity: quantity,
           type: _selectedType,
           notes: notes,
+          inputUnit: _inputUnit, // Pass the input unit for conversion
         );
       }
 

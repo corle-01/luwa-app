@@ -1,14 +1,16 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../shared/utils/unit_converter.dart';
 
 class IngredientModel {
   final String id;
   final String name;
-  final String unit;
+  final String unit; // Display unit (for UI)
+  final String baseUnit; // Storage unit (g, ml, or pcs)
   final String category;
-  final double currentStock;
-  final double minStock;
-  final double maxStock;
-  final double costPerUnit;
+  final double currentStock; // Always in base unit
+  final double minStock; // Always in base unit
+  final double maxStock; // Always in base unit
+  final double costPerUnit; // Cost per display unit
   final String? supplierName;
   final bool isActive;
   final DateTime? createdAt;
@@ -18,6 +20,7 @@ class IngredientModel {
     required this.id,
     required this.name,
     required this.unit,
+    required this.baseUnit,
     this.category = 'makanan',
     this.currentStock = 0,
     this.minStock = 0,
@@ -30,10 +33,12 @@ class IngredientModel {
   });
 
   factory IngredientModel.fromJson(Map<String, dynamic> json) {
+    final unit = json['unit'] as String? ?? 'pcs';
     return IngredientModel(
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
-      unit: json['unit'] as String? ?? 'pcs',
+      unit: unit,
+      baseUnit: json['base_unit'] as String? ?? UnitConverter.getBaseUnit(unit),
       category: json['category'] as String? ?? 'makanan',
       currentStock: _toDouble(json['current_stock']),
       minStock: _toDouble(json['min_stock']),
@@ -70,6 +75,52 @@ class IngredientModel {
   }
 
   double get stockValue => currentStock * costPerUnit;
+
+  // ══════════════════════════════════════════════════════════════
+  // Unit Conversion Helpers
+  // ══════════════════════════════════════════════════════════════
+
+  /// Get current stock in display unit
+  double get currentStockInDisplayUnit {
+    return UnitConverter.convert(
+      value: currentStock,
+      from: baseUnit,
+      to: unit,
+    ) ?? currentStock;
+  }
+
+  /// Get min stock in display unit
+  double get minStockInDisplayUnit {
+    return UnitConverter.convert(
+      value: minStock,
+      from: baseUnit,
+      to: unit,
+    ) ?? minStock;
+  }
+
+  /// Get max stock in display unit
+  double get maxStockInDisplayUnit {
+    return UnitConverter.convert(
+      value: maxStock,
+      from: baseUnit,
+      to: unit,
+    ) ?? maxStock;
+  }
+
+  /// Format current stock for display
+  String get formattedStock {
+    return UnitConverter.formatValue(currentStock, baseUnit);
+  }
+
+  /// Convert value from any unit to base unit
+  double convertToBaseUnit(double value, String fromUnit) {
+    final converted = UnitConverter.convert(
+      value: value,
+      from: fromUnit,
+      to: baseUnit,
+    );
+    return converted ?? value;
+  }
 }
 
 class StockMovement {
@@ -165,20 +216,43 @@ class InventoryRepository {
     required double quantity,
     required String type,
     String? notes,
+    String? inputUnit, // Unit used for input (optional)
   }) async {
-    // Insert stock movement record
+    double finalQuantity = quantity;
+
+    // If inputUnit is provided, convert to base unit
+    if (inputUnit != null) {
+      // Fetch ingredient to get base unit
+      final response = await _supabase
+          .from('ingredients')
+          .select('base_unit')
+          .eq('id', ingredientId)
+          .single();
+
+      final baseUnit = response['base_unit'] as String? ?? 'pcs';
+
+      // Convert to base unit
+      final converted = UnitConverter.convert(
+        value: quantity,
+        from: inputUnit,
+        to: baseUnit,
+      );
+      finalQuantity = converted ?? quantity;
+    }
+
+    // Insert stock movement record (store in base unit)
     await _supabase.from('stock_movements').insert({
       'outlet_id': outletId,
       'ingredient_id': ingredientId,
       'movement_type': type,
-      'quantity': quantity,
+      'quantity': finalQuantity,
       'notes': notes,
     });
 
     // Atomic stock update via RPC (prevents race conditions)
     await _supabase.rpc('increment_ingredient_stock', params: {
       'p_ingredient_id': ingredientId,
-      'p_quantity': quantity,
+      'p_quantity': finalQuantity,
     });
   }
 
@@ -210,13 +284,24 @@ class InventoryRepository {
     double minStock = 0,
     String? supplierId,
   }) async {
+    // Determine base unit from display unit
+    final baseUnit = UnitConverter.getBaseUnit(unit);
+
+    // Convert minStock to base unit if needed
+    final minStockInBase = UnitConverter.convert(
+      value: minStock,
+      from: unit,
+      to: baseUnit,
+    ) ?? minStock;
+
     await _supabase.from('ingredients').insert({
       'outlet_id': outletId,
       'name': name,
-      'unit': unit,
+      'unit': unit, // Display unit
+      'base_unit': baseUnit, // Storage unit
       'category': category,
       'cost_per_unit': costPerUnit,
-      'min_stock': minStock,
+      'min_stock': minStockInBase, // Store in base unit
       'current_stock': 0,
       'supplier_id': supplierId,
       'is_active': true,
