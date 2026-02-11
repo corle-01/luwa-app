@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -88,12 +89,16 @@ final realtimeSyncProvider = Provider<void>((ref) {
     event: PostgresChangeEvent.all,
     schema: 'public',
     table: 'orders',
-    callback: (_) => debounced('orders', () {
-      ref.invalidate(kdsOrdersProvider);
-      ref.invalidate(dashboardStatsProvider);
-      ref.invalidate(recentOrdersProvider);
-      ref.invalidate(posTodayOrdersProvider);
-    }),
+    callback: (payload) {
+      debugPrint('📦 RealtimeSync: Orders table changed - ${payload.eventType}');
+      debounced('orders', () {
+        debugPrint('🔄 RealtimeSync: Invalidating order providers');
+        ref.invalidate(kdsOrdersProvider);
+        ref.invalidate(dashboardStatsProvider);
+        ref.invalidate(recentOrdersProvider);
+        ref.invalidate(posTodayOrdersProvider);
+      });
+    },
   );
 
   // ── Stock Movements (ingredients) ─────────────────────────
@@ -184,9 +189,18 @@ final realtimeSyncProvider = Provider<void>((ref) {
     }),
   );
 
-  channel.subscribe();
+  debugPrint('🔌 RealtimeSync: Subscribing to channel for outlet $outletId');
+
+  channel.subscribe((status, error) {
+    if (error != null) {
+      debugPrint('❌ RealtimeSync: Subscription error - $error');
+    } else {
+      debugPrint('✅ RealtimeSync: Subscription status - $status');
+    }
+  });
 
   ref.onDispose(() {
+    debugPrint('🔌 RealtimeSync: Disposing channel for outlet $outletId');
     for (final t in timers.values) {
       t.cancel();
     }

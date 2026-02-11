@@ -5,6 +5,7 @@ import '../../shared/themes/app_theme.dart';
 import '../../shared/utils/format_utils.dart';
 import '../../shared/widgets/offline_indicator.dart';
 import '../../core/services/sync_service.dart';
+import '../../core/services/realtime_sync_service.dart';
 import '../../core/providers/outlet_provider.dart';
 import '../widgets/pos_header.dart';
 import '../widgets/product_search_bar.dart';
@@ -26,6 +27,9 @@ class PosMainPage extends ConsumerWidget {
 
     // Ensure the SyncService is alive so it auto-syncs when back online
     ref.watch(syncServiceProvider);
+
+    // Initialize Supabase realtime subscription for live updates
+    ref.watch(realtimeSyncProvider);
 
     return Scaffold(
       body: shiftAsync.when(
