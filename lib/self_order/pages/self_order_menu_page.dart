@@ -1031,6 +1031,21 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
     return (unitPrice + _selectedModifiersTotal) * _quantity;
   }
 
+  /// Validates that all required modifier groups have selections
+  bool _areRequiredModifiersSelected(List<Map<String, dynamic>> modifierGroups) {
+    for (final group in modifierGroups) {
+      final isRequired = group['is_required'] as bool? ?? false;
+      if (isRequired) {
+        final groupId = group['id'] as String;
+        final selectedOptions = _modifierSelections[groupId] ?? [];
+        if (selectedOptions.isEmpty) {
+          return false; // Required group has no selection
+        }
+      }
+    }
+    return true; // All required groups are satisfied
+  }
+
   void _addToCart() {
     final product = widget.product;
     final unitPrice = (product['selling_price'] as num?)?.toDouble() ?? 0;
@@ -1263,7 +1278,15 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
           ),
 
           // Bottom bar: quantity selector + add-to-cart button
-          _buildBottomBar(name, price),
+          // Pass modifier groups for validation (empty list if still loading/error)
+          _buildBottomBar(
+            name,
+            price,
+            modifierGroupsAsync.maybeWhen(
+              data: (groups) => groups,
+              orElse: () => <Map<String, dynamic>>[],
+            ),
+          ),
         ],
       ),
     );
@@ -1581,7 +1604,10 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
   // -------------------------------------------------------------------------
   // Bottom bar with quantity + add-to-cart button
   // -------------------------------------------------------------------------
-  Widget _buildBottomBar(String name, double basePrice) {
+  Widget _buildBottomBar(String name, double basePrice, List<Map<String, dynamic>> modifierGroups) {
+    // Validate required modifiers
+    final canAddToCart = _areRequiredModifiersSelected(modifierGroups);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
       decoration: BoxDecoration(
@@ -1643,13 +1669,15 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
             ),
             const SizedBox(width: 14),
 
-            // Add to cart button
+            // Add to cart button - disabled if required modifiers not selected
             Expanded(
               child: ElevatedButton(
-                onPressed: _addToCart,
+                onPressed: canAddToCart ? _addToCart : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppTheme.borderColor,
+                  disabledForegroundColor: AppTheme.textSecondary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
