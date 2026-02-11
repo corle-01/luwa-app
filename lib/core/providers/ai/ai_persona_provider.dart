@@ -4,15 +4,15 @@ import 'package:utter_app/core/providers/outlet_provider.dart';
 import 'package:utter_app/core/services/ai/ai_memory_service.dart';
 import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
 
-/// State for the AI persona system (OTAK + PERASAAN).
+/// State for the AI persona system (Memory + Business Intelligence).
 class AiPersonaState {
-  /// All stored AI memories (OTAK).
+  /// All stored AI memories (Memory).
   final List<AiMemory> memories;
 
-  /// Current business mood (PERASAAN).
+  /// Current business mood (Business Intelligence).
   final BusinessMoodData? mood;
 
-  /// Today's predictions (PERASAAN).
+  /// Today's predictions (Business Intelligence).
   final BusinessPrediction? prediction;
 
   /// Whether data is currently loading.
@@ -49,8 +49,8 @@ class AiPersonaState {
 
 /// Notifier for the AI persona system.
 ///
-/// Manages the OTAK (Memory) and PERASAAN (Prediction) personas.
-/// BADAN (Action) is managed by the existing action executor/log system.
+/// Manages the Memory and Business Intelligence personas.
+/// Action Center is managed by the existing action executor/log system.
 class AiPersonaNotifier extends StateNotifier<AiPersonaState> {
   final AiMemoryService _memoryService;
   final AiPredictionService _predictionService;

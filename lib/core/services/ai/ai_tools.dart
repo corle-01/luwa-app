@@ -213,7 +213,7 @@ class AiTools {
       },
     },
 
-    // ── AI Memory (OTAK) ─────────────────────────────────────
+    // ── AI Memory ─────────────────────────────────────
     {
       'type': 'function',
       'function': {
@@ -235,7 +235,7 @@ class AiTools {
       },
     },
 
-    // ── Business Health Check (PERASAAN) ─────────────────────
+    // ── Business Health Check (Business Intelligence) ─────────────────────
     {
       'type': 'function',
       'function': {

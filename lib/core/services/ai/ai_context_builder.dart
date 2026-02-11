@@ -9,9 +9,9 @@ import 'package:utter_app/core/utils/date_utils.dart';
 /// Builds rich context data for AI conversations.
 ///
 /// Integrates the three AI personas:
-/// - OTAK (Memory): Business insights from past conversations
-/// - BADAN (Action): Real-time business data for action decisions
-/// - PERASAAN (Prediction): Business mood and forecasts
+/// - Memory: Business insights from past conversations
+/// - Action Center: Real-time business data for action decisions
+/// - Business Intelligence: Business mood and forecasts
 class AiContextBuilder {
   final SupabaseClient _client;
   final AiInsightRepository _insightRepo;
@@ -42,7 +42,7 @@ class AiContextBuilder {
       _getOperationalCosts(outletId),
     ]);
 
-    // Build memory context from OTAK
+    // Build memory context from Memory persona
     final memoryContext = _memoryService.buildMemoryContext();
 
     // Cast prediction results
@@ -58,9 +58,9 @@ class AiContextBuilder {
       'low_stock_items': results[4],
       'active_insights_count': results[5],
       'timestamp': DateTime.now().toIso8601String(),
-      // OTAK persona context
+      // Memory persona context
       'ai_memories': memoryContext,
-      // PERASAAN persona context
+      // Business Intelligence persona context
       'business_mood': {
         'mood': mood.moodEmoji,
         'text': mood.moodText,

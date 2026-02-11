@@ -25,8 +25,8 @@ import 'package:utter_app/backoffice/ai/pages/ai_settings_page.dart';
 ///
 /// Full-width dashboard with floating avatar overlay for chat.
 /// - OTAK (Memory): Stored insights from conversations
-/// - BADAN (Action): Chat via floating avatar overlay
-/// - PERASAAN (Prediction): Business mood, forecasts, warnings
+/// - Action Center: Chat via floating avatar overlay
+/// - Business Intelligence: Business mood, forecasts, warnings
 class AiDashboardPage extends ConsumerStatefulWidget {
   const AiDashboardPage({super.key});
 
@@ -231,7 +231,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
       },
       child: CustomScrollView(
         slivers: [
-          // === PERASAAN: Business Mood + Predictions Card ===
+          // === Business Intelligence: Business Mood + Predictions Card ===
           SliverToBoxAdapter(
             child: _buildPredictionCard(personaState),
           ),
@@ -465,7 +465,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
     );
   }
 
-  /// PERASAAN: Business Mood + Predictions card at the top of the left column.
+  /// Business Intelligence: Business Mood + Predictions card at the top of the left column.
   Widget _buildPredictionCard(AiPersonaState personaState) {
     final mood = personaState.mood;
     final prediction = personaState.prediction;
@@ -519,17 +519,17 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: PERASAAN
+            // Header: Business Intelligence
             Row(
               children: [
                 Icon(
-                  Icons.favorite_rounded,
+                  Icons.lightbulb_rounded,
                   size: 18,
                   color: moodConfig.color,
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Perasaan Bisnis',
+                  'Business Intelligence',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -989,23 +989,23 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
         children: [
           // Persona indicators
           _buildPersonaDot(
-            'OTAK',
+            'Memory',
             Icons.psychology_outlined,
             AppTheme.aiPrimary,
             personaState.memories.isNotEmpty,
           ),
           const SizedBox(width: AppTheme.spacingS),
           _buildPersonaDot(
-            'BADAN',
-            Icons.flash_on_outlined,
+            'Action Center',
+            Icons.bolt_rounded,
             AppTheme.successColor,
             true, // Always active (function calling)
           ),
           const SizedBox(width: AppTheme.spacingS),
           _buildPersonaDot(
-            'PERASAAN',
-            Icons.favorite_outlined,
-            const Color(0xFFEC4899), // Pink
+            'Business Intelligence',
+            Icons.lightbulb_outlined,
+            const Color(0xFF8B5CF6), // Purple for intelligence
             personaState.mood != null,
           ),
           const SizedBox(width: AppTheme.spacingM),

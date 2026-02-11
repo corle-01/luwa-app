@@ -13,7 +13,7 @@ String _sanitizeLike(String input) =>
 ///
 /// This is the bridge between AI intent and actual system actions.
 /// Each method maps to a tool defined in [AiTools].
-/// Now includes OTAK (save_memory) and PERASAAN (check_business_health) actions.
+/// Now includes Memory (save_memory) and Business Intelligence (check_business_health) actions.
 class AiActionExecutor {
   final SupabaseClient _client;
   final AiMemoryService _memoryService;
@@ -580,7 +580,7 @@ class AiActionExecutor {
     }
   }
 
-  // ── AI Memory (OTAK) ──────────────────────────────────────
+  // ── AI Memory ──────────────────────────────────────
 
   Future<Map<String, dynamic>> _saveMemory(Map<String, dynamic> args) async {
     final insight = args['insight'] as String;
@@ -600,7 +600,7 @@ class AiActionExecutor {
     };
   }
 
-  // ── Business Health Check (PERASAAN) ──────────────────────
+  // ── Business Health Check (Business Intelligence) ──────────────────────
 
   Future<Map<String, dynamic>> _checkBusinessHealth(Map<String, dynamic> args) async {
     try {

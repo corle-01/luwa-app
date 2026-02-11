@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../utils/date_utils.dart';
 import 'ai_memory_service.dart';
 
-/// PERASAAN - AI Prediction & Emotional Intelligence Service
+/// Business Intelligence - AI Prediction & Strategic Analysis Service
 ///
 /// Provides business predictions, mood assessment, and proactive warnings.
 /// This is the "emotional" layer of the AI persona system - it reads the
@@ -242,7 +242,7 @@ class AiPredictionService {
 
       final buffer = StringBuffer();
       buffer.writeln('');
-      buffer.writeln('PERASAAN (Mood & Prediksi Bisnis):');
+      buffer.writeln('Business Intelligence (Mood & Prediksi Bisnis):');
       buffer.writeln('- Mood hari ini: ${mood.moodText}');
       buffer.writeln('- Revenue hari ini: Rp ${_formatCurrency(mood.todayRevenue)} (${mood.todayOrders} order)');
       if (mood.projectedRevenue > 0 && mood.dayProgress > 0.1) {
