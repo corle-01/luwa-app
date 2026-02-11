@@ -85,32 +85,39 @@ final posCompletedOrdersProvider = Provider<List<Order>>((ref) {
 // Real-time notification provider using ref.listen
 // This provider auto-initializes and triggers sound on order count changes
 final orderNotificationInitializerProvider = Provider<void>((ref) {
-  // Track previous count to detect increases
-  var previousCount = 0;
+  debugPrint('🔧 OrderNotification: Initializer provider created');
 
   // Listen to pending count changes - THIS WORKS in Provider (not StateNotifier)!
   ref.listen<int>(
     posPendingOrderCountProvider,
     (previous, current) {
+      debugPrint('📊 OrderNotification: Count changed - previous: $previous, current: $current');
+
       // Skip initial load (when previous is null)
       if (previous == null) {
-        previousCount = current;
+        debugPrint('ℹ️ OrderNotification: Initial load, current count: $current');
         return;
       }
 
-      // If count increased AND we're not on initial load, play sound
-      if (current > previous && previous > 0) {
-        if (kIsWeb) {
-          debugPrint('🔔 NEW ORDER! Count: $previous → $current');
+      // If count increased, play sound
+      if (current > previous) {
+        // Only skip sound if this is the very first count (0 -> n)
+        if (previous == 0) {
+          debugPrint('⚠️ OrderNotification: First load after 0, skipping sound (0 → $current)');
+        } else {
+          debugPrint('🔔 OrderNotification: NEW ORDER DETECTED! Playing sound ($previous → $current)');
+          OrderSoundService.playNewOrderSound();
         }
-        OrderSoundService.playNewOrderSound();
+      } else if (current < previous) {
+        debugPrint('✅ OrderNotification: Order accepted/completed (count decreased: $previous → $current)');
+      } else {
+        debugPrint('➡️ OrderNotification: No change in count');
       }
-
-      previousCount = current;
     },
     fireImmediately: false,
   );
 
+  debugPrint('✅ OrderNotification: Listener setup complete');
   // Return void - this provider's job is just to set up the listener
   return;
 });
