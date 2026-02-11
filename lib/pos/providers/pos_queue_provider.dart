@@ -1,22 +1,18 @@
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/order.dart';
 import 'pos_checkout_provider.dart';
 
-// Use dart:js for Web Audio API (web-only, checked with kIsWeb at runtime)
-import 'dart:js' as js;
+// Use dart:js for Web Audio API instead of dart:html
+import 'dart:js' as js if (dart.library.io) '';
 
 // Sound notification service using Web Audio API
 class OrderSoundService {
   static Future<void> playNewOrderSound() async {
-    if (!kIsWeb) {
-      debugPrint('🔇 OrderSound: Not on web, skipping sound');
-      return;
-    }
+    if (!kIsWeb) return;
 
     try {
-      debugPrint('🔔 OrderSound: Playing notification sound...');
-
       // Web Audio API beep sound using dart:js
       final audioContext = js.JsObject(js.context['AudioContext'] ?? js.context['webkitAudioContext']);
       final oscillator = audioContext.callMethod('createOscillator', []);
@@ -40,10 +36,9 @@ class OrderSoundService {
       });
       Future.delayed(const Duration(milliseconds: 600), () {
         oscillator.callMethod('stop', [0]);
-        debugPrint('✅ OrderSound: Sound completed');
       });
     } catch (e) {
-      debugPrint('❌ OrderSound: Error playing sound - $e');
+      // Silent fail if Web Audio API not available
     }
   }
 }
@@ -89,34 +84,32 @@ final posCompletedOrdersProvider = Provider<List<Order>>((ref) {
 });
 
 // Notifier to track previous order count and trigger sound
-// Uses ref.listen for TRUE REALTIME updates (not polling!)
 class OrderQueueNotifier extends StateNotifier<int> {
   final Ref ref;
+  Timer? _checkTimer;
 
   OrderQueueNotifier(this.ref) : super(0) {
-    // Listen to pending count changes for IMMEDIATE notification
-    // This reacts instantly when Supabase realtime updates the provider
-    ref.listen<int>(
-      posPendingOrderCountProvider,
-      (previous, current) {
-        debugPrint('📊 OrderQueue: Pending count changed from $previous → $current');
+    _startWatching();
+  }
 
-        // If count increased AND we already had a previous state, play sound
-        // Skip sound on initial load (previous == 0 means first load)
-        if (current > previous && previous > 0) {
-          debugPrint('🔔 OrderQueue: NEW ORDER DETECTED! Triggering sound notification');
-          OrderSoundService.playNewOrderSound();
-        } else if (current > previous && previous == 0) {
-          debugPrint('ℹ️ OrderQueue: Initial load, skipping sound');
-        } else if (current < previous) {
-          debugPrint('✅ OrderQueue: Order accepted/completed (count decreased)');
-        }
+  void _startWatching() {
+    // Check every 3 seconds for new pending orders
+    _checkTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      final currentCount = ref.read(posPendingOrderCountProvider);
 
-        // Update state
-        state = current;
-      },
-      fireImmediately: true,
-    );
+      // If count increased, play sound
+      if (currentCount > state && state > 0) {
+        OrderSoundService.playNewOrderSound();
+      }
+
+      state = currentCount;
+    });
+  }
+
+  @override
+  void dispose() {
+    _checkTimer?.cancel();
+    super.dispose();
   }
 }
 
