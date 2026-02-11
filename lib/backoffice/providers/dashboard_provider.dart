@@ -70,6 +70,7 @@ class DashboardRepository {
   }
 
   /// Count low stock items: ingredients + tracked products
+  /// Only counts items with min_stock > 0 (configured threshold)
   Future<int> getLowStockCount(String outletId) async {
     // Ingredients low stock
     final ingredientResponse = await _supabase
@@ -81,7 +82,8 @@ class DashboardRepository {
     for (final row in ingredientResponse as List) {
       final current = (row['current_stock'] as num?)?.toDouble() ?? 0;
       final min = (row['min_stock'] as num?)?.toDouble() ?? 0;
-      if (current <= min) count++;
+      // Only count if min_stock is configured (> 0) and current is below/equal to it
+      if (min > 0 && current <= min) count++;
     }
 
     // Products with stock tracking enabled
@@ -95,7 +97,8 @@ class DashboardRepository {
     for (final row in productResponse as List) {
       final current = (row['stock_quantity'] as num?)?.toInt() ?? 0;
       final min = (row['min_stock'] as num?)?.toInt() ?? 0;
-      if (current <= min) count++;
+      // Only count if min_stock is configured (> 0) and current is below/equal to it
+      if (min > 0 && current <= min) count++;
     }
 
     return count;
