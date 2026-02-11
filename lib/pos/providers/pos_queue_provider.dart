@@ -1,5 +1,4 @@
-import 'dart:async';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/order.dart';
 import 'pos_checkout_provider.dart';
@@ -83,36 +82,44 @@ final posCompletedOrdersProvider = Provider<List<Order>>((ref) {
   );
 });
 
-// Notifier to track previous order count and trigger sound
-class OrderQueueNotifier extends StateNotifier<int> {
-  final Ref ref;
-  Timer? _checkTimer;
+// Real-time notification provider using ref.listen
+// This provider auto-initializes and triggers sound on order count changes
+final orderNotificationInitializerProvider = Provider<void>((ref) {
+  // Track previous count to detect increases
+  var previousCount = 0;
 
-  OrderQueueNotifier(this.ref) : super(0) {
-    _startWatching();
-  }
+  // Listen to pending count changes - THIS WORKS in Provider (not StateNotifier)!
+  ref.listen<int>(
+    posPendingOrderCountProvider,
+    (previous, current) {
+      // Skip initial load (when previous is null)
+      if (previous == null) {
+        previousCount = current;
+        return;
+      }
 
-  void _startWatching() {
-    // Check every 3 seconds for new pending orders
-    _checkTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      final currentCount = ref.read(posPendingOrderCountProvider);
-
-      // If count increased, play sound
-      if (currentCount > state && state > 0) {
+      // If count increased AND we're not on initial load, play sound
+      if (current > previous && previous > 0) {
+        if (kIsWeb) {
+          debugPrint('🔔 NEW ORDER! Count: $previous → $current');
+        }
         OrderSoundService.playNewOrderSound();
       }
 
-      state = currentCount;
-    });
-  }
+      previousCount = current;
+    },
+    fireImmediately: false,
+  );
 
-  @override
-  void dispose() {
-    _checkTimer?.cancel();
-    super.dispose();
-  }
-}
+  // Return void - this provider's job is just to set up the listener
+  return;
+});
 
-final orderQueueNotifierProvider = StateNotifierProvider<OrderQueueNotifier, int>((ref) {
-  return OrderQueueNotifier(ref);
+// Simple state provider to expose pending count to UI
+final orderQueueCountProvider = Provider<int>((ref) {
+  // Initialize the notification listener
+  ref.watch(orderNotificationInitializerProvider);
+
+  // Return current pending count
+  return ref.watch(posPendingOrderCountProvider);
 });

@@ -454,8 +454,8 @@ class _RightPanelWithTabsState extends ConsumerState<_RightPanelWithTabs>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Initialize the order queue notifier to start watching for new orders
-    Future.microtask(() => ref.read(orderQueueNotifierProvider));
+    // Initialize the real-time notification listener
+    Future.microtask(() => ref.read(orderQueueCountProvider));
   }
 
   @override
@@ -466,7 +466,8 @@ class _RightPanelWithTabsState extends ConsumerState<_RightPanelWithTabs>
 
   @override
   Widget build(BuildContext context) {
-    final pendingCount = ref.watch(posPendingOrderCountProvider);
+    // Use orderQueueCountProvider which includes notification listener
+    final pendingCount = ref.watch(orderQueueCountProvider);
 
     return Column(
       children: [
