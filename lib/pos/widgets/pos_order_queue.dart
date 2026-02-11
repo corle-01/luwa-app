@@ -502,7 +502,7 @@ class _ActionButtonsState extends ConsumerState<_ActionButtons> {
   /// Show confirmation dialog for cash payment collection
   Future<bool?> _showPaymentConfirmation() async {
     final orderNumber = widget.order.orderNumber;
-    final total = FormatUtils.currency(widget.order.total);
+    final total = FormatUtils.currency(widget.order.totalAmount);
 
     return showDialog<bool>(
       context: context,
