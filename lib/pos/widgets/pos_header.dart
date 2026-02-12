@@ -62,14 +62,17 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Utter logo
+              // Utter logo - increased height to prevent tail clipping
               if (!isMobile)
-                Image.asset(
-                  Theme.of(context).brightness == Brightness.dark
-                      ? 'assets/images/logo_utter_light_sm.png'
-                      : 'assets/images/logo_utter_dark_sm.png',
-                  height: 28,
-                  fit: BoxFit.contain,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Image.asset(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? 'assets/images/logo_utter_light_sm.png'
+                        : 'assets/images/logo_utter_dark_sm.png',
+                    height: 32, // Increased from 28 to 32
+                    fit: BoxFit.contain,
+                  ),
                 ),
               if (!isMobile) const SizedBox(width: 16),
               // Clock with monospace look

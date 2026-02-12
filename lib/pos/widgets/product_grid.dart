@@ -55,33 +55,33 @@ class ProductGrid extends ConsumerWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            // Responsive breakpoints
+            // Responsive breakpoints - OPTIMIZED for space saving
             final int crossAxisCount;
             final double aspectRatio;
             if (constraints.maxWidth > 1000) {
               crossAxisCount = 5;
-              aspectRatio = 0.60; // More compact for large tablets
+              aspectRatio = 0.75; // More items per row, more compact
             } else if (constraints.maxWidth > 800) {
               crossAxisCount = 4;
-              aspectRatio = 0.62; // More compact for tablets
+              aspectRatio = 0.80; // Compact for tablets (from 0.62)
             } else if (constraints.maxWidth > 500) {
               crossAxisCount = 3;
-              aspectRatio = 0.68;
+              aspectRatio = 0.85; // More compact (from 0.68)
             } else if (constraints.maxWidth > 350) {
               crossAxisCount = 2;
-              aspectRatio = 0.75;
+              aspectRatio = 0.90; // More compact (from 0.75)
             } else {
               crossAxisCount = 2;
-              aspectRatio = 0.82;
+              aspectRatio = 0.95; // More compact (from 0.82)
             }
 
             return GridView.builder(
-              padding: const EdgeInsets.all(8), // Reduced from 12
+              padding: const EdgeInsets.all(6), // Further reduced for more space
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
                 childAspectRatio: aspectRatio,
-                crossAxisSpacing: 8, // Reduced from 10
-                mainAxisSpacing: 8, // Reduced from 10
+                crossAxisSpacing: 6, // Further reduced for more items visible
+                mainAxisSpacing: 6, // Further reduced for more items visible
               ),
               itemCount: products.length,
               itemBuilder: (context, index) {

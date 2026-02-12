@@ -88,9 +88,9 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Image or Initial Container
+                      // Image or Initial Container - REDUCED SIZE for space saving
                       Expanded(
-                        flex: 5,
+                        flex: 3, // Reduced from 5 to 3 (40% less height)
                         child: widget.product.primaryImageUrl != null
                             ? CachedNetworkImage(
                                 imageUrl: widget.product.primaryImageUrl!,
@@ -114,7 +114,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                       Expanded(
                         flex: 2,
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+                          padding: const EdgeInsets.fromLTRB(8, 4, 8, 4), // Reduced vertical padding
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.start,
@@ -123,20 +123,20 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                               Text(
                                 widget.product.name,
                                 style: GoogleFonts.inter(
-                                  fontSize: 13,
+                                  fontSize: 12, // Reduced from 13
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.textPrimary,
                                   height: 1.2,
                                 ),
-                                maxLines: 2,
+                                maxLines: 1, // Reduced from 2 lines to save space
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2), // Reduced from 4
                               // Price
                               Text(
                                 FormatUtils.currency(widget.product.sellingPrice),
                                 style: GoogleFonts.inter(
-                                  fontSize: 13,
+                                  fontSize: 12, // Reduced from 13
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.primaryColor,
                                 ),
@@ -235,7 +235,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
         child: Text(
           initial,
           style: GoogleFonts.inter(
-            fontSize: 48,
+            fontSize: 36, // Reduced from 48 to match smaller image area
             fontWeight: FontWeight.bold,
             color: Colors.white.withValues(alpha: 0.9),
           ),

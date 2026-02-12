@@ -139,8 +139,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Logo with extra padding to prevent speech bubble tail clipping
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: Image.asset(
                       'assets/images/logo_utter_light.png',
                       width: clampedLogoWidth,
@@ -201,9 +202,9 @@ class RoleSelectionPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
+                  // Logo with extra padding to prevent speech bubble tail clipping
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Image.asset(
                       Theme.of(context).brightness == Brightness.dark
                           ? 'assets/images/logo_utter_light.png'

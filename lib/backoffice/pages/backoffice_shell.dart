@@ -87,18 +87,22 @@ class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
   }
 
   Widget _buildLogo() {
-    return Column(
-      children: [
-        Image.asset(
-          Theme.of(context).brightness == Brightness.dark
-              ? 'assets/images/logo_utter_light_sm.png'
-              : 'assets/images/logo_utter_dark_sm.png',
-          height: 28,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(height: 4),
-        Text('Utter', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        children: [
+          // Increased height to prevent speech bubble tail clipping
+          Image.asset(
+            Theme.of(context).brightness == Brightness.dark
+                ? 'assets/images/logo_utter_light_sm.png'
+                : 'assets/images/logo_utter_dark_sm.png',
+            height: 36, // Increased from 28 to 36
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 4),
+          Text('Utter', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
+        ],
+      ),
     );
   }
 

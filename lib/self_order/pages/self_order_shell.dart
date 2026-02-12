@@ -245,14 +245,17 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
 
                     const SizedBox(height: 40),
 
-                    // ── Footer ──
-                    Image.asset(
-                      Theme.of(context).brightness == Brightness.dark
-                          ? 'assets/images/logo_utter_light_sm.png'
-                          : 'assets/images/logo_utter_dark_sm.png',
-                      width: 100,
-                      fit: BoxFit.contain,
-                      opacity: const AlwaysStoppedAnimation(0.4),
+                    // ── Footer Logo - with padding to prevent tail clipping ──
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      child: Image.asset(
+                        Theme.of(context).brightness == Brightness.dark
+                            ? 'assets/images/logo_utter_light_sm.png'
+                            : 'assets/images/logo_utter_dark_sm.png',
+                        width: 120, // Increased from 100 for better visibility
+                        fit: BoxFit.contain,
+                        opacity: const AlwaysStoppedAnimation(0.4),
+                      ),
                     ),
                     const SizedBox(height: 16),
                   ],
