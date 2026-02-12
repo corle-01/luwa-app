@@ -70,35 +70,30 @@ class CartActionButtons extends ConsumerWidget {
 
           const SizedBox(height: 12),
 
-          // Clear button (text link style) and Pay button
+          // Clear button (square icon only) and Pay button (expanded)
           Row(
             children: [
-              // Clear button as text link
-              if (!cart.isEmpty)
-                TextButton.icon(
-                  onPressed: () => _confirmClear(context, ref),
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 18,
+              // Clear button - square icon only (1x1)
+              if (!cart.isEmpty) ...[
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  label: Text(
-                    'Hapus',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.errorColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: IconButton(
+                    onPressed: () => _confirmClear(context, ref),
+                    icon: const Icon(Icons.delete_outline),
+                    color: AppTheme.errorColor,
+                    iconSize: 22,
+                    padding: const EdgeInsets.all(12),
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                   ),
                 ),
+                const SizedBox(width: 8), // Small gap between buttons
+              ],
 
-              const Spacer(),
-
-              // Pay button with gradient background
+              // Pay button - expanded to fill remaining space
               Expanded(
-                flex: 2,
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
