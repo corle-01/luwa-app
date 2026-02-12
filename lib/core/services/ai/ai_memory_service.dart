@@ -501,7 +501,7 @@ class AiMemoryService {
     // Remove from database
     if (idsToRemove.isNotEmpty) {
       try {
-        await _client.from('ai_memories').delete().in_('id', idsToRemove);
+        await _client.from('ai_memories').delete().inFilter('id', idsToRemove);
       } catch (e) {
         debugPrint('Failed to evict memories from DB: $e');
       }
