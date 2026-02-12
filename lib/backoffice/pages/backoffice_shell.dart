@@ -91,11 +91,11 @@ class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
         children: [
-          // Increased height to prevent speech bubble tail clipping
+          // Fixed logo logic: swap for correct contrast
           Image.asset(
             Theme.of(context).brightness == Brightness.dark
-                ? 'assets/images/logo_utter_light_sm.png'
-                : 'assets/images/logo_utter_dark_sm.png',
+                ? 'assets/images/logo_utter_dark_sm.png' // Light gray for dark mode
+                : 'assets/images/logo_utter_light_sm.png', // Dark charcoal for light mode
             height: 36, // Increased from 28 to 36
             fit: BoxFit.contain,
           ),

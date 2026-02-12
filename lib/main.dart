@@ -139,11 +139,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo with extra padding to prevent speech bubble tail clipping
+                  // Splash has dark background, use light/white logo
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: Image.asset(
-                      'assets/images/logo_utter_light.png',
+                      'assets/images/logo_utter_dark.png', // Light gray/white for dark blue gradient
                       width: clampedLogoWidth,
                       fit: BoxFit.contain,
                     ),
@@ -207,8 +207,8 @@ class RoleSelectionPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Image.asset(
                       Theme.of(context).brightness == Brightness.dark
-                          ? 'assets/images/logo_utter_light.png'
-                          : 'assets/images/logo_utter_dark.png',
+                          ? 'assets/images/logo_utter_dark.png' // Light gray for dark mode
+                          : 'assets/images/logo_utter_light.png', // Dark charcoal for light mode
                       width: logoWidth,
                       fit: BoxFit.contain,
                     ),

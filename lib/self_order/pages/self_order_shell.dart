@@ -245,13 +245,13 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
 
                     const SizedBox(height: 40),
 
-                    // ── Footer Logo - with padding to prevent tail clipping ──
+                    // ── Footer Logo - fixed logic for correct contrast ──
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                       child: Image.asset(
                         Theme.of(context).brightness == Brightness.dark
-                            ? 'assets/images/logo_utter_light_sm.png'
-                            : 'assets/images/logo_utter_dark_sm.png',
+                            ? 'assets/images/logo_utter_dark_sm.png' // Light gray for dark mode
+                            : 'assets/images/logo_utter_light_sm.png', // Dark charcoal for light mode
                         width: 120, // Increased from 100 for better visibility
                         fit: BoxFit.contain,
                         opacity: const AlwaysStoppedAnimation(0.4),
