@@ -58,7 +58,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
           child: Container(
             decoration: BoxDecoration(
               color: AppTheme.surfaceColor,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8), // Reduced from 12 to 8 for compact feel
               border: Border.all(
                 color: _isHovered
                     ? AppTheme.primaryColor.withValues(alpha: 0.3)
@@ -82,15 +82,15 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                     ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8), // Match container border radius
               child: Stack(
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Image or Initial Container - REDUCED SIZE for space saving
+                      // Image or Initial Container - MUCH SMALLER for compact layout
                       Expanded(
-                        flex: 3, // Reduced from 5 to 3 (40% less height)
+                        flex: 2, // Reduced from 5 to 2 (even more compact!)
                         child: widget.product.primaryImageUrl != null
                             ? CachedNetworkImage(
                                 imageUrl: widget.product.primaryImageUrl!,
@@ -235,7 +235,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
         child: Text(
           initial,
           style: GoogleFonts.inter(
-            fontSize: 36, // Reduced from 48 to match smaller image area
+            fontSize: 28, // Further reduced for compact layout (was 36, originally 48)
             fontWeight: FontWeight.bold,
             color: Colors.white.withValues(alpha: 0.9),
           ),

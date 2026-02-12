@@ -55,24 +55,24 @@ class ProductGrid extends ConsumerWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            // Responsive breakpoints - OPTIMIZED for space saving
+            // Responsive breakpoints - FIXED: Lower ratio = shorter cards
             final int crossAxisCount;
             final double aspectRatio;
             if (constraints.maxWidth > 1000) {
               crossAxisCount = 5;
-              aspectRatio = 0.75; // More items per row, more compact
+              aspectRatio = 0.50; // Very compact for large tablets
             } else if (constraints.maxWidth > 800) {
               crossAxisCount = 4;
-              aspectRatio = 0.80; // Compact for tablets (from 0.62)
+              aspectRatio = 0.55; // Much shorter cards (was 0.62, wrongly went to 0.80)
             } else if (constraints.maxWidth > 500) {
               crossAxisCount = 3;
-              aspectRatio = 0.85; // More compact (from 0.68)
+              aspectRatio = 0.60; // Compact (was 0.68)
             } else if (constraints.maxWidth > 350) {
               crossAxisCount = 2;
-              aspectRatio = 0.90; // More compact (from 0.75)
+              aspectRatio = 0.65; // Shorter cards (was 0.75)
             } else {
               crossAxisCount = 2;
-              aspectRatio = 0.95; // More compact (from 0.82)
+              aspectRatio = 0.70; // More compact (was 0.82)
             }
 
             return GridView.builder(
