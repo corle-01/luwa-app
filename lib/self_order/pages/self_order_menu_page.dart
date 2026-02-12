@@ -467,8 +467,8 @@ class _SelfOrderMenuPageState extends ConsumerState<SelfOrderMenuPage>
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 8, // Reduced from 12 (Moka style)
-            crossAxisSpacing: 8, // Reduced from 12 (Moka style)
+            mainAxisSpacing: 12, // Restored spacing (8px was too tight)
+            crossAxisSpacing: 12, // Restored spacing (8px was too tight)
             childAspectRatio: 0.87, // ~1:1.15 ratio (slightly portrait, Moka style)
           ),
           itemCount: filtered.length,
