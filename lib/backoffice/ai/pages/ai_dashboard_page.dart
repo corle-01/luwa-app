@@ -1129,8 +1129,8 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
             child: const Text('Batal'),
           ),
           TextButton(
-            onPressed: () {
-              ref.read(aiPersonaProvider.notifier).clearMemories();
+            onPressed: () async {
+              await ref.read(aiPersonaProvider.notifier).clearMemories();
               Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
