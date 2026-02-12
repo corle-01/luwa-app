@@ -62,15 +62,13 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Utter logo - increased height to prevent tail clipping
+              // Utter logo - always use dark logo for better visibility
               if (!isMobile)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Image.asset(
-                    Theme.of(context).brightness == Brightness.dark
-                        ? 'assets/images/logo_utter_light_sm.png'
-                        : 'assets/images/logo_utter_dark_sm.png',
-                    height: 32, // Increased from 28 to 32
+                    'assets/images/logo_utter_dark_sm.png', // Always dark logo
+                    height: 32,
                     fit: BoxFit.contain,
                   ),
                 ),
