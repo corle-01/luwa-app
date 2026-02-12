@@ -88,9 +88,9 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Image or Initial Container - Balanced size
+                      // Image or Initial Container - Moka style: almost entire card
                       Expanded(
-                        flex: 5, // Back to 5 for proper image dominance (was 2, too small!)
+                        flex: 8, // Image takes ~89% of card (Moka style)
                         child: widget.product.primaryImageUrl != null
                             ? CachedNetworkImage(
                                 imageUrl: widget.product.primaryImageUrl!,
@@ -119,27 +119,18 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              // Product Name
+                              // Product Name - Moka style: just name, tiny size
                               Text(
                                 widget.product.name,
                                 style: GoogleFonts.inter(
-                                  fontSize: 11, // Smaller for compact text area
+                                  fontSize: 10, // Very small like Moka
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.textPrimary,
-                                  height: 1.1,
+                                  height: 1.0,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 1), // Minimal spacing
-                              // Price
-                              Text(
-                                FormatUtils.currency(widget.product.sellingPrice),
-                                style: GoogleFonts.inter(
-                                  fontSize: 11, // Match name size
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryColor,
-                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ],
                           ),

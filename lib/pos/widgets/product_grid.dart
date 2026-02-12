@@ -55,33 +55,33 @@ class ProductGrid extends ConsumerWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            // Responsive breakpoints - FIXED: Lower ratio = shorter cards
+            // Moka POS style: Nearly square cards (slightly portrait)
             final int crossAxisCount;
             final double aspectRatio;
             if (constraints.maxWidth > 1000) {
               crossAxisCount = 5;
-              aspectRatio = 0.50; // Very compact for large tablets
+              aspectRatio = 1.15; // Slightly taller than wide (Moka style)
             } else if (constraints.maxWidth > 800) {
               crossAxisCount = 4;
-              aspectRatio = 0.55; // Much shorter cards (was 0.62, wrongly went to 0.80)
+              aspectRatio = 1.15; // Nearly square, slightly portrait
             } else if (constraints.maxWidth > 500) {
               crossAxisCount = 3;
-              aspectRatio = 0.60; // Compact (was 0.68)
+              aspectRatio = 1.15; // Consistent Moka style
             } else if (constraints.maxWidth > 350) {
               crossAxisCount = 2;
-              aspectRatio = 0.65; // Shorter cards (was 0.75)
+              aspectRatio = 1.10; // Slightly less tall for mobile
             } else {
               crossAxisCount = 2;
-              aspectRatio = 0.70; // More compact (was 0.82)
+              aspectRatio = 1.05; // Nearly perfect square
             }
 
             return GridView.builder(
-              padding: const EdgeInsets.all(6), // Further reduced for more space
+              padding: const EdgeInsets.all(8), // Moka-style minimal padding
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
                 childAspectRatio: aspectRatio,
-                crossAxisSpacing: 6, // Further reduced for more items visible
-                mainAxisSpacing: 6, // Further reduced for more items visible
+                crossAxisSpacing: 8, // Moka-style minimal spacing
+                mainAxisSpacing: 8, // Moka-style minimal spacing
               ),
               itemCount: products.length,
               itemBuilder: (context, index) {
