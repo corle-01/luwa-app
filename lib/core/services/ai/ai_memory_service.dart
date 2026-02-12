@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// A single memory/insight that the AI has extracted from conversations.
 class AiMemory {
@@ -114,8 +115,8 @@ class BusinessPrediction {
 /// OTAK - AI Memory Service
 ///
 /// Stores and retrieves AI memories (key business insights extracted
-/// from conversations and data patterns). Uses in-memory cache with
-/// localStorage persistence via dart:js_interop for web.
+/// from conversations and data patterns). Uses Supabase for persistent
+/// storage across sessions and devices.
 ///
 /// This is the "brain" of the AI persona system - it remembers what
 /// matters about the business.
@@ -123,18 +124,46 @@ class AiMemoryService {
   /// In-memory cache of all AI memories.
   final Map<String, AiMemory> _memories = {};
 
+  /// Supabase client for persistent storage.
+  final SupabaseClient _client;
+
+  /// Current outlet ID for filtering memories.
+  String? _currentOutletId;
+
   /// Maximum number of memories to retain.
   static const int _maxMemories = 50;
 
   /// Singleton instance.
   static final AiMemoryService _instance = AiMemoryService._internal();
   factory AiMemoryService() => _instance;
-  AiMemoryService._internal();
+  AiMemoryService._internal() : _client = Supabase.instance.client;
 
   /// Initialize: load memories from SharedPreferences.
   Future<void> initialize() async {
     await _WebStorage.init();
     await _loadFromStorage();
+  }
+
+  /// Load memories from Supabase for a specific outlet.
+  Future<void> loadFromDatabase(String outletId) async {
+    try {
+      _currentOutletId = outletId;
+
+      final response = await _client
+          .from('ai_memories')
+          .select('*')
+          .eq('outlet_id', outletId)
+          .order('created_at', ascending: false)
+          .limit(_maxMemories);
+
+      _memories.clear();
+      for (final row in response as List) {
+        final memory = AiMemory.fromJson(Map<String, dynamic>.from(row as Map));
+        _memories[memory.id] = memory;
+      }
+    } catch (e) {
+      debugPrint('AiMemoryService: Failed to load from database: $e');
+    }
   }
 
   /// Get all memories, sorted by most recent first.
@@ -164,48 +193,101 @@ class AiMemoryService {
   }
 
   /// Add a new memory. If a similar insight already exists, reinforce it.
-  void addMemory({
+  Future<void> addMemory({
     required String insight,
     required String category,
     double confidence = 0.8,
     String? source,
-  }) {
+    String? outletId,
+  }) async {
+    final targetOutletId = outletId ?? _currentOutletId;
+
     // Check for duplicate/similar insights
     final existing = _findSimilar(insight);
     if (existing != null) {
       // Reinforce existing memory
-      _memories[existing.id] = existing.copyWith(
+      final updated = existing.copyWith(
         reinforceCount: existing.reinforceCount + 1,
         confidence: (existing.confidence + confidence) / 2.0,
       );
-    } else {
-      // Add new memory
-      final id = '${DateTime.now().millisecondsSinceEpoch}_${_memories.length}';
-      _memories[id] = AiMemory(
-        id: id,
-        insight: insight,
-        category: category,
-        confidence: confidence,
-        createdAt: DateTime.now(),
-        source: source,
-      );
+      _memories[existing.id] = updated;
 
-      // Evict old low-confidence memories if over limit
-      _evictIfNeeded();
+      // Update in database
+      if (targetOutletId != null) {
+        try {
+          await _client.from('ai_memories').update({
+            'reinforce_count': updated.reinforceCount,
+            'confidence': updated.confidence,
+            'updated_at': DateTime.now().toIso8601String(),
+          }).eq('id', existing.id);
+        } catch (e) {
+          debugPrint('Failed to update memory in DB: $e');
+        }
+      }
+    } else {
+      // Add new memory to database first to get UUID
+      if (targetOutletId != null) {
+        try {
+          final result = await _client.from('ai_memories').insert({
+            'outlet_id': targetOutletId,
+            'insight': insight,
+            'category': category,
+            'confidence': confidence,
+            'source': source,
+          }).select('id, created_at').single();
+
+          // Add to local cache with database ID
+          final memory = AiMemory(
+            id: result['id'] as String,
+            insight: insight,
+            category: category,
+            confidence: confidence,
+            createdAt: DateTime.parse(result['created_at'] as String),
+            source: source,
+          );
+          _memories[memory.id] = memory;
+
+          // Evict old memories if needed
+          await _evictIfNeeded();
+        } catch (e) {
+          debugPrint('Failed to insert memory to DB: $e');
+        }
+      }
     }
 
     _saveToStorage();
   }
 
   /// Remove a specific memory.
-  void removeMemory(String id) {
+  Future<void> removeMemory(String id) async {
     _memories.remove(id);
+
+    // Remove from database
+    try {
+      await _client.from('ai_memories').delete().eq('id', id);
+    } catch (e) {
+      debugPrint('Failed to delete memory from DB: $e');
+    }
+
     _saveToStorage();
   }
 
-  /// Clear all memories.
-  void clearAll() {
+  /// Clear all memories for current outlet.
+  Future<void> clearAll() async {
     _memories.clear();
+
+    // Clear from database
+    if (_currentOutletId != null) {
+      try {
+        await _client
+            .from('ai_memories')
+            .delete()
+            .eq('outlet_id', _currentOutletId!);
+      } catch (e) {
+        debugPrint('Failed to clear memories from DB: $e');
+      }
+    }
+
     _saveToStorage();
   }
 
@@ -397,7 +479,7 @@ class AiMemoryService {
   }
 
   /// Remove lowest-confidence memories when over limit.
-  void _evictIfNeeded() {
+  Future<void> _evictIfNeeded() async {
     if (_memories.length <= _maxMemories) return;
 
     // Sort by score (low to high) and remove lowest
@@ -409,8 +491,20 @@ class AiMemoryService {
       });
 
     final toRemove = sorted.take(_memories.length - _maxMemories);
+    final idsToRemove = <String>[];
+
     for (final entry in toRemove) {
       _memories.remove(entry.key);
+      idsToRemove.add(entry.key);
+    }
+
+    // Remove from database
+    if (idsToRemove.isNotEmpty) {
+      try {
+        await _client.from('ai_memories').delete().in_('id', idsToRemove);
+      } catch (e) {
+        debugPrint('Failed to evict memories from DB: $e');
+      }
     }
   }
 

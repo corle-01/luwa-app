@@ -40,6 +40,10 @@ class AiContextBuilder {
       _predictionService.assessBusinessMood(),
       _predictionService.generatePredictions(),
       _getOperationalCosts(outletId),
+      _getComparativeMetrics(outletId), // NEW: WoW comparison
+      _getProfitMargins(outletId), // NEW: Profit analysis
+      _getCustomerSegmentation(outletId), // NEW: Customer insights
+      _getHourlyPatterns(outletId), // NEW: Hourly patterns
     ]);
 
     // Build memory context from Memory persona
@@ -49,6 +53,10 @@ class AiContextBuilder {
     final mood = results[6] as BusinessMoodData;
     final prediction = results[7] as BusinessPrediction;
     final opCosts = results[8] as Map<String, dynamic>;
+    final comparative = results[9] as Map<String, dynamic>;
+    final profitMargins = results[10] as Map<String, dynamic>;
+    final customerSegments = results[11] as Map<String, dynamic>;
+    final hourlyPatterns = results[12] as Map<String, dynamic>;
 
     return {
       'outlet': results[0],
@@ -80,6 +88,11 @@ class AiContextBuilder {
       },
       // Operational costs & bonus
       'operational_costs': opCosts,
+      // NEW: Deep analytics
+      'comparative_metrics': comparative,
+      'profit_margins': profitMargins,
+      'customer_segmentation': customerSegments,
+      'hourly_patterns': hourlyPatterns,
     };
   }
 
@@ -277,6 +290,121 @@ class AiContextBuilder {
         'labor': 0,
         'bonus_percent': 0,
         'items': [],
+      };
+    }
+  }
+
+  /// Get Week-over-Week comparative metrics using RPC function
+  Future<Map<String, dynamic>> _getComparativeMetrics(String outletId) async {
+    try {
+      final result = await _client.rpc('compare_period_performance', params: {
+        'p_outlet_id': outletId,
+        'p_current_days': 7,
+        'p_comparison_days': 7,
+      });
+
+      return Map<String, dynamic>.from(result as Map);
+    } catch (_) {
+      return {
+        'current_period': {},
+        'previous_period': {},
+        'trend': 'INSUFFICIENT_DATA',
+      };
+    }
+  }
+
+  /// Get profit margins and profitability analysis from view
+  Future<Map<String, dynamic>> _getProfitMargins(String outletId) async {
+    try {
+      final products = await _client
+          .from('v_product_performance')
+          .select('product_name, total_revenue, total_profit, profit_margin_pct, total_quantity_sold')
+          .eq('outlet_id', outletId)
+          .order('total_profit', ascending: false)
+          .limit(10);
+
+      final productList = List<Map<String, dynamic>>.from(products);
+
+      double totalRevenue = 0;
+      double totalProfit = 0;
+
+      for (final p in productList) {
+        totalRevenue += (p['total_revenue'] as num?)?.toDouble() ?? 0;
+        totalProfit += (p['total_profit'] as num?)?.toDouble() ?? 0;
+      }
+
+      return {
+        'top_products': productList,
+        'total_revenue': totalRevenue,
+        'total_profit': totalProfit,
+        'overall_margin_pct': totalRevenue > 0 ? (totalProfit / totalRevenue * 100) : 0,
+      };
+    } catch (_) {
+      return {
+        'top_products': [],
+        'total_revenue': 0,
+        'total_profit': 0,
+        'overall_margin_pct': 0,
+      };
+    }
+  }
+
+  /// Get customer segmentation insights from RPC function
+  Future<Map<String, dynamic>> _getCustomerSegmentation(String outletId) async {
+    try {
+      final result = await _client.rpc('get_customer_insights', params: {
+        'p_outlet_id': outletId,
+        'p_days_back': 90,
+      });
+
+      return Map<String, dynamic>.from(result as Map);
+    } catch (_) {
+      return {
+        'total_customers': 0,
+        'vip_customers': 0,
+        'loyal_customers': 0,
+        'repeat_customers': 0,
+        'new_customers': 0,
+        'top_customers': [],
+      };
+    }
+  }
+
+  /// Get hourly revenue patterns from view (last 90 days)
+  Future<Map<String, dynamic>> _getHourlyPatterns(String outletId) async {
+    try {
+      final patterns = await _client
+          .from('v_hourly_revenue_pattern')
+          .select('hour_of_day, day_of_week, order_count, revenue')
+          .eq('outlet_id', outletId)
+          .order('revenue', ascending: false)
+          .limit(20);
+
+      final patternList = List<Map<String, dynamic>>.from(patterns);
+
+      // Find peak hours
+      final Map<int, double> hourlyRevenue = {};
+      for (final p in patternList) {
+        final hour = (p['hour_of_day'] as num?)?.toInt() ?? 0;
+        final revenue = (p['revenue'] as num?)?.toDouble() ?? 0;
+        hourlyRevenue[hour] = (hourlyRevenue[hour] ?? 0) + revenue;
+      }
+
+      final sortedHours = hourlyRevenue.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
+      final peakHours = sortedHours.take(5).map((e) => e.key).toList();
+
+      return {
+        'patterns': patternList,
+        'peak_hours': peakHours,
+        'total_data_points': patternList.length,
+      };
+    } catch (_) {
+      return {
+        'patterns': [],
+        'peak_hours': [],
+        'total_data_points': 0,
       };
     }
   }
