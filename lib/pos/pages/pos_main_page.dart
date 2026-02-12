@@ -63,13 +63,13 @@ class PosMainPage extends ConsumerWidget {
                 return _MobilePosLayout();
               }
 
-              // Desktop/Tablet: side-by-side layout
+              // Desktop/Tablet: side-by-side layout (70:30 ratio like Moka)
               return Stack(
                 children: [
                   Row(
                     children: [
                       Expanded(
-                        flex: 6,
+                        flex: 7, // 70% - product grid (was 6/60%)
                         child: Column(
                           children: const [
                             PosHeader(),
@@ -83,7 +83,7 @@ class PosMainPage extends ConsumerWidget {
                       ),
                       const VerticalDivider(width: 1, thickness: 1),
                       const Expanded(
-                        flex: 4,
+                        flex: 3, // 30% - cart panel (was 4/40%)
                         child: _RightPanelWithTabs(),
                       ),
                     ],
