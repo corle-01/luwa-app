@@ -586,7 +586,7 @@ class AiActionExecutor {
     final insight = args['insight'] as String;
     final category = args['category'] as String? ?? 'general';
 
-    _memoryService.addMemory(
+    await _memoryService.addMemory(
       insight: insight,
       category: category,
       confidence: 0.85,

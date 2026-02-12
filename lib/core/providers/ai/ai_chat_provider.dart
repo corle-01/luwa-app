@@ -145,7 +145,7 @@ class AiChatNotifier extends StateNotifier<AiChatState> {
 
       // OTAK: Extract and store insights from the AI response
       if (replyContent.isNotEmpty) {
-        _memoryService.extractAndStoreInsights(replyContent, text.trim());
+        await _memoryService.extractAndStoreInsights(replyContent, text.trim());
       }
     } catch (e) {
       state = state.copyWith(

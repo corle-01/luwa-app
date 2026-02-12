@@ -295,10 +295,10 @@ class AiMemoryService {
   ///
   /// Looks for patterns in the AI's response that indicate
   /// business-relevant facts worth remembering.
-  void extractAndStoreInsights(String aiResponse, String userMessage) {
+  Future<void> extractAndStoreInsights(String aiResponse, String userMessage) async {
     final insights = _extractInsights(aiResponse, userMessage);
     for (final entry in insights) {
-      addMemory(
+      await addMemory(
         insight: entry['insight'] as String,
         category: entry['category'] as String,
         confidence: (entry['confidence'] as num?)?.toDouble() ?? 0.7,

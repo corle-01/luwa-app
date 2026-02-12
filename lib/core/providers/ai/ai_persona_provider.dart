@@ -118,16 +118,16 @@ class AiPersonaNotifier extends StateNotifier<AiPersonaState> {
   }
 
   /// Remove a specific memory.
-  void removeMemory(String id) {
-    _memoryService.removeMemory(id);
+  Future<void> removeMemory(String id) async {
+    await _memoryService.removeMemory(id);
     state = state.copyWith(
       memories: _memoryService.getAllMemories(),
     );
   }
 
   /// Clear all memories.
-  void clearMemories() {
-    _memoryService.clearAll();
+  Future<void> clearMemories() async {
+    await _memoryService.clearAll();
     state = state.copyWith(memories: []);
   }
 }
