@@ -157,7 +157,7 @@ class AppTheme {
         color: textPrimary,
       ),
     ),
-    cardTheme: CardThemeData(
+    cardTheme: const CardTheme(
       color: cardColor,
       elevation: 1,
       shape: RoundedRectangleBorder(
@@ -352,7 +352,7 @@ class AppTheme {
         color: darkTextPrimary,
       ),
     ),
-    cardTheme: CardThemeData(
+    cardTheme: const CardTheme(
       color: darkCard,
       elevation: 1,
       shape: RoundedRectangleBorder(
@@ -438,7 +438,7 @@ class AppTheme {
       labelStyle: GoogleFonts.inter(fontSize: 12, color: darkTextPrimary),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     ),
-    dialogTheme: DialogThemeData(
+    dialogTheme: const DialogTheme(
       backgroundColor: darkSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
