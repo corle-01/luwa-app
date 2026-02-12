@@ -464,12 +464,12 @@ class _SelfOrderMenuPageState extends ConsumerState<SelfOrderMenuPage>
 
         return GridView.builder(
           controller: _scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.72,
+            mainAxisSpacing: 8, // Reduced from 12 (Moka style)
+            crossAxisSpacing: 8, // Reduced from 12 (Moka style)
+            childAspectRatio: 0.87, // ~1:1.15 ratio (slightly portrait, Moka style)
           ),
           itemCount: filtered.length,
           itemBuilder: (context, index) {
@@ -818,7 +818,7 @@ class _ProductCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12), // Reduced from 16 (Moka compact style)
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -830,12 +830,12 @@ class _ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product image
+            // Product image - Moka style: dominant image (89% of card)
             Expanded(
-              flex: 3,
+              flex: 8, // Increased from 3 to 8 (Moka style)
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
+                  top: Radius.circular(12), // Reduced from 16 for compact feel
                 ),
                 child: Stack(
                   fit: StackFit.expand,
@@ -890,26 +890,26 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Product info
+            // Product info - Moka style: minimal text area (11% of card)
             Expanded(
-              flex: 2,
+              flex: 1, // Reduced from 2 to 1 (Moka style)
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 6), // Tighter padding
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       name,
-                      maxLines: 2,
+                      maxLines: 1, // Reduced from 2 (Moka compact style)
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
-                        fontSize: 13,
+                        fontSize: 11, // Reduced from 13 (Moka style)
                         fontWeight: FontWeight.w600,
                         color: AppTheme.textPrimary,
-                        height: 1.3,
+                        height: 1.2,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 2), // Replace Spacer with fixed height
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -918,7 +918,7 @@ class _ProductCard extends StatelessWidget {
                           child: Text(
                             _currencyFormat.format(price),
                             style: GoogleFonts.inter(
-                              fontSize: 14,
+                              fontSize: 11, // Reduced from 14 (Moka style)
                               fontWeight: FontWeight.w700,
                               color: AppTheme.primaryColor,
                             ),
@@ -927,8 +927,8 @@ class _ProductCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Container(
-                          width: 30,
-                          height: 30,
+                          width: 26, // Reduced from 30 (more compact)
+                          height: 26, // Reduced from 30
                           decoration: BoxDecoration(
                             color: AppTheme.primaryColor,
                             borderRadius: BorderRadius.circular(8),
