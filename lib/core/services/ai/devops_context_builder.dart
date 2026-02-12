@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../config/app_config.dart';
 
 /// DevOps Context Builder - Provides complete backend knowledge to AI
 ///
@@ -214,7 +215,7 @@ class DevOpsContextBuilder {
         },
         'api': {
           'status': 'healthy',
-          'base_url': _client.supabaseUrl,
+          'base_url': AppConfig.supabaseUrl,
         },
       };
     } catch (e) {

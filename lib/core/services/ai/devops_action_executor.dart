@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../config/app_config.dart';
 
 /// DevOps Action Executor - Executes diagnostic tools called by DevOps AI
 class DevOpsActionExecutor {
@@ -74,7 +75,7 @@ class DevOpsActionExecutor {
         'details': {
           'connection': 'active',
           'response_time_ms': responseTime,
-          'database_url': _client.supabaseUrl,
+          'database_url': AppConfig.supabaseUrl,
           'realtime_channels': _client.realtime.channels.length,
         },
         'message': 'Database is healthy. Response time: ${responseTime}ms',
