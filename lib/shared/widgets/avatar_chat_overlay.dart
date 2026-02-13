@@ -247,7 +247,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Luwa AI',
+                  'Haru AI',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,

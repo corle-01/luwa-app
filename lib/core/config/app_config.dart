@@ -34,7 +34,7 @@ class AppConfig {
       _defineTelegramBotToken.isNotEmpty ? _defineTelegramBotToken : (_env['TELEGRAM_BOT_TOKEN'] ?? '');
 
   // App
-  static String get appName => _env['APP_NAME'] ?? 'Luwa App';
+  static String get appName => _env['APP_NAME'] ?? 'Haru Koffie';
   static String get appVersion => _env['APP_VERSION'] ?? '1.0.0';
   static String get environment =>
       _defineEnvironment.isNotEmpty ? _defineEnvironment : (_env['ENVIRONMENT'] ?? 'development');

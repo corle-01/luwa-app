@@ -130,7 +130,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Luwa AI',
+                'Haru AI',
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,

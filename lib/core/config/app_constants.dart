@@ -1,7 +1,7 @@
 /// App-wide constants
 class AppConstants {
   // App
-  static const String appName = 'Luwa App';
+  static const String appName = 'Haru Koffie';
   static const String appSlogan = 'AI Business Co-Pilot';
 
   // Database table names

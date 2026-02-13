@@ -264,7 +264,7 @@ class _AiInsightToastWidgetState extends State<_AiInsightToastWidget>
                                                 BorderRadius.circular(4),
                                           ),
                                           child: const Text(
-                                            'Luwa AI',
+                                            'Haru AI',
                                             style: TextStyle(
                                               fontSize: 9,
                                               fontWeight: FontWeight.w600,

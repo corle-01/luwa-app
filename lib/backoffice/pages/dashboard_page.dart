@@ -150,7 +150,7 @@ class DashboardPage extends ConsumerWidget {
                 runSpacing: 12,
                 children: [
                   _QuickMenuCard(
-                    title: 'Luwa AI',
+                    title: 'Haru AI',
                     subtitle: 'Chat & Insights',
                     icon: Icons.psychology,
                     color: AppTheme.aiPrimary,

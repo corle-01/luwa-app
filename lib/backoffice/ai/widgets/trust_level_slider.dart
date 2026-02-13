@@ -58,10 +58,10 @@ class _TrustLevelSliderState extends ConsumerState<TrustLevelSlider>
   ];
 
   static const List<String> _levelDescriptions = [
-    'Luwa hanya memberitahu kamu',
-    'Luwa memberi saran dan minta konfirmasi',
-    'Luwa jalankan otomatis dan notify kamu',
-    'Luwa jalankan tanpa pemberitahuan',
+    'Haru hanya memberitahu kamu',
+    'Haru memberi saran dan minta konfirmasi',
+    'Haru jalankan otomatis dan notify kamu',
+    'Haru jalankan tanpa pemberitahuan',
   ];
 
   static const List<Color> _levelColors = [

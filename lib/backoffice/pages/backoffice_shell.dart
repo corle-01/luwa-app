@@ -60,7 +60,7 @@ class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
 
   static const _allNavItems = [
     (icon: Icons.dashboard_rounded, label: 'Dashboard'),
-    (icon: Icons.psychology_rounded, label: 'Luwa AI'),
+    (icon: Icons.psychology_rounded, label: 'Haru AI'),
     (icon: Icons.restaurant_menu_rounded, label: 'Produk'),
     (icon: Icons.inventory_2_rounded, label: 'Inventori'),
     (icon: Icons.bar_chart_rounded, label: 'Laporan'),
@@ -100,7 +100,7 @@ class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
             fit: BoxFit.contain,
           ),
           const SizedBox(height: 4),
-          Text('Luwa', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
+          Text('Haru', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
         ],
       ),
     );

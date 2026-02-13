@@ -413,7 +413,7 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
           ),
           content: Text(
             'Semua pengaturan trust level akan dikembalikan ke "Inform Only" (level 0). '
-            'Luwa hanya akan memberitahu tanpa melakukan aksi otomatis.',
+            'Haru hanya akan memberitahu tanpa melakukan aksi otomatis.',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: AppTheme.textSecondary,

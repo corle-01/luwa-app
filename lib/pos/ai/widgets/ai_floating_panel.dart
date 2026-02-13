@@ -200,7 +200,7 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
           // Title
           const Expanded(
             child: Text(
-              'Luwa AI',
+              'Haru AI',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,

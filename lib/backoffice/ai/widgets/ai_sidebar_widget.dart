@@ -38,7 +38,7 @@ class AiSidebarWidget extends ConsumerWidget {
       child: ExpansionTile(
         leading: LuwaMiniAvatar(size: 32),
         title: Text(
-          'Luwa AI',
+          'Haru AI',
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
