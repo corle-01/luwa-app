@@ -92,11 +92,11 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
                   children: [
                     const SizedBox(height: 32),
 
-                    // ── Luwa branding ──
+                    // ── Haru branding ──
                     Image.asset(
                       Theme.of(context).brightness == Brightness.dark
-                          ? 'assets/images/logo_collab_light_sm.png'
-                          : 'assets/images/logo_collab_dark_sm.png',
+                          ? 'assets/images/logo_luwa_light_sm.png'
+                          : 'assets/images/logo_luwa_dark_sm.png',
                       width: (MediaQuery.of(context).size.width * 0.6).clamp(180.0, 360.0),
                       fit: BoxFit.contain,
                     ),

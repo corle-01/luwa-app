@@ -254,8 +254,8 @@ class RoleSelectionPage extends StatelessWidget {
                   const SizedBox(height: 32),
                   Image.asset(
                     Theme.of(context).brightness == Brightness.dark
-                        ? 'assets/images/logo_collab_light_sm.png'
-                        : 'assets/images/logo_collab_dark_sm.png',
+                        ? 'assets/images/logo_luwa_light_sm.png'
+                        : 'assets/images/logo_luwa_dark_sm.png',
                     width: 180,
                     fit: BoxFit.contain,
                   ),

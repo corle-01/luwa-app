@@ -142,8 +142,8 @@ class _SelfOrderMenuPageState extends ConsumerState<SelfOrderMenuPage>
               // Collab logo only
               Image.asset(
                 Theme.of(context).brightness == Brightness.dark
-                    ? 'assets/images/logo_collab_light_sm.png'
-                    : 'assets/images/logo_collab_dark_sm.png',
+                    ? 'assets/images/logo_luwa_light_sm.png'
+                    : 'assets/images/logo_luwa_dark_sm.png',
                 height: 36,
                 fit: BoxFit.contain,
               ),
