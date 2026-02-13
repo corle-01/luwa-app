@@ -11,13 +11,13 @@ final posOrdersByStatusProvider = Provider.family<List<Order>, String?>((ref, st
       return orders.where((o) => o.status == status).toList();
     },
     loading: () => [],
-    error: (_, _) => [],
+    error: (_, __) => [],
   );
 });
 
 final posOrderCountProvider = Provider<int>((ref) {
   final ordersAsync = ref.watch(posTodayOrdersProvider);
-  return ordersAsync.when(data: (o) => o.length, loading: () => 0, error: (_, _) => 0);
+  return ordersAsync.when(data: (o) => o.length, loading: () => 0, error: (_, __) => 0);
 });
 
 final posTodaySalesProvider = Provider<double>((ref) {
@@ -27,7 +27,7 @@ final posTodaySalesProvider = Provider<double>((ref) {
         .where((o) => o.status == 'completed')
         .fold(0.0, (sum, o) => sum + o.totalAmount),
     loading: () => 0,
-    error: (_, _) => 0,
+    error: (_, __) => 0,
   );
 });
 
@@ -102,7 +102,7 @@ final posFilteredOrdersProvider = FutureProvider<List<Order>>((ref) async {
 
 final posFilteredOrderCountProvider = Provider<int>((ref) {
   final ordersAsync = ref.watch(posFilteredOrdersProvider);
-  return ordersAsync.when(data: (o) => o.length, loading: () => 0, error: (_, _) => 0);
+  return ordersAsync.when(data: (o) => o.length, loading: () => 0, error: (_, __) => 0);
 });
 
 final posFilteredSalesProvider = Provider<double>((ref) {
@@ -112,6 +112,6 @@ final posFilteredSalesProvider = Provider<double>((ref) {
         .where((o) => o.status == 'completed')
         .fold(0.0, (sum, o) => sum + o.totalAmount),
     loading: () => 0,
-    error: (_, _) => 0,
+    error: (_, __) => 0,
   );
 });
