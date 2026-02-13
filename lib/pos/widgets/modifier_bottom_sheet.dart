@@ -107,7 +107,7 @@ class _ModifierBottomSheetState extends ConsumerState<ModifierBottomSheet> {
                 padding: EdgeInsets.all(16),
                 child: CircularProgressIndicator(),
               )),
-              error: (_, _) => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
             ),
           ),
 

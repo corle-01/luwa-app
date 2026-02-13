@@ -183,7 +183,7 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
                 height: 16,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, _) => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
             ),
           ),
           const Spacer(),

@@ -46,7 +46,7 @@ class CategoryTabBar extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-        error: (_, _) => const SizedBox.shrink(),
+        error: (_, __) => const SizedBox.shrink(),
       ),
     );
   }

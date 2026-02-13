@@ -96,7 +96,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                                 imageUrl: widget.product.primaryImageUrl!,
                                 fit: BoxFit.cover,
                                 width: double.infinity,
-                                placeholder: (_, _) => Container(
+                                placeholder: (_, __) => Container(
                                   color: AppTheme.backgroundColor,
                                   child: Center(
                                     child: CircularProgressIndicator(
@@ -105,7 +105,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                                     ),
                                   ),
                                 ),
-                                errorWidget: (_, _, _) => _buildPlaceholder(),
+                                errorWidget: (_, __, ___) => _buildPlaceholder(),
                               )
                             : _buildPlaceholder(),
                       ),

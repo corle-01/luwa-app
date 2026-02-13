@@ -64,7 +64,7 @@ class TableSelectorDialog extends ConsumerWidget {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, _) => const Text('Error loading tables'),
+              error: (_, __) => const Text('Error loading tables'),
             ),
             if (cart.tableId != null) ...[
               const SizedBox(height: 12),
