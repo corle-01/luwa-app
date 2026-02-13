@@ -13,11 +13,11 @@ import 'backoffice/pages/backoffice_shell.dart';
 
 void main() async {
   await initializeApp();
-  runApp(const ProviderScope(child: UtterApp()));
+  runApp(const ProviderScope(child: LuwaApp()));
 }
 
-class UtterApp extends ConsumerWidget {
-  const UtterApp({super.key});
+class LuwaApp extends ConsumerWidget {
+  const LuwaApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -143,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: Image.asset(
-                      'assets/images/logo_utter_dark.png', // Light gray/white for dark blue gradient
+                      'assets/images/logo_luwa_dark.png', // Light gray/white for dark blue gradient
                       width: clampedLogoWidth,
                       fit: BoxFit.contain,
                     ),
@@ -207,8 +207,8 @@ class RoleSelectionPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Image.asset(
                       Theme.of(context).brightness == Brightness.dark
-                          ? 'assets/images/logo_utter_dark.png' // Light gray for dark mode
-                          : 'assets/images/logo_utter_light.png', // Dark charcoal for light mode
+                          ? 'assets/images/logo_luwa_dark.png' // Light gray for dark mode
+                          : 'assets/images/logo_luwa_light.png', // Dark charcoal for light mode
                       width: logoWidth,
                       fit: BoxFit.contain,
                     ),

@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:utter_app/core/models/ai_insight.dart';
-import 'package:utter_app/core/repositories/ai_insight_repository.dart';
-import 'package:utter_app/core/services/ai/ai_insight_manager.dart';
+import 'package:luwa_app/core/models/ai_insight.dart';
+import 'package:luwa_app/core/repositories/ai_insight_repository.dart';
+import 'package:luwa_app/core/services/ai/ai_insight_manager.dart';
 
 /// State for the AI insights panel.
 class AiInsightState {

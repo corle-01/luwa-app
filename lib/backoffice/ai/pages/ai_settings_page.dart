@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/core/config/app_constants.dart';
-import 'package:utter_app/core/providers/ai/ai_trust_provider.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/backoffice/ai/widgets/trust_level_slider.dart';
+import 'package:luwa_app/core/config/app_constants.dart';
+import 'package:luwa_app/core/providers/ai/ai_trust_provider.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/backoffice/ai/widgets/trust_level_slider.dart';
 
 /// AI Trust Settings page.
 ///
@@ -68,7 +68,7 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
             ),
             const SizedBox(width: AppTheme.spacingS),
             Text(
-              'Utter AI Settings',
+              'Luwa AI Settings',
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -113,8 +113,8 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
                         const SizedBox(width: AppTheme.spacingS),
                         Expanded(
                           child: Text(
-                            'Atur seberapa otonom Utter bertindak untuk setiap fitur. '
-                            'Semakin tinggi level, semakin mandiri Utter bekerja.',
+                            'Atur seberapa otonom Luwa bertindak untuk setiap fitur. '
+                            'Semakin tinggi level, semakin mandiri Luwa bekerja.',
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               color: AppTheme.aiPrimary,
@@ -413,7 +413,7 @@ class _AiSettingsPageState extends ConsumerState<AiSettingsPage> {
           ),
           content: Text(
             'Semua pengaturan trust level akan dikembalikan ke "Inform Only" (level 0). '
-            'Utter hanya akan memberitahu tanpa melakukan aksi otomatis.',
+            'Luwa hanya akan memberitahu tanpa melakukan aksi otomatis.',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: AppTheme.textSecondary,

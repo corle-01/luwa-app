@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/core/models/ai_action_log.dart';
-import 'package:utter_app/core/providers/ai/ai_action_log_provider.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/shared/utils/format_utils.dart';
+import 'package:luwa_app/core/models/ai_action_log.dart';
+import 'package:luwa_app/core/providers/ai/ai_action_log_provider.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/utils/format_utils.dart';
 
 /// A single row in the action log list.
 ///

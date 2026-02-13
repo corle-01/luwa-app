@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/core/providers/ai/ai_insight_provider.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
 
 /// AI Floating Action Button
 ///
 /// A beautiful FAB that appears on every POS page, providing quick
-/// access to the Utter AI assistant. Shows an unread insight badge
+/// access to the Luwa AI assistant. Shows an unread insight badge
 /// and pulses gently when new insights arrive.
 class AiFloatingButton extends ConsumerStatefulWidget {
   /// Callback when the button is tapped (typically opens the AI panel).

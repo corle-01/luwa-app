@@ -2,7 +2,7 @@
 
 ## Fitur Yang Akan Diaktifkan:
 
-✅ **Persistent Memory** - Utter ingat insights di database (gak hilang lagi!)
+✅ **Persistent Memory** - Luwa ingat insights di database (gak hilang lagi!)
 ✅ **Customer Segmentation** - VIP, Loyal, Repeat, New customer tracking
 ✅ **Profit Margin Analysis** - Analisis profitabilitas per produk
 ✅ **Week-over-Week Comparison** - Pertumbuhan bisnis WoW/MoM
@@ -26,7 +26,7 @@
 
 1. Buka browser di tablet/HP kamu
 2. Login ke https://supabase.com/dashboard
-3. Pilih project **utterapp**
+3. Pilih project **luwaapp**
 4. Klik **SQL Editor** di sidebar kiri
 
 ### Step 2: Copy Migration SQL
@@ -96,7 +96,7 @@ Kalau semua query jalan tanpa error = **SUKSES!** 🎉
 
 ## 🚀 After Installation:
 
-Setelah migrations sukses, Utter akan otomatis dapat akses ke:
+Setelah migrations sukses, Luwa akan otomatis dapat akses ke:
 
 1. **Persistent memory di database** (gak hilang pas reload)
 2. **Historical data 30-90 hari** (bukan cuma hari ini)
@@ -105,7 +105,7 @@ Setelah migrations sukses, Utter akan otomatis dapat akses ke:
 5. **Comparative metrics** (WoW growth)
 6. **Hourly patterns** (jam sibuk prediction)
 
-Test dengan nanya Utter:
+Test dengan nanya Luwa:
 - "Bagaimana pertumbuhan penjualan minggu ini vs minggu lalu?"
 - "Siapa customer VIP kita?"
 - "Produk mana yang paling profitable?"
@@ -126,4 +126,4 @@ Combined: `AI_DEEP_UPGRADE_COMPLETE.sql` (526 lines)
 
 ---
 
-**Ready? Let's upgrade Utter! 🚀**
+**Ready? Let's upgrade Luwa! 🚀**

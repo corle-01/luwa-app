@@ -1,10 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:utter_app/core/config/app_constants.dart';
-import 'package:utter_app/core/repositories/ai_insight_repository.dart';
-import 'package:utter_app/core/services/ai/ai_memory_service.dart';
-import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
-import 'package:utter_app/core/utils/date_utils.dart';
+import 'package:luwa_app/core/config/app_constants.dart';
+import 'package:luwa_app/core/repositories/ai_insight_repository.dart';
+import 'package:luwa_app/core/services/ai/ai_memory_service.dart';
+import 'package:luwa_app/core/services/ai/ai_prediction_service.dart';
+import 'package:luwa_app/core/utils/date_utils.dart';
 
 /// Builds rich context data for AI conversations.
 ///

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
 
 /// A custom slider widget for configuring AI trust levels.
 ///
@@ -58,10 +58,10 @@ class _TrustLevelSliderState extends ConsumerState<TrustLevelSlider>
   ];
 
   static const List<String> _levelDescriptions = [
-    'Utter hanya memberitahu kamu',
-    'Utter memberi saran dan minta konfirmasi',
-    'Utter jalankan otomatis dan notify kamu',
-    'Utter jalankan tanpa pemberitahuan',
+    'Luwa hanya memberitahu kamu',
+    'Luwa memberi saran dan minta konfirmasi',
+    'Luwa jalankan otomatis dan notify kamu',
+    'Luwa jalankan tanpa pemberitahuan',
   ];
 
   static const List<Color> _levelColors = [

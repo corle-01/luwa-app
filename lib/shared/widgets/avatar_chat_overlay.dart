@@ -11,7 +11,7 @@ import '../../core/providers/outlet_provider.dart';
 import '../../core/services/ai/ai_memory_service.dart';
 import '../../core/services/voice_command_service.dart';
 import '../themes/app_theme.dart';
-import 'utter_avatar.dart';
+import 'luwa_avatar.dart';
 
 /// Avatar Chat Overlay
 ///
@@ -162,7 +162,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
       case BusinessMood.concerned:
         return 'Ada beberapa hal yang perlu diperhatikan. Yuk diskusi!';
       case null:
-        return 'Halo! Saya Utter AI, asisten bisnis kamu.';
+        return 'Halo! Saya Luwa AI, asisten bisnis kamu.';
     }
   }
 
@@ -238,7 +238,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
       child: Row(
         children: [
           // Mini avatar in header
-          UtterMiniAvatar(size: 40),
+          LuwaMiniAvatar(size: 40),
           const SizedBox(width: 12),
 
           // Title + mood
@@ -247,7 +247,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Utter AI',
+                  'Luwa AI',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -327,7 +327,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
           mainAxisSize: MainAxisSize.min,
           children: [
             // Avatar (larger, no tap handler)
-            UtterAvatar(size: 80),
+            LuwaAvatar(size: 80),
             const SizedBox(height: 16),
 
             // Greeting bubble
@@ -405,7 +405,7 @@ class _AvatarChatOverlayState extends ConsumerState<AvatarChatOverlay>
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             // Mini avatar
-            UtterMiniAvatar(size: 28),
+            LuwaMiniAvatar(size: 28),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -672,7 +672,7 @@ class _AvatarMessageBubble extends StatelessWidget {
           children: [
             // AI avatar (bird image)
             if (!isUser) ...[
-              UtterMiniAvatar(size: 28),
+              LuwaMiniAvatar(size: 28),
               const SizedBox(width: 8),
             ],
 

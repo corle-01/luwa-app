@@ -92,7 +92,7 @@ class SyncResult {
 ///   INSERT as 'pending'  -->  INSERT items  -->  UPDATE to 'completed'
 /// so that database triggers fire correctly.
 class OfflineQueueService extends StateNotifier<List<QueuedOperation>> {
-  static const _storageKey = 'utter_offline_queue';
+  static const _storageKey = 'luwa_offline_queue';
 
   OfflineQueueService() : super([]) {
     _loadFromStorage();

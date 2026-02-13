@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:utter_app/core/models/ai_trust_setting.dart';
-import 'package:utter_app/core/repositories/ai_trust_repository.dart';
+import 'package:luwa_app/core/models/ai_trust_setting.dart';
+import 'package:luwa_app/core/repositories/ai_trust_repository.dart';
 
 /// State for AI trust settings management.
 class AiTrustState {

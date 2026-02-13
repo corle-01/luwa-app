@@ -1,9 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:utter_app/core/config/app_constants.dart';
-import 'package:utter_app/core/models/ai_conversation.dart';
-import 'package:utter_app/core/models/ai_message.dart';
+import 'package:luwa_app/core/config/app_constants.dart';
+import 'package:luwa_app/core/models/ai_conversation.dart';
+import 'package:luwa_app/core/models/ai_message.dart';
 
 /// Repository for managing AI conversations and messages in Supabase.
 class AiConversationRepository {

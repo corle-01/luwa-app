@@ -1,18 +1,18 @@
-// Utter App Widget Tests
+// Luwa App Widget Tests
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:utter_app/main.dart';
-import 'package:utter_app/core/config/app_constants.dart';
+import 'package:luwa_app/main.dart';
+import 'package:luwa_app/core/config/app_constants.dart';
 
 void main() {
-  testWidgets('Utter App smoke test', (WidgetTester tester) async {
+  testWidgets('Luwa App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame
     await tester.pumpWidget(
       const ProviderScope(
-        child: UtterApp(),
+        child: LuwaApp(),
       ),
     );
 

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'package:utter_app/core/models/ai_insight.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/core/models/ai_insight.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
 
 /// AI Insight Toast
 ///
@@ -264,7 +264,7 @@ class _AiInsightToastWidgetState extends State<_AiInsightToastWidget>
                                                 BorderRadius.circular(4),
                                           ),
                                           child: const Text(
-                                            'Utter AI',
+                                            'Luwa AI',
                                             style: TextStyle(
                                               fontSize: 9,
                                               fontWeight: FontWeight.w600,

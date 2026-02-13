@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:utter_app/pos/ai/widgets/ai_quick_actions.dart';
+import 'package:luwa_app/pos/ai/widgets/ai_quick_actions.dart';
 
 /// State for the POS-specific AI panel and suggestions.
 class PosAiState {

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/core/providers/ai/ai_chat_provider.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/backoffice/ai/widgets/ai_message_bubble.dart';
-import 'package:utter_app/shared/widgets/utter_avatar.dart';
+import 'package:luwa_app/core/providers/ai/ai_chat_provider.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/backoffice/ai/widgets/ai_message_bubble.dart';
+import 'package:luwa_app/shared/widgets/luwa_avatar.dart';
 
 /// Full chat interface widget for the AI dashboard.
 ///
@@ -155,14 +155,14 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
       ),
       child: Row(
         children: [
-          UtterMiniAvatar(size: 32),
+          LuwaMiniAvatar(size: 32),
           const SizedBox(width: AppTheme.spacingS),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Chat dengan Utter',
+                  'Chat dengan Luwa',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -204,10 +204,10 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            UtterMiniAvatar(size: 64),
+            LuwaMiniAvatar(size: 64),
             const SizedBox(height: AppTheme.spacingM),
             Text(
-              'Halo! Saya Utter.',
+              'Halo! Saya Luwa.',
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -344,7 +344,7 @@ class _AiChatWidgetState extends ConsumerState<AiChatWidget> {
       ),
       child: Row(
         children: [
-          UtterMiniAvatar(size: 28),
+          LuwaMiniAvatar(size: 28),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(

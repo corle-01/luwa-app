@@ -17,7 +17,7 @@ class ExportService {
     final buffer = StringBuffer();
 
     // Header
-    buffer.writeln('Laporan Penjualan - Utter App');
+    buffer.writeln('Laporan Penjualan - Luwa App');
     buffer.writeln('Periode: $dateRange');
     buffer.writeln('');
 
@@ -59,7 +59,7 @@ class ExportService {
   }) {
     final buffer = StringBuffer();
 
-    buffer.writeln('Laporan HPP - Utter App');
+    buffer.writeln('Laporan HPP - Luwa App');
     buffer.writeln('Periode: $dateRange');
     buffer.writeln('');
 
@@ -99,7 +99,7 @@ class ExportService {
   }) {
     final buffer = StringBuffer();
 
-    buffer.writeln('Riwayat Pesanan - Utter App');
+    buffer.writeln('Riwayat Pesanan - Luwa App');
     buffer.writeln('Periode: $dateRange');
     buffer.writeln('');
 

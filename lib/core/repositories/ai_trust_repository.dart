@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:utter_app/core/config/app_constants.dart';
-import 'package:utter_app/core/models/ai_trust_setting.dart';
+import 'package:luwa_app/core/config/app_constants.dart';
+import 'package:luwa_app/core/models/ai_trust_setting.dart';
 
 /// Repository for managing AI trust settings in Supabase.
 ///

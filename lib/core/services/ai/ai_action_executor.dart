@@ -1,8 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:utter_app/core/services/ai/ai_memory_service.dart';
-import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
-import 'package:utter_app/core/utils/date_utils.dart';
+import 'package:luwa_app/core/services/ai/ai_memory_service.dart';
+import 'package:luwa_app/core/services/ai/ai_prediction_service.dart';
+import 'package:luwa_app/core/utils/date_utils.dart';
 
 /// Sanitize a string for use in LIKE/ILIKE patterns.
 /// Escapes SQL wildcard characters to prevent pattern injection.

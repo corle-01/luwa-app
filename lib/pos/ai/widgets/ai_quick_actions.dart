@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:utter_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
 
 /// Quick Action definition.
 class _QuickAction {

@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:utter_app/core/providers/outlet_provider.dart';
-import 'package:utter_app/core/services/ai/ai_memory_service.dart';
-import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
+import 'package:luwa_app/core/providers/outlet_provider.dart';
+import 'package:luwa_app/core/services/ai/ai_memory_service.dart';
+import 'package:luwa_app/core/services/ai/ai_prediction_service.dart';
 
 /// State for the AI persona system (Memory + Business Intelligence).
 class AiPersonaState {

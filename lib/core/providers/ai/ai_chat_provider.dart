@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:utter_app/core/models/ai_message.dart';
-import 'package:utter_app/core/providers/outlet_provider.dart';
-import 'package:utter_app/core/services/ai/gemini_service.dart';
-import 'package:utter_app/core/services/ai/ai_action_executor.dart';
-import 'package:utter_app/core/services/ai/ai_memory_service.dart';
+import 'package:luwa_app/core/models/ai_message.dart';
+import 'package:luwa_app/core/providers/outlet_provider.dart';
+import 'package:luwa_app/core/services/ai/gemini_service.dart';
+import 'package:luwa_app/core/services/ai/ai_action_executor.dart';
+import 'package:luwa_app/core/services/ai/ai_memory_service.dart';
 
 /// State for the AI chat interface.
 class AiChatState {

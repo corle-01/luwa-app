@@ -512,7 +512,7 @@ class AiMemoryService {
   Future<void> _loadFromStorage() async {
     try {
       if (kIsWeb) {
-        final stored = _webStorageGet('utter_ai_memories');
+        final stored = _webStorageGet('luwa_ai_memories');
         if (stored != null && stored.isNotEmpty) {
           final list = jsonDecode(stored) as List;
           for (final item in list) {
@@ -534,7 +534,7 @@ class AiMemoryService {
         final json = jsonEncode(
           _memories.values.map((m) => m.toJson()).toList(),
         );
-        _webStorageSet('utter_ai_memories', json);
+        _webStorageSet('luwa_ai_memories', json);
       }
     } catch (e) {
       debugPrint('AiMemoryService: Failed to save memories: $e');

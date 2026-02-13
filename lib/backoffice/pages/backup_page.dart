@@ -520,7 +520,7 @@ class BackupPage extends ConsumerWidget {
     if (data != null) {
       final jsonStr = const JsonEncoder.withIndent('  ').convert(data);
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final fileName = 'utter_backup_$timestamp.json';
+      final fileName = 'luwa_backup_$timestamp.json';
 
       _downloadJsonFile(jsonStr, fileName);
 

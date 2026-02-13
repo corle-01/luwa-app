@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/core/config/app_constants.dart';
-import 'package:utter_app/core/providers/ai/ai_action_log_provider.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/shared/utils/format_utils.dart';
-import 'package:utter_app/backoffice/ai/providers/bo_ai_provider.dart';
-import 'package:utter_app/backoffice/ai/widgets/action_log_row.dart';
-import 'package:utter_app/backoffice/ai/widgets/undo_banner.dart';
+import 'package:luwa_app/core/config/app_constants.dart';
+import 'package:luwa_app/core/providers/ai/ai_action_log_provider.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/utils/format_utils.dart';
+import 'package:luwa_app/backoffice/ai/providers/bo_ai_provider.dart';
+import 'package:luwa_app/backoffice/ai/widgets/action_log_row.dart';
+import 'package:luwa_app/backoffice/ai/widgets/undo_banner.dart';
 
 /// Full action history page showing all AI actions with filtering.
 ///
@@ -508,7 +508,7 @@ class _AiActionLogPageState extends ConsumerState<AiActionLogPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Semua aksi yang dilakukan Utter\nakan tercatat di sini.',
+            'Semua aksi yang dilakukan Luwa\nakan tercatat di sini.',
             style: GoogleFonts.inter(
               fontSize: 13,
               color: AppTheme.textSecondary,

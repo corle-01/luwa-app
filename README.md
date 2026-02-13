@@ -1,11 +1,11 @@
-# Utter App - AI-Integrated F&B Management System
+# Luwa App - AI-Integrated F&B Management System
 
 **Version:** 1.0.0
 **Created:** February 6, 2026
 
 ## 📖 Description
 
-Utter App adalah sistem manajemen bisnis F&B (Food & Beverage) yang terintegrasi dengan AI Co-Pilot. Aplikasi ini memungkinkan owner bisnis untuk mengelola outlet dengan bantuan AI yang cerdas dan proaktif.
+Luwa App adalah sistem manajemen bisnis F&B (Food & Beverage) yang terintegrasi dengan AI Co-Pilot. Aplikasi ini memungkinkan owner bisnis untuk mengelola outlet dengan bantuan AI yang cerdas dan proaktif.
 
 ## 🎯 Features
 
@@ -14,7 +14,7 @@ Utter App adalah sistem manajemen bisnis F&B (Food & Beverage) yang terintegrasi
 - **Kitchen Display** - Sistem display dapur
 - **Customer App** - Self-order untuk customer
 - **Online Food** - Integrasi dengan platform online delivery
-- **Utter AI** - Business Co-Pilot dengan Trust Level system (0-3)
+- **Luwa AI** - Business Co-Pilot dengan Trust Level system (0-3)
 
 ## 🏗️ Tech Stack
 
@@ -119,7 +119,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 DEEPSEEK_API_KEY=your-deepseek-api-key-here
 
 # App Configuration
-APP_NAME=Utter App
+APP_NAME=Luwa App
 APP_VERSION=1.0.0
 ENVIRONMENT=development
 ```
@@ -150,7 +150,7 @@ ENVIRONMENT=development
 
 ## 📚 Documentation
 
-See `../UTTER_APP_AI_ENGINE_ADDENDUM.md` for complete blueprint and architecture documentation.
+See `../LUWA_APP_AI_ENGINE_ADDENDUM.md` for complete blueprint and architecture documentation.
 
 ## 🔐 Security
 
@@ -165,4 +165,4 @@ Proprietary - All rights reserved
 
 ---
 
-**Utter App** - AI Business Co-Pilot for F&B Industry
+**Luwa App** - AI Business Co-Pilot for F&B Industry

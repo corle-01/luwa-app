@@ -59,10 +59,10 @@ extension type _SpeechRecognitionErrorEvent._(JSObject _) implements JSObject {
   external String get error;
 }
 
-/// SpeechSynthesisUtterance
-@JS('SpeechSynthesisUtterance')
-extension type _SpeechSynthesisUtterance._(JSObject _) implements JSObject {
-  external factory _SpeechSynthesisUtterance(JSString text);
+/// SpeechSynthesisLuwaance
+@JS('SpeechSynthesisLuwaance')
+extension type _SpeechSynthesisLuwaance._(JSObject _) implements JSObject {
+  external factory _SpeechSynthesisLuwaance(JSString text);
   external set lang(JSString value);
   external set rate(JSNumber value);
   external set pitch(JSNumber value);
@@ -80,7 +80,7 @@ extension type _SpeechSynthesisVoice._(JSObject _) implements JSObject {
 
 /// SpeechSynthesis
 extension type _SpeechSynthesis._(JSObject _) implements JSObject {
-  external void speak(_SpeechSynthesisUtterance utterance);
+  external void speak(_SpeechSynthesisLuwaance luwaance);
   external void cancel();
   external JSArray<_SpeechSynthesisVoice> getVoices();
   external set onvoiceschanged(JSFunction? value);
@@ -313,27 +313,27 @@ class VoiceCommandService {
       // Cancel any ongoing speech
       synthesis.cancel();
 
-      // Create utterance
-      final utterance = _SpeechSynthesisUtterance(text.toJS);
-      utterance.lang = 'id-ID'.toJS;
-      utterance.rate = 1.0.toJS;
-      utterance.pitch = 1.0.toJS;
-      utterance.volume = 1.0.toJS;
+      // Create luwaance
+      final luwaance = _SpeechSynthesisLuwaance(text.toJS);
+      luwaance.lang = 'id-ID'.toJS;
+      luwaance.rate = 1.0.toJS;
+      luwaance.pitch = 1.0.toJS;
+      luwaance.volume = 1.0.toJS;
 
       // Set Indonesian voice explicitly if available
       final idVoice = _findIndonesianVoice();
       if (idVoice != null) {
-        utterance.voice = idVoice;
+        luwaance.voice = idVoice;
       }
 
       // Callback when done
       if (onDone != null) {
-        utterance.onend = ((JSObject _) {
+        luwaance.onend = ((JSObject _) {
           onDone();
         }).toJS;
       }
 
-      synthesis.speak(utterance);
+      synthesis.speak(luwaance);
     } catch (_) {
       onDone?.call();
     }

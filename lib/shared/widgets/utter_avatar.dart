@@ -8,7 +8,7 @@ import '../../core/providers/ai/ai_persona_provider.dart';
 import '../../core/services/ai/ai_memory_service.dart';
 import '../themes/app_theme.dart';
 
-/// Animated Utter AI Avatar — fully programmatic (CustomPainter).
+/// Animated Luwa AI Avatar — fully programmatic (CustomPainter).
 ///
 /// A cute owl/bird mascot drawn entirely in code.
 /// Expressive animations:
@@ -18,13 +18,13 @@ import '../themes/app_theme.dart';
 /// - Floating (vertical bob)
 /// - Thinking: spinning glow halo + pupil animation
 /// - Mood-reactive body glow color
-class UtterAvatar extends ConsumerStatefulWidget {
+class LuwaAvatar extends ConsumerStatefulWidget {
   final double size;
   final bool isThinking;
   final VoidCallback? onTap;
   final int badgeCount;
 
-  const UtterAvatar({
+  const LuwaAvatar({
     super.key,
     this.size = 64,
     this.isThinking = false,
@@ -33,10 +33,10 @@ class UtterAvatar extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<UtterAvatar> createState() => _UtterAvatarState();
+  ConsumerState<LuwaAvatar> createState() => _LuwaAvatarState();
 }
 
-class _UtterAvatarState extends ConsumerState<UtterAvatar>
+class _LuwaAvatarState extends ConsumerState<LuwaAvatar>
     with TickerProviderStateMixin {
   // Breathing: scale 1.0 → 1.05
   late AnimationController _breathController;
@@ -132,7 +132,7 @@ class _UtterAvatarState extends ConsumerState<UtterAvatar>
   }
 
   @override
-  void didUpdateWidget(UtterAvatar oldWidget) {
+  void didUpdateWidget(LuwaAvatar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isThinking != oldWidget.isThinking) {
       if (widget.isThinking) {
@@ -866,12 +866,12 @@ class _MascotPainter extends CustomPainter {
 // Mini avatar for inline use (message bubbles, headers)
 // ─────────────────────────────────────────────────────────
 
-/// A static (non-animated) version of the Utter mascot for use
+/// A static (non-animated) version of the Luwa mascot for use
 /// in message bubbles, headers, and other inline contexts.
-class UtterMiniAvatar extends StatelessWidget {
+class LuwaMiniAvatar extends StatelessWidget {
   final double size;
 
-  const UtterMiniAvatar({super.key, this.size = 28});
+  const LuwaMiniAvatar({super.key, this.size = 28});
 
   @override
   Widget build(BuildContext context) {

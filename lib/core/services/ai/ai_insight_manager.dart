@@ -1,5 +1,5 @@
-import 'package:utter_app/core/models/ai_insight.dart';
-import 'package:utter_app/core/repositories/ai_insight_repository.dart';
+import 'package:luwa_app/core/models/ai_insight.dart';
+import 'package:luwa_app/core/repositories/ai_insight_repository.dart';
 
 /// Manages AI insights lifecycle and operations.
 ///

@@ -1,5 +1,5 @@
-name: utter_app
-description: "Utter App - AI-Integrated F&B Management System"
+name: luwa_app
+description: "Luwa App - AI-Integrated F&B Management System"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -81,12 +81,12 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/utter_avatar.png
+    - assets/images/luwa_avatar.png
     - assets/images/chat_bg_pattern.png
-    - assets/images/logo_utter_dark.png
-    - assets/images/logo_utter_light.png
-    - assets/images/logo_utter_dark_sm.png
-    - assets/images/logo_utter_light_sm.png
+    - assets/images/logo_luwa_dark.png
+    - assets/images/logo_luwa_light.png
+    - assets/images/logo_luwa_dark_sm.png
+    - assets/images/logo_luwa_light_sm.png
     - assets/images/logo_collab_dark.png
     - assets/images/logo_collab_light.png
     - assets/images/logo_collab_dark_sm.png

@@ -21,7 +21,7 @@ class PosApp extends ConsumerWidget {
     ref.watch(realtimeSyncProvider);
     final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
-      title: 'Utter POS',
+      title: 'Luwa POS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

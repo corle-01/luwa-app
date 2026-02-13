@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/core/models/ai_message.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/shared/utils/format_utils.dart';
-import 'package:utter_app/backoffice/ai/widgets/ai_function_result_card.dart';
-import 'package:utter_app/shared/widgets/utter_avatar.dart';
+import 'package:luwa_app/core/models/ai_message.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/utils/format_utils.dart';
+import 'package:luwa_app/backoffice/ai/widgets/ai_function_result_card.dart';
+import 'package:luwa_app/shared/widgets/luwa_avatar.dart';
 
 /// A single chat message bubble.
 ///
@@ -107,7 +107,7 @@ class _AiMessageBubbleState extends State<AiMessageBubble>
               if (!isUser) ...[
                 Padding(
                   padding: const EdgeInsets.only(right: 8, bottom: 2),
-                  child: UtterMiniAvatar(size: 28),
+                  child: LuwaMiniAvatar(size: 28),
                 ),
               ],
 

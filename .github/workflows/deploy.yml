@@ -31,7 +31,7 @@ jobs:
         run: |
           flutter build web --release \
             --target lib/main_pos.dart \
-            --base-href "/utterapp/pos/" \
+            --base-href "/luwaapp/pos/" \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
@@ -45,7 +45,7 @@ jobs:
         run: |
           flutter build web --release \
             --target lib/main_office.dart \
-            --base-href "/utterapp/office/" \
+            --base-href "/luwaapp/office/" \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
@@ -59,7 +59,7 @@ jobs:
         run: |
           flutter build web --release \
             --target lib/main_kitchen.dart \
-            --base-href "/utterapp/kitchen/" \
+            --base-href "/luwaapp/kitchen/" \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
@@ -78,7 +78,7 @@ jobs:
           cp web/landing.html build/deploy/index.html
           cp web/favicon*.png build/deploy/ 2>/dev/null || true
           cp web/favicon.png build/deploy/ 2>/dev/null || true
-          cp assets/images/logo_utter_dark.png build/deploy/assets/images/
+          cp assets/images/logo_luwa_dark.png build/deploy/assets/images/
           cp assets/images/logo_collab_dark_sm.png build/deploy/assets/images/
 
       - uses: actions/upload-pages-artifact@v3

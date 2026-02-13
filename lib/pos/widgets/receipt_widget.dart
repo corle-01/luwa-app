@@ -126,7 +126,7 @@ class ReceiptPrinter {
 
     // Header
     buf.writeln('<div class="header">');
-    buf.writeln('<div class="store-name">UTTER COFFEE</div>');
+    buf.writeln('<div class="store-name">LUWA COFFEE</div>');
     buf.writeln('<div class="store-sub">MALANG</div>');
     buf.writeln('<div class="store-info">Jl. Soekarno Hatta No. 9, Malang</div>');
     buf.writeln('<div class="store-info">Telp: 0341-123456</div>');
@@ -248,7 +248,7 @@ class ReceiptPrinter {
     // Footer
     buf.writeln('<div class="footer">');
     buf.writeln('<div class="thank-you">Terima kasih telah berkunjung!</div>');
-    buf.writeln('<div class="powered-by">Powered by Utter App</div>');
+    buf.writeln('<div class="powered-by">Powered by Luwa App</div>');
     buf.writeln('</div>');
 
     buf.writeln('</div>'); // .receipt

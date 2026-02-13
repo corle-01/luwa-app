@@ -734,7 +734,7 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   void _showPreviewDialog(PrinterConfig config) {
     final receipt = EscPosReceiptPrinter(paperWidth: config.paperWidth);
     final bytes = receipt.generateTestReceipt(
-      outletName: 'UTTER APP',
+      outletName: 'LUWA APP',
       paperWidth: config.paperWidth,
     );
 

@@ -92,7 +92,7 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
                   children: [
                     const SizedBox(height: 32),
 
-                    // ── Utter branding ──
+                    // ── Luwa branding ──
                     Image.asset(
                       Theme.of(context).brightness == Brightness.dark
                           ? 'assets/images/logo_collab_light_sm.png'
@@ -250,8 +250,8 @@ class _NoTableLandingPageState extends ConsumerState<_NoTableLandingPage> {
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                       child: Image.asset(
                         Theme.of(context).brightness == Brightness.dark
-                            ? 'assets/images/logo_utter_dark_sm.png' // Light gray for dark mode
-                            : 'assets/images/logo_utter_light_sm.png', // Dark charcoal for light mode
+                            ? 'assets/images/logo_luwa_dark_sm.png' // Light gray for dark mode
+                            : 'assets/images/logo_luwa_light_sm.png', // Dark charcoal for light mode
                         width: 120, // Increased from 100 for better visibility
                         fit: BoxFit.contain,
                         opacity: const AlwaysStoppedAnimation(0.4),

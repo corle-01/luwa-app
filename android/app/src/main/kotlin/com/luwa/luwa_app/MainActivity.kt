@@ -1,4 +1,4 @@
-package com.utter.utter_app
+package com.luwa.luwa_app
 
 import io.flutter.embedding.android.FlutterActivity
 

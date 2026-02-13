@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
 
 /// A persistent banner showing an undo action with a countdown timer.
 ///

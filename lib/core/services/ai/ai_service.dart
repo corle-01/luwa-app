@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:utter_app/core/services/ai/ai_context_builder.dart';
+import 'package:luwa_app/core/services/ai/ai_context_builder.dart';
 
 /// Response returned by the AI service after processing a message.
 class AiResponse {

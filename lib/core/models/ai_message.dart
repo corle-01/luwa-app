@@ -1,4 +1,4 @@
-import 'package:utter_app/core/models/ai_function_call.dart';
+import 'package:luwa_app/core/models/ai_function_call.dart';
 
 /// AI Message model
 ///

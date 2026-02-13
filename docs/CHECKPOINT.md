@@ -1,4 +1,4 @@
-# UTTER APP — CHECKPOINT vs MASTER BLUEPRINT v2.1
+# LUWA APP — CHECKPOINT vs MASTER BLUEPRINT v2.1
 > Last updated: 2026-02-10
 
 ## LEGEND
@@ -381,10 +381,10 @@ DeepSeek menyarankan 10 kekurangan. Setelah cross-check, **7 sudah ada**, 3 bena
 - [x] Voice Command: Web Speech API STT (mic button) + TTS (Dengar button on AI messages)
 - [x] Chat BG pattern on overlay message area
 - [x] Dashboard: full-width layout with insights, memory, predictions, recent actions
-- [x] UtterMiniAvatar for inline use in message bubbles and headers
+- [x] LuwaMiniAvatar for inline use in message bubbles and headers
 
 **Logo/Branding Integration: DONE (2026-02-08)**
-- [x] Utter x IXON logos integrated (splash, role selection, POS header, self-order, back office sidebar)
+- [x] Luwa x IXON logos integrated (splash, role selection, POS header, self-order, back office sidebar)
 - [x] Favicon 16/32, PWA icons 192/512, maskable icons, apple-touch-icon
 - [x] web/index.html loading screen, manifest.json branding
 
@@ -397,7 +397,7 @@ DeepSeek menyarankan 10 kekurangan. Setelah cross-check, **7 sudah ada**, 3 bena
 - [x] BackOfficeShell extracted to own file with configurable logo tap callback
 - [x] CI builds 3 Flutter web apps sequentially, assembles into /pos/, /office/, /kitchen/
 - [x] KDS standalone always uses dark theme
-- URLs: /utterapp/pos/, /utterapp/office/, /utterapp/kitchen/
+- URLs: /luwaapp/pos/, /luwaapp/office/, /luwaapp/kitchen/
 
 **Mobile Web Responsive: DONE (2026-02-09)**
 - [x] POS: mobile layout — full-screen product grid + floating cart FAB → bottom sheet
@@ -412,7 +412,7 @@ DeepSeek menyarankan 10 kekurangan. Setelah cross-check, **7 sudah ada**, 3 bena
 - [x] Landing page: wider mobile cards, adjusted spacing
 
 **Telegram Bot: DONE (2026-02-08, updated 2026-02-09)**
-- [x] @UtterAIBot Supabase Edge Function
+- [x] @LuwaAIBot Supabase Edge Function
 - [x] Commands: /start, /help, /sales, /stock, /top, /shift, /reset, /opcost
 - [x] Natural language AI chat with business context via DeepSeek
 - [x] Updated context builder with operational costs, 12 KEMAMPUAN in system prompt

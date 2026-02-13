@@ -62,14 +62,14 @@ class _PosHeaderState extends ConsumerState<PosHeader> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Utter logo - fixed logic for correct contrast
+              // Luwa logo - fixed logic for correct contrast
               if (!isMobile)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Image.asset(
                     Theme.of(context).brightness == Brightness.dark
-                        ? 'assets/images/logo_utter_dark_sm.png' // Light gray for dark mode
-                        : 'assets/images/logo_utter_light_sm.png', // Dark charcoal for light mode
+                        ? 'assets/images/logo_luwa_dark_sm.png' // Light gray for dark mode
+                        : 'assets/images/logo_luwa_light_sm.png', // Dark charcoal for light mode
                     height: 32,
                     fit: BoxFit.contain,
                   ),

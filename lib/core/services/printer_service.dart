@@ -249,7 +249,7 @@ class PrinterService {
   Future<PrintResult> testPrint(PrinterConfig printer) async {
     final receipt = EscPosReceiptPrinter(paperWidth: printer.paperWidth);
     final bytes = receipt.generateTestReceipt(
-      outletName: 'UTTER APP',
+      outletName: 'LUWA APP',
       paperWidth: printer.paperWidth,
     );
 
@@ -401,7 +401,7 @@ class PrinterService {
 </style>
 </head><body>
 <div class="receipt">
-  <div class="center big">UTTER APP</div>
+  <div class="center big">LUWA APP</div>
   <div class="center">=== TEST PRINT ===</div>
   <div class="sep">${'-' * (paperWidth == 80 ? 48 : 32)}</div>
   <div>Paper: ${paperWidth}mm</div>

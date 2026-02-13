@@ -28,7 +28,7 @@ class BackOfficeShell extends ConsumerStatefulWidget {
 }
 
 class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
-  static const _navStorageKey = 'utter_bo_tab';
+  static const _navStorageKey = 'luwa_bo_tab';
   int _selectedIndex = 0;
 
   @override
@@ -60,7 +60,7 @@ class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
 
   static const _allNavItems = [
     (icon: Icons.dashboard_rounded, label: 'Dashboard'),
-    (icon: Icons.psychology_rounded, label: 'Utter AI'),
+    (icon: Icons.psychology_rounded, label: 'Luwa AI'),
     (icon: Icons.restaurant_menu_rounded, label: 'Produk'),
     (icon: Icons.inventory_2_rounded, label: 'Inventori'),
     (icon: Icons.bar_chart_rounded, label: 'Laporan'),
@@ -94,13 +94,13 @@ class _BackOfficeShellState extends ConsumerState<BackOfficeShell> {
           // Fixed logo logic: swap for correct contrast
           Image.asset(
             Theme.of(context).brightness == Brightness.dark
-                ? 'assets/images/logo_utter_dark_sm.png' // Light gray for dark mode
-                : 'assets/images/logo_utter_light_sm.png', // Dark charcoal for light mode
+                ? 'assets/images/logo_luwa_dark_sm.png' // Light gray for dark mode
+                : 'assets/images/logo_luwa_light_sm.png', // Dark charcoal for light mode
             height: 36, // Increased from 28 to 36
             fit: BoxFit.contain,
           ),
           const SizedBox(height: 4),
-          Text('Utter', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
+          Text('Luwa', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
         ],
       ),
     );

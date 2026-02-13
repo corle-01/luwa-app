@@ -104,7 +104,7 @@ class SettingsHubPage extends StatelessWidget {
     ),
     _SettingsItem(
       icon: Icons.smart_toy_rounded,
-      title: 'Utter AI',
+      title: 'Luwa AI',
       subtitle: 'Pengaturan trust level dan fitur AI',
       color: Color(0xFF8B5CF6),
     ),

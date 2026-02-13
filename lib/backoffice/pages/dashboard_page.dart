@@ -52,7 +52,7 @@ class DashboardPage extends ConsumerWidget {
             children: [
               // ── Header ──
               Text(
-                'Selamat datang di Utter App!',
+                'Selamat datang di Luwa App!',
                 style: GoogleFonts.inter(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -150,7 +150,7 @@ class DashboardPage extends ConsumerWidget {
                 runSpacing: 12,
                 children: [
                   _QuickMenuCard(
-                    title: 'Utter AI',
+                    title: 'Luwa AI',
                     subtitle: 'Chat & Insights',
                     icon: Icons.psychology,
                     color: AppTheme.aiPrimary,

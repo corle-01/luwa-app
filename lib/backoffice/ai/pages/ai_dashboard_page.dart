@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
-import 'package:utter_app/core/providers/ai/ai_action_log_provider.dart';
-import 'package:utter_app/core/providers/ai/ai_trust_provider.dart';
-import 'package:utter_app/core/providers/ai/ai_persona_provider.dart';
-import 'package:utter_app/core/providers/ai/ai_chat_provider.dart';
-import 'package:utter_app/core/providers/outlet_provider.dart';
-import 'package:utter_app/core/services/ai/ai_memory_service.dart';
-import 'package:utter_app/core/services/ai/ai_prediction_service.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/shared/utils/format_utils.dart';
-import 'package:utter_app/shared/widgets/utter_avatar.dart';
-import 'package:utter_app/shared/widgets/avatar_chat_overlay.dart';
-import 'package:utter_app/backoffice/ai/providers/bo_ai_provider.dart';
-import 'package:utter_app/backoffice/ai/widgets/insight_card.dart';
-import 'package:utter_app/backoffice/ai/widgets/pending_approval_card.dart';
-import 'package:utter_app/backoffice/ai/widgets/action_log_row.dart';
-import 'package:utter_app/backoffice/ai/widgets/undo_banner.dart';
-import 'package:utter_app/backoffice/ai/pages/ai_settings_page.dart';
+import 'package:luwa_app/core/providers/ai/ai_insight_provider.dart';
+import 'package:luwa_app/core/providers/ai/ai_action_log_provider.dart';
+import 'package:luwa_app/core/providers/ai/ai_trust_provider.dart';
+import 'package:luwa_app/core/providers/ai/ai_persona_provider.dart';
+import 'package:luwa_app/core/providers/ai/ai_chat_provider.dart';
+import 'package:luwa_app/core/providers/outlet_provider.dart';
+import 'package:luwa_app/core/services/ai/ai_memory_service.dart';
+import 'package:luwa_app/core/services/ai/ai_prediction_service.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/utils/format_utils.dart';
+import 'package:luwa_app/shared/widgets/luwa_avatar.dart';
+import 'package:luwa_app/shared/widgets/avatar_chat_overlay.dart';
+import 'package:luwa_app/backoffice/ai/providers/bo_ai_provider.dart';
+import 'package:luwa_app/backoffice/ai/widgets/insight_card.dart';
+import 'package:luwa_app/backoffice/ai/widgets/pending_approval_card.dart';
+import 'package:luwa_app/backoffice/ai/widgets/action_log_row.dart';
+import 'package:luwa_app/backoffice/ai/widgets/undo_banner.dart';
+import 'package:luwa_app/backoffice/ai/pages/ai_settings_page.dart';
 
 /// The main AI Dashboard page for the Back Office.
 ///
@@ -88,7 +88,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
             Positioned(
               bottom: 64,
               right: 24,
-              child: UtterAvatar(
+              child: LuwaAvatar(
                 size: 56,
                 isThinking: isLoading,
                 badgeCount: unreadCount,
@@ -124,13 +124,13 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
       child: Row(
         children: [
           // AI Avatar Logo
-          UtterAvatar(size: 36),
+          LuwaAvatar(size: 36),
           const SizedBox(width: AppTheme.spacingS),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Utter AI',
+                'Luwa AI',
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -940,7 +940,7 @@ class _AiDashboardPageState extends ConsumerState<AiDashboardPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Tidak ada insight aktif saat ini.\nUtter akan memberi tahu jika ada yang perlu perhatian.',
+              'Tidak ada insight aktif saat ini.\nLuwa akan memberi tahu jika ada yang perlu perhatian.',
               style: GoogleFonts.inter(
                 fontSize: 13,
                 color: AppTheme.textSecondary,

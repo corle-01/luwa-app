@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:utter_app/core/models/ai_action_log.dart';
-import 'package:utter_app/core/repositories/ai_action_log_repository.dart';
+import 'package:luwa_app/core/models/ai_action_log.dart';
+import 'package:luwa_app/core/repositories/ai_action_log_repository.dart';
 
 /// State for the AI action log viewer.
 class AiActionLogState {

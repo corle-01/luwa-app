@@ -1,14 +1,14 @@
-# Utter AI Telegram Bot
+# Luwa AI Telegram Bot
 
 ## Bot Info
 
-- **Bot Username:** [@UtterAIBot](https://t.me/UtterAIBot)
-- **Bot Link:** https://t.me/UtterAIBot
+- **Bot Username:** [@LuwaAIBot](https://t.me/LuwaAIBot)
+- **Bot Link:** https://t.me/LuwaAIBot
 - **Webhook URL:** https://eavsygnrluburvrobvoj.supabase.co/functions/v1/telegram-bot
 
 ## How to Use
 
-1. Open Telegram and search for `@UtterAIBot` or click https://t.me/UtterAIBot
+1. Open Telegram and search for `@LuwaAIBot` or click https://t.me/LuwaAIBot
 2. Press "Start" or send `/start`
 3. Ask anything about your business in Bahasa Indonesia
 

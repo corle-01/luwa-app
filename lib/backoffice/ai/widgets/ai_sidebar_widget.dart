@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/shared/widgets/utter_avatar.dart';
-import 'package:utter_app/backoffice/ai/pages/ai_dashboard_page.dart';
-import 'package:utter_app/backoffice/ai/pages/ai_action_log_page.dart';
-import 'package:utter_app/backoffice/ai/pages/ai_settings_page.dart';
-import 'package:utter_app/backoffice/ai/pages/ai_conversation_history.dart';
+import 'package:luwa_app/core/providers/ai/ai_insight_provider.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/widgets/luwa_avatar.dart';
+import 'package:luwa_app/backoffice/ai/pages/ai_dashboard_page.dart';
+import 'package:luwa_app/backoffice/ai/pages/ai_action_log_page.dart';
+import 'package:luwa_app/backoffice/ai/pages/ai_settings_page.dart';
+import 'package:luwa_app/backoffice/ai/pages/ai_conversation_history.dart';
 
 /// AI section for the Back Office sidebar menu.
 ///
@@ -36,9 +36,9 @@ class AiSidebarWidget extends ConsumerWidget {
         dividerColor: Colors.transparent,
       ),
       child: ExpansionTile(
-        leading: UtterMiniAvatar(size: 32),
+        leading: LuwaMiniAvatar(size: 32),
         title: Text(
-          'Utter AI',
+          'Luwa AI',
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,

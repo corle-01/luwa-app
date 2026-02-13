@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:utter_app/core/providers/ai/ai_chat_provider.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/shared/utils/format_utils.dart';
+import 'package:luwa_app/core/providers/ai/ai_chat_provider.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/utils/format_utils.dart';
 
 
 /// Model for a conversation summary displayed in the list.
@@ -543,7 +543,7 @@ class _AiConversationHistoryState
           Text(
             hasSearchQuery
                 ? 'Coba kata kunci lain.'
-                : 'Mulai percakapan baru dengan Utter\nuntuk melihat riwayat di sini.',
+                : 'Mulai percakapan baru dengan Luwa\nuntuk melihat riwayat di sini.',
             style: GoogleFonts.inter(
               fontSize: 13,
               color: AppTheme.textSecondary,

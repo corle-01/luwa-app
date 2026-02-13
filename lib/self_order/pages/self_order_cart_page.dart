@@ -1196,7 +1196,7 @@ class _QrisPaymentDialog extends StatelessWidget {
       if (kIsWeb) {
         // ignore: avoid_web_libraries_in_flutter
         final anchor = html.AnchorElement(href: 'assets/images/qris_payment.jpeg')
-          ..setAttribute('download', 'QRIS_Payment_UtterCoffee.jpeg')
+          ..setAttribute('download', 'QRIS_Payment_LuwaCoffee.jpeg')
           ..click();
       }
     } catch (e) {

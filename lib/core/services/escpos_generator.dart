@@ -246,7 +246,7 @@ class EscPosReceiptPrinter {
     // ── Footer ────────────────────────────────────────────────────
     _gen.alignCenter();
     _gen.textLine('Terima Kasih!');
-    _gen.textLine('Powered by Utter App');
+    _gen.textLine('Powered by Luwa App');
     _gen.lineFeed(3);
     _gen.partialCut();
 
@@ -255,7 +255,7 @@ class EscPosReceiptPrinter {
 
   /// Generate a short test receipt for verifying printer connection.
   Uint8List generateTestReceipt({
-    String outletName = 'UTTER APP',
+    String outletName = 'LUWA APP',
     int paperWidth = 80,
   }) {
     _gen.clear();

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:utter_app/core/models/ai_insight.dart';
-import 'package:utter_app/core/models/ai_message.dart';
-import 'package:utter_app/core/providers/ai/ai_chat_provider.dart';
-import 'package:utter_app/core/providers/ai/ai_insight_provider.dart';
-import 'package:utter_app/pos/ai/widgets/ai_quick_actions.dart';
-import 'package:utter_app/shared/themes/app_theme.dart';
-import 'package:utter_app/shared/widgets/utter_avatar.dart';
+import 'package:luwa_app/core/models/ai_insight.dart';
+import 'package:luwa_app/core/models/ai_message.dart';
+import 'package:luwa_app/core/providers/ai/ai_chat_provider.dart';
+import 'package:luwa_app/core/providers/ai/ai_insight_provider.dart';
+import 'package:luwa_app/pos/ai/widgets/ai_quick_actions.dart';
+import 'package:luwa_app/shared/themes/app_theme.dart';
+import 'package:luwa_app/shared/widgets/luwa_avatar.dart';
 
 /// AI Floating Panel
 ///
@@ -194,13 +194,13 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
       child: Row(
         children: [
           // AI Avatar
-          UtterMiniAvatar(size: 32),
+          LuwaMiniAvatar(size: 32),
           const SizedBox(width: AppTheme.spacingS),
 
           // Title
           const Expanded(
             child: Text(
-              'Utter AI',
+              'Luwa AI',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -359,10 +359,10 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            UtterMiniAvatar(size: 64),
+            LuwaMiniAvatar(size: 64),
             const SizedBox(height: AppTheme.spacingM),
             Text(
-              'Halo! Saya Utter AI',
+              'Halo! Saya Luwa AI',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -457,7 +457,7 @@ class _AiFloatingPanelState extends ConsumerState<AiFloatingPanel>
 
   /// Small AI avatar icon.
   Widget _buildAiAvatar() {
-    return UtterMiniAvatar(size: 28);
+    return LuwaMiniAvatar(size: 28);
   }
 
   /// Chat input field with send button.
@@ -711,7 +711,7 @@ class _MessageBubble extends StatelessWidget {
           children: [
             // AI avatar (left side)
             if (!isUser) ...[
-              UtterMiniAvatar(size: 28),
+              LuwaMiniAvatar(size: 28),
               const SizedBox(width: AppTheme.spacingS),
             ],
 

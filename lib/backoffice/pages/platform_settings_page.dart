@@ -217,7 +217,7 @@ class _InfoBanner extends StatelessWidget {
           Expanded(
             child: Text(
               'Hubungkan toko Anda dengan platform pengiriman makanan online '
-              'untuk menerima pesanan langsung di Utter App.',
+              'untuk menerima pesanan langsung di Luwa App.',
               style: GoogleFonts.inter(
                 fontSize: 13.5,
                 color: AppTheme.infoColor.withValues(alpha: 0.85),
@@ -280,7 +280,7 @@ class _PlatformCardState extends ConsumerState<_PlatformCard> {
         TextEditingController(text: widget.config.apiKey ?? '');
     _webhookUrlController = TextEditingController(
       text: widget.config.webhookUrl ??
-          'https://api.utterapp.com/webhooks/${widget.config.platform}/${widget.config.outletId}',
+          'https://api.luwaapp.com/webhooks/${widget.config.platform}/${widget.config.outletId}',
     );
     _commissionController = TextEditingController(
       text: widget.config.commissionRate > 0

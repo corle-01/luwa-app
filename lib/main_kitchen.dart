@@ -19,7 +19,7 @@ class KitchenApp extends ConsumerWidget {
     // Keep Supabase Realtime active — orders auto-refresh without polling
     ref.watch(realtimeSyncProvider);
     return MaterialApp(
-      title: 'Utter Kitchen',
+      title: 'Luwa Kitchen',
       debugShowCheckedModeBanner: false,
       // KDS always uses dark theme
       theme: AppTheme.darkTheme,

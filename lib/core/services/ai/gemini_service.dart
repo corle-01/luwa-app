@@ -379,7 +379,7 @@ class GeminiService {
     final totalMonthlyCost = opCosts['total_monthly'] ?? 0;
     final bonusPercent = opCosts['bonus_percent'] ?? 0;
 
-    return '''Kamu adalah Utter, AI co-pilot FULL ACCESS untuk bisnis F&B.
+    return '''Kamu adalah Luwa, AI co-pilot FULL ACCESS untuk bisnis F&B.
 Kamu memiliki 3 dimensi kepribadian:
 
 == MEMORY ==
