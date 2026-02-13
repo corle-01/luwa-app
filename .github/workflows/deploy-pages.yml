@@ -31,7 +31,7 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build web
+      - name: Build Main (Mode Selector)
         run: |
           flutter build web --release \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
@@ -39,10 +39,48 @@ jobs:
             --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
             --base-href /luwa-app/
 
+      - name: Build POS variant
+        run: |
+          flutter build web --release \
+            --target=lib/main_pos.dart \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
+            --base-href /luwa-app/pos/
+          mkdir -p deploy/pos
+          cp -r build/web/* deploy/pos/
+
+      - name: Build Office variant
+        run: |
+          flutter build web --release \
+            --target=lib/main_office.dart \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
+            --base-href /luwa-app/office/
+          mkdir -p deploy/office
+          cp -r build/web/* deploy/office/
+
+      - name: Build KDS variant
+        run: |
+          flutter build web --release \
+            --target=lib/main_kitchen.dart \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }} \
+            --base-href /luwa-app/kds/
+          mkdir -p deploy/kds
+          cp -r build/web/* deploy/kds/
+
+      - name: Combine all builds
+        run: |
+          mkdir -p deploy
+          cp -r build/web/* deploy/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'build/web'
+          path: 'deploy'
 
   deploy:
     environment:
