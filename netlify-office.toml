@@ -1,0 +1,23 @@
+[build]
+  command = """
+    if [ ! -d "$HOME/flutter" ]; then
+      git clone https://github.com/flutter/flutter.git -b stable --depth 1 $HOME/flutter
+    fi &&
+    export PATH="$PATH:$HOME/flutter/bin" &&
+    flutter config --no-analytics &&
+    flutter pub get &&
+    flutter build web --release \
+      --target=lib/main_office.dart \
+      --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+      --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+      --dart-define=DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY"
+  """
+  publish = "build/web"
+
+[build.environment]
+  # Environment variables akan diambil dari Netlify dashboard
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
