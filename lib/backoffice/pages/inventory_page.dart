@@ -1569,11 +1569,19 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
 
       final costChanged = newCostInBase != null && newCostInBase != widget.ingredient.costPerUnit;
       final categoryChanged = _category != widget.ingredient.category;
-      if (costChanged || categoryChanged) {
+
+      // For non-purchase types, update cost/category directly
+      // For purchase, FIFO layer handles cost — only update category if changed
+      if (_selectedType != 'purchase' && (costChanged || categoryChanged)) {
         await repo.updateIngredient(
           widget.ingredient.id,
           costPerUnit: costChanged ? newCostInBase : null,
           category: categoryChanged ? _category : null,
+        );
+      } else if (_selectedType == 'purchase' && categoryChanged) {
+        await repo.updateIngredient(
+          widget.ingredient.id,
+          category: _category,
         );
       }
 
@@ -1592,13 +1600,15 @@ class _StockAdjustmentDialogState extends State<_StockAdjustmentDialog> {
         }
 
         // Repository will handle unit conversion to base unit
+        // For purchase, pass costPerUnit so FIFO layer gets the correct cost
         await repo.adjustStock(
           ingredientId: widget.ingredient.id,
           outletId: widget.outletId,
           quantity: quantity,
           type: _selectedType,
           notes: notes,
-          inputUnit: _inputUnit, // Pass the input unit for conversion
+          inputUnit: _inputUnit,
+          costPerUnit: _selectedType == 'purchase' ? newCostInBase : null,
         );
       }
 
