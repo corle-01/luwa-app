@@ -217,12 +217,12 @@ class InventoryRepository {
     required String type,
     String? notes,
     String? inputUnit, // Unit used for input (optional)
+    double? costPerUnit, // Cost per unit for purchases (in base unit)
   }) async {
     double finalQuantity = quantity;
 
     // If inputUnit is provided, convert to base unit
     if (inputUnit != null) {
-      // Fetch ingredient to get base unit
       final response = await _supabase
           .from('ingredients')
           .select('base_unit')
@@ -231,7 +231,6 @@ class InventoryRepository {
 
       final baseUnit = response['base_unit'] as String? ?? 'pcs';
 
-      // Convert to base unit
       final converted = UnitConverter.convert(
         value: quantity,
         from: inputUnit,
@@ -240,12 +239,80 @@ class InventoryRepository {
       finalQuantity = converted ?? quantity;
     }
 
+    double? movementCost;
+
+    // FIFO layer management based on movement type
+    if (_isPurchaseType(type) && finalQuantity > 0) {
+      // Purchase: create a new cost layer
+      final cost = costPerUnit ?? 0;
+      await _supabase.from('ingredient_cost_layers').insert({
+        'ingredient_id': ingredientId,
+        'outlet_id': outletId,
+        'original_qty': finalQuantity,
+        'remaining_qty': finalQuantity,
+        'cost_per_unit': cost,
+        'reference_type': 'purchase',
+      });
+      movementCost = cost;
+
+      // Update ingredient cost_per_unit to oldest remaining layer (FIFO)
+      await _supabase.rpc('update_fifo_cost', params: {
+        'p_ingredient_id': ingredientId,
+      });
+    } else if (_isConsumptionType(type) && finalQuantity < 0) {
+      // Consumption: deplete oldest FIFO layers first
+      final absQty = finalQuantity.abs();
+      final fifoCost = await _supabase.rpc('consume_fifo_layers', params: {
+        'p_ingredient_id': ingredientId,
+        'p_quantity': absQty,
+      });
+      movementCost = IngredientModel._toDouble(fifoCost);
+
+      // Update ingredient cost_per_unit to oldest remaining layer
+      await _supabase.rpc('update_fifo_cost', params: {
+        'p_ingredient_id': ingredientId,
+      });
+    } else if (type == 'adjustment') {
+      if (finalQuantity > 0) {
+        // Positive adjustment: create layer at current cost
+        final ingredient = await _supabase
+            .from('ingredients')
+            .select('cost_per_unit')
+            .eq('id', ingredientId)
+            .single();
+        final currentCost = IngredientModel._toDouble(ingredient['cost_per_unit']);
+
+        await _supabase.from('ingredient_cost_layers').insert({
+          'ingredient_id': ingredientId,
+          'outlet_id': outletId,
+          'original_qty': finalQuantity,
+          'remaining_qty': finalQuantity,
+          'cost_per_unit': currentCost,
+          'reference_type': 'adjustment',
+        });
+        movementCost = currentCost;
+      } else if (finalQuantity < 0) {
+        // Negative adjustment: consume from FIFO layers
+        final absQty = finalQuantity.abs();
+        final fifoCost = await _supabase.rpc('consume_fifo_layers', params: {
+          'p_ingredient_id': ingredientId,
+          'p_quantity': absQty,
+        });
+        movementCost = IngredientModel._toDouble(fifoCost);
+      }
+
+      await _supabase.rpc('update_fifo_cost', params: {
+        'p_ingredient_id': ingredientId,
+      });
+    }
+
     // Insert stock movement record (store in base unit)
     await _supabase.from('stock_movements').insert({
       'outlet_id': outletId,
       'ingredient_id': ingredientId,
       'movement_type': type,
       'quantity': finalQuantity,
+      'cost_at_movement': movementCost,
       'notes': notes,
     });
 
@@ -254,6 +321,26 @@ class InventoryRepository {
       'p_ingredient_id': ingredientId,
       'p_quantity': finalQuantity,
     });
+  }
+
+  bool _isPurchaseType(String type) {
+    return type == 'purchase' || type == 'stock_in' || type == 'purchase_order';
+  }
+
+  bool _isConsumptionType(String type) {
+    return type == 'auto_deduct' || type == 'waste' || type == 'production' || type == 'stock_out';
+  }
+
+  /// Get active FIFO cost layers for an ingredient
+  Future<List<Map<String, dynamic>>> getCostLayers(String ingredientId) async {
+    final response = await _supabase
+        .from('ingredient_cost_layers')
+        .select()
+        .eq('ingredient_id', ingredientId)
+        .gt('remaining_qty', 0)
+        .order('purchase_date', ascending: true);
+
+    return List<Map<String, dynamic>>.from(response as List);
   }
 
   Future<void> updateIngredient(
